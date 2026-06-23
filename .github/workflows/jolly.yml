@@ -1,0 +1,37 @@
+name: Jolly - Sjálfvirk veðurspá
+
+on:
+  schedule:
+    # Keyrir á 6 klst. fresti: 00:00, 06:00, 12:00, 18:00 UTC
+    - cron: '0 0,6,12,18 * * *'
+  # Leyfir þér að keyra handvirkt ef þú vilt
+  workflow_dispatch:
+
+jobs:
+  update-jolly:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: 📥 Sækja kóða
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setja upp Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 📦 Setja upp pakka
+        run: pip install requests
+
+      - name: 🌦️ Keyra Jolly
+        run: python jolly.py
+
+      - name: 💾 Vista gögn í GitHub
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "🌦️ Jolly uppfærsla - ${{ github.run_id }}"
+          file_pattern: "data/*.json"
+          commit_user_name: "Jolly Bot"
+          commit_user_email: "jolly@weather.bot"
