@@ -14,7 +14,7 @@ import math
 LAT = 65.2620
 LON = -14.4035
 STATION_ID = 571
-DATA_DIR = Path("data")
+DATA_DIR = Path("docs/data")
 DATA_DIR.mkdir(exist_ok=True)
 
 MODELS = {
