@@ -171,8 +171,8 @@ let charts = {};
 async function loadData() {
   try {
     const [fcRes, modelRes] = await Promise.all([
-      fetch(`https://raw.githubusercontent.com/Blodnasir10/jolly-weather/main/data/jolly_forecast.json?t=${Date.now()}`),
-      fetch(`https://raw.githubusercontent.com/Blodnasir10/jolly-weather/main/data/jolly_model.json?t=${Date.now()}`),
+      fetch(`https://raw.githubusercontent.com/Blodnasir10/jolly-weather/main/docs/data/jolly_forecast.json?t=${Date.now()}`),
+      fetch(`https://raw.githubusercontent.com/Blodnasir10/jolly-weather/main/docs/data/jolly_model.json?t=${Date.now()}`),
     ]);
     FC    = await fcRes.json();
     MODEL = await modelRes.json();
