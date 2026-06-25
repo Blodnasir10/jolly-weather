@@ -179,7 +179,7 @@ def fetch_apisIs_forecast():
 # ─── 3. MÆLINGAR ─────────────────────────────────────────────────────────────
 def fetch_observations():
     print("🌡️  Sæki mælingar frá apis.is (stöð 571)...")
-    url = f"https://apis.is/weather/observations/is?stations={STATION_ID}&time=1h"
+   url = f"https://apis.is/weather/observations/is?stations={STATION_ID}&time=1h&anytime=1"
     try:
         data = fetch_url(url)
         results = data.get("results",[])
