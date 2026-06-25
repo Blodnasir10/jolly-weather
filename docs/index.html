@@ -485,6 +485,37 @@ function renderForsida(){
   const allT=Object.values(days).flatMap(d=>d.temps);
   const gMin=Math.min(...allT),gMax=Math.max(...allT),range=gMax-gMin||1;
 
+  // Nota daily gögn frá Jolly ef til
+  const useDailyFC = FC.daily && FC.daily.date && FC.daily.date.length > 0;
+
+  if(useDailyFC){
+    const dd=FC.daily;
+    const allMx=dd.temp_max.filter(v=>v!==null);
+    const allMn=dd.temp_min.filter(v=>v!==null);
+    const gMax2=Math.max(...allMx), gMin2=Math.min(...allMn), range2=(gMax2-gMin2)||1;
+    dd.date.forEach((d,i)=>{
+      const mn=dd.temp_min[i]; const mx=dd.temp_max[i];
+      const rain=dd.precipitation_total[i]||0;
+      const wdir=dd.wind_dir_dominant[i]||'';
+      const dt=new Date(d+'T12:00:00Z');
+      const dayName=DAGAR[dt.getUTCDay()]+' '+dt.getUTCDate()+'/'+(dt.getUTCMonth()+1);
+      const bl=mn!==null?(((mn-gMin2)/range2)*100).toFixed(1):'0';
+      const bw=(mn!==null&&mx!==null)?(((mx-mn)/range2)*100).toFixed(1):'100';
+      const ri=wIcon(rain/24,false);
+      const el=document.createElement('div');
+      el.className='day-row';
+      el.innerHTML=`
+        <div class="d-name">${dayName}</div>
+        <div class="d-icon">${ri}</div>
+        <div class="d-rain">${rain>0?rain.toFixed(1)+' mm':''}</div>
+        <div class="d-bar-wrap"><div class="d-bar" style="left:${bl}%;width:${bw}%"></div></div>
+        <div class="d-min">${mn!==null?Math.round(mn)+'°':'—'}</div>
+        <div class="d-max">${mx!==null?Math.round(mx)+'°':'—'}</div>
+        <div class="d-wdir">${wdir}</div>
+      `;
+      dc.appendChild(el);
+    });
+  } else {
   Object.entries(days).slice(0,6).forEach(([d,v])=>{
     if(!v.temps.length)return;
     const mn=Math.round(Math.min(...v.temps));
@@ -504,9 +535,11 @@ function renderForsida(){
       <div class="d-bar-wrap"><div class="d-bar" style="left:${bl}%;width:${bw}%"></div></div>
       <div class="d-min">${mn}°</div>
       <div class="d-max">${mx}°</div>
+      <div class="d-wdir"></div>
     `;
     dc.appendChild(el);
   });
+  }
 }
 
 function renderNanar(){
