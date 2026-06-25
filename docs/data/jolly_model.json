@@ -1,28 +1,40 @@
 {
   "version": "1.0",
   "created": "2026-06-24T00:32:50.944399+00:00",
-  "training_days": 8,
+  "training_days": 9,
   "biases": {
     "icon": {
-      "hiti": -0.6529153073571429,
-      "vindur": -0.7707653984874996,
-      "urkoma_scale": 1.0531734665203756
+      "hiti": -0.664897858007143,
+      "vindur": -0.7850714932269639,
+      "urkoma_scale": 1.0811869438056423
     },
     "gfs": {
-      "hiti": -0.02916803778571425,
-      "vindur": -0.6650873538946427,
-      "urkoma_scale": 1.3228775742629484
+      "hiti": -0.09041762644999997,
+      "vindur": -0.7643111477262499,
+      "urkoma_scale": 1.3693476353173972
     },
     "ecmwf": {
-      "hiti": -0.5898313230357141,
-      "vindur": 0.19093215421785703,
-      "urkoma_scale": 0.7831251404838714
+      "hiti": -0.5889533546964284,
+      "vindur": 0.1503132222382142,
+      "urkoma_scale": 0.7748921437932552
+    },
+    "metno": {
+      "hiti": 0.0,
+      "vindur": 0.0,
+      "urkoma_scale": 1.0
+    },
+    "harmonie": {
+      "hiti": 0.0,
+      "vindur": 0.0,
+      "urkoma_scale": 1.0
     }
   },
   "weights": {
-    "icon": 0.3374,
-    "gfs": 0.2977,
-    "ecmwf": 0.3649
+    "icon": 0.376,
+    "gfs": 0.2594,
+    "ecmwf": 0.3645,
+    "metno": 0.2,
+    "harmonie": 0.2
   },
   "mae_history": [
     {
@@ -164,8 +176,34 @@
           "vindur": 1.044
         }
       }
+    },
+    {
+      "date": "2026-06-25",
+      "obs_source": "open-meteo-best",
+      "mae": {
+        "icon": {
+          "hiti": 0.73,
+          "vindur": 1.277
+        },
+        "gfs": {
+          "hiti": 1.058,
+          "vindur": 1.09
+        },
+        "ecmwf": {
+          "hiti": 0.753,
+          "vindur": 0.972
+        },
+        "metno": {
+          "hiti": 0,
+          "vindur": 0
+        },
+        "harmonie": {
+          "hiti": 0,
+          "vindur": 0
+        }
+      }
     }
   ],
-  "last_updated": "2026-06-24T19:58:48.192815+00:00",
+  "last_updated": "2026-06-25T00:07:40.981304+00:00",
   "obs_source": "open-meteo-best"
 }
