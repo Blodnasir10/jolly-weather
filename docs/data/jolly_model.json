@@ -1,22 +1,22 @@
 {
   "version": "1.0",
   "created": "2026-06-24T00:32:50.944399+00:00",
-  "training_days": 38,
+  "training_days": 39,
   "biases": {
     "icon": {
-      "hiti": -0.5450924874220002,
-      "vindur": -0.2992637546438772,
-      "urkoma_scale": 0.342439628173057
+      "hiti": -0.5544218840525429,
+      "vindur": -0.3001453425364283,
+      "urkoma_scale": 0.3506903986806775
     },
     "gfs": {
-      "hiti": -1.0469711939646213,
-      "vindur": -0.938248883122878,
-      "urkoma_scale": 0.6295212904066596
+      "hiti": -1.0727012643466634,
+      "vindur": -0.9497920753288718,
+      "urkoma_scale": 0.6326649032846617
     },
     "ecmwf": {
-      "hiti": -0.21734576585073845,
-      "vindur": 0.5882757644589336,
-      "urkoma_scale": 0.25522160178563386
+      "hiti": -0.2317848932383741,
+      "vindur": 0.5976680351212533,
+      "urkoma_scale": 0.26632635412665606
     },
     "metno": {
       "hiti": 0.0,
@@ -31,8 +31,8 @@
   },
   "weights": {
     "icon": 0.3428,
-    "gfs": 0.2743,
-    "ecmwf": 0.383,
+    "gfs": 0.2741,
+    "ecmwf": 0.3831,
     "metno": 0.2,
     "harmonie": 0.2
   },
@@ -956,8 +956,34 @@
           "vindur": 0
         }
       }
+    },
+    {
+      "date": "2026-06-30",
+      "obs_source": "open-meteo-best",
+      "mae": {
+        "icon": {
+          "hiti": 0.933,
+          "vindur": 1.234
+        },
+        "gfs": {
+          "hiti": 1.167,
+          "vindur": 1.609
+        },
+        "ecmwf": {
+          "hiti": 0.835,
+          "vindur": 1.054
+        },
+        "metno": {
+          "hiti": 0,
+          "vindur": 0
+        },
+        "harmonie": {
+          "hiti": 0,
+          "vindur": 0
+        }
+      }
     }
   ],
-  "last_updated": "2026-06-30T14:36:29.356881+00:00",
+  "last_updated": "2026-06-30T20:09:59.660134+00:00",
   "obs_source": "open-meteo-best"
 }
