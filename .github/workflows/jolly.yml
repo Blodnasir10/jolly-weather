@@ -1,13 +1,13 @@
-name: Jolly - Sjálfvirk veðurspá
+name: Jolly - Klukkustundarlærdómur
 
 on:
   schedule:
-    # Keyrir á 6 klst. fresti: 00:00, 06:00, 12:00, 18:00 UTC
-    - cron: '5 0,6,12,18 * * *'
-  # Keyrir líka þegar breytingar eru gerðar - heldur cron vakandi
+    # Keyrir 5 mínútum eftir hvern heilan tíma - 24x á dag
+    - cron: '5 * * * *'
+  # Keyrir líka þegar breytingar eru gerðar
   push:
     branches: [main]
-  # Leyfir þér að keyra handvirkt ef þú vilt
+  # Leyfir handvirka keyrslu
   workflow_dispatch:
 
 jobs:
@@ -34,7 +34,7 @@ jobs:
       - name: 💾 Vista gögn í GitHub
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "🌦️ Jolly uppfærsla - ${{ github.run_id }}"
-          file_pattern: "data/*.json docs/data/*.json"
+          commit_message: "🌦️ Jolly ${{ github.run_id }}"
+          file_pattern: "docs/data/*.json"
           commit_user_name: "Jolly Bot"
           commit_user_email: "jolly@weather.bot"
