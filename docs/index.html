@@ -120,23 +120,31 @@ body{
   font-size:.58rem;letter-spacing:.16em;text-transform:uppercase;
   color:var(--dim);padding:0 4px;margin-top:2px;
 }
-.hourly-wrap{position:relative;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
-.hourly-wrap::-webkit-scrollbar{display:none}
-.hourly-line-svg{position:absolute;top:34px;left:0;height:26px;pointer-events:none;z-index:2}
-.hourly-row{display:flex;gap:8px;padding:2px 1px}
-.hour-card{
-  flex-shrink:0;min-width:68px;padding:14px 10px 12px;
-  display:flex;flex-direction:column;align-items:center;gap:0;
+.hourly-card{padding:16px 14px 12px}
+.hourly-scroll{
+  display:flex;overflow-x:auto;scroll-snap-type:x mandatory;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;
 }
-.hour-card.now{
-  background:rgba(255,255,255,0.11);
-  border-color:rgba(255,255,255,0.18);
-  box-shadow:0 4px 24px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.12);
+.hourly-scroll::-webkit-scrollbar{display:none}
+.hourly-page{
+  flex:0 0 100%;scroll-snap-align:start;
+  display:flex;flex-direction:column;
 }
-.h-time{font-size:.6rem;color:var(--sub);letter-spacing:.06em;margin-bottom:8px;font-weight:400}
-.h-icon{font-size:1.25rem;margin-bottom:6px;line-height:1}
-.h-temp{font-size:1.05rem;font-weight:300;letter-spacing:-.01em}
-.h-rain{font-size:.6rem;color:rgba(147,197,253,0.75);margin-top:5px;min-height:14px;font-weight:300}
+.hp-grid{
+  display:grid;grid-template-columns:repeat(6,1fr);
+  gap:2px;text-align:center;
+}
+.hp-time{font-size:.62rem;color:var(--sub);letter-spacing:.04em;font-weight:400}
+.hp-time.now{color:var(--text);font-weight:600}
+.hp-icon{font-size:1.2rem;margin:8px 0 5px;line-height:1}
+.hp-temp{font-size:1.02rem;font-weight:300;letter-spacing:-.01em}
+.hourly-line-area{position:relative;height:32px;margin:10px 0 4px}
+.hourly-line-area svg{width:100%;height:100%;display:block;overflow:visible}
+.hp-rain-row{display:grid;grid-template-columns:repeat(6,1fr);text-align:center}
+.hp-rain{font-size:.6rem;color:rgba(147,197,253,0.7);font-weight:300;min-height:13px}
+.hourly-dots{display:flex;justify-content:center;gap:5px;margin-top:12px}
+.hourly-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,0.15);transition:background .25s}
+.hourly-dot.active{background:rgba(255,255,255,0.55)}
 
 /* Daily */
 .daily-card{padding:4px 0;overflow:hidden}
@@ -382,9 +390,9 @@ tr:hover td{background:rgba(255,255,255,0.025)}
 
   <!-- Hourly -->
   <div class="section-lbl">Næstu klukkustundir</div>
-  <div class="hourly-wrap">
-    <svg id="hourlyLineSvg" class="hourly-line-svg" preserveAspectRatio="none"></svg>
-    <div class="hourly-row" id="hourlyRow"></div>
+  <div class="g hourly-card">
+    <div class="hourly-scroll" id="hourlyScroll"></div>
+    <div class="hourly-dots" id="hourlyDots"></div>
   </div>
 
   <!-- Daily -->
@@ -473,24 +481,122 @@ async function load(){
   }catch(e){document.getElementById('heroDesc').textContent='Villa við gagnasótt';console.error(e)}
 }
 
-function drawHourlyLine(vals){
-  const svg=document.getElementById('hourlyLineSvg');
-  const wrap=document.querySelector('.hourly-wrap');
-  if(!svg||!wrap||!vals.length)return;
-  const cardW=68+8; // min-width + gap approx
-  const totalW=vals.length*cardW;
-  svg.setAttribute('width',totalW);
-  svg.setAttribute('viewBox',`0 0 ${totalW} 26`);
-  svg.style.width=totalW+'px';
-  const maxV=Math.max(...vals,0.1);
+function buildHourlyPages(T, idx){
+  const scroll=document.getElementById('hourlyScroll');
+  const dotsWrap=document.getElementById('hourlyDots');
+  scroll.innerHTML='';
+  dotsWrap.innerHTML='';
+
+  const HOURS_TOTAL=24, PER_PAGE=6;
+  const endIdx=Math.min(idx+HOURS_TOTAL, T.length);
+  const indices=[];
+  for(let i=idx;i<endIdx;i++) indices.push(i);
+
+  // Sameiginlegur skali fyrir allar síður - svo línan er samanburðarhæf
+  const allRain=indices.map(i=>FC.hourly.precipitation[i]||0);
+  const maxRain=Math.max(...allRain, 1); // lágmark 1mm skali svo lítil gildi sjást ekki sem risa
+
+  const nPages=Math.ceil(indices.length/PER_PAGE);
+
+  for(let p=0;p<nPages;p++){
+    const pageIndices=indices.slice(p*PER_PAGE,(p+1)*PER_PAGE);
+    while(pageIndices.length<PER_PAGE) pageIndices.push(null); // fylla tóma reiti á síðustu síðu
+
+    const page=document.createElement('div');
+    page.className='hourly-page';
+
+    // Tími + tákn + hiti röð
+    let timeHtml='<div class="hp-grid">';
+    pageIndices.forEach(i=>{
+      if(i===null){timeHtml+='<div></div>';return;}
+      const isNow=i===idx;
+      timeHtml+=`<div class="hp-time${isNow?' now':''}">${isNow?'Núna':hfmt(T[i])}</div>`;
+    });
+    timeHtml+='</div><div class="hp-grid">';
+    pageIndices.forEach(i=>{
+      if(i===null){timeHtml+='<div></div>';return;}
+      const r=FC.hourly.precipitation[i]||0;
+      const ht=new Date(T[i]+'Z').getUTCHours();
+      const ni=ht<6||ht>=22;
+      timeHtml+=`<div class="hp-icon">${wIcon(r,ni)}</div>`;
+    });
+    timeHtml+='</div><div class="hp-grid">';
+    pageIndices.forEach(i=>{
+      if(i===null){timeHtml+='<div></div>';return;}
+      const t=FC.hourly.temperature[i];
+      timeHtml+=`<div class="hp-temp">${t!==null?Math.round(t)+'°':'—'}</div>`;
+    });
+    timeHtml+='</div>';
+
+    page.innerHTML=timeHtml;
+
+    // Línurit svæði
+    const lineArea=document.createElement('div');
+    lineArea.className='hourly-line-area';
+    const pageRain=pageIndices.map(i=>i===null?null:(FC.hourly.precipitation[i]||0));
+    lineArea.innerHTML=buildLineSvg(pageRain, maxRain);
+    page.appendChild(lineArea);
+
+    // mm gildi röð
+    let rainHtml='<div class="hp-rain-row">';
+    pageIndices.forEach(i=>{
+      if(i===null){rainHtml+='<div></div>';return;}
+      const r=FC.hourly.precipitation[i]||0;
+      rainHtml+=`<div class="hp-rain">${r>0?r.toFixed(1)+' mm':'0 mm'}</div>`;
+    });
+    rainHtml+='</div>';
+    page.insertAdjacentHTML('beforeend', rainHtml);
+
+    scroll.appendChild(page);
+
+    const dot=document.createElement('div');
+    dot.className='hourly-dot'+(p===0?' active':'');
+    dotsWrap.appendChild(dot);
+  }
+
+  // Uppfæra punkta við skroll
+  scroll.onscroll=()=>{
+    const pageW=scroll.clientWidth;
+    const cur=Math.round(scroll.scrollLeft/pageW);
+    document.querySelectorAll('.hourly-dot').forEach((d,i)=>d.classList.toggle('active',i===cur));
+  };
+}
+
+function buildLineSvg(vals, maxV){
+  const n=vals.length;
+  const W=300, H=32, pad=6;
+  const validIdx=vals.map((v,i)=>v!==null?i:null).filter(i=>i!==null);
+  if(validIdx.length===0) return '';
+
+  const stepX=W/n;
   const pts=vals.map((v,i)=>{
-    const x=cardW*i+cardW/2;
-    const y=26 - (v/maxV)*20 - 2;
+    if(v===null) return null;
+    const x=stepX*i+stepX/2;
+    const frac=Math.min(v/maxV,1);
+    const y=(H-pad) - frac*(H-pad*2);
     return [x,y];
   });
-  const pathD=pts.map((p,i)=>(i===0?'M':'L')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
-  const dots=pts.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2" fill="rgba(147,197,253,0.85)"/>`).join('');
-  svg.innerHTML=`<path d="${pathD}" fill="none" stroke="rgba(147,197,253,0.55)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>${dots}`;
+
+  const validPts=pts.filter(p=>p!==null);
+  if(validPts.length===0) return '';
+
+  let pathD='';
+  validPts.forEach((p,idx)=>{
+    pathD += (idx===0?'M':'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1) + ' ';
+  });
+
+  const dots=validPts.map(p=>
+    `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.2" fill="rgba(147,197,253,0.9)"/>`
+  ).join('');
+
+  // Grunnlína (0mm) neðst - alltaf sýnileg dauf lína
+  const baseline=`<line x1="0" y1="${H-pad}" x2="${W}" y2="${H-pad}" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>`;
+
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    ${baseline}
+    <path d="${pathD.trim()}" fill="none" stroke="rgba(147,197,253,0.6)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    ${dots}
+  </svg>`;
 }
 
 function renderForsida(){
@@ -542,27 +648,8 @@ function renderForsida(){
     document.getElementById('c6h').textContent=`+6klst ${dir(wdir6)}  ${wind6!==null?wind6.toFixed(1)+' m/s':''}`;
   }
 
-  // Hourly
-  const hr=document.getElementById('hourlyRow');
-  hr.innerHTML='';
-  const hourlyRainVals=[];
-  const hourlyCount=Math.min(idx+13,T.length)-idx;
-  for(let i=idx;i<Math.min(idx+13,T.length);i++){
-    const r=FC.hourly.precipitation[i]||0;
-    hourlyRainVals.push(r);
-    const ht=new Date(T[i]+'Z').getUTCHours();
-    const ni=ht<6||ht>=22;
-    const el=document.createElement('div');
-    el.className='g-sm hour-card'+(i===idx?' now':'');
-    el.innerHTML=`
-      <div class="h-time">${i===idx?'Núna':hfmt(T[i])}</div>
-      <div class="h-icon">${wIcon(r,ni)}</div>
-      <div class="h-temp">${FC.hourly.temperature[i]!==null?Math.round(FC.hourly.temperature[i])+'°':'—'}</div>
-      <div class="h-rain">${r>0?r.toFixed(1)+' mm':''}</div>
-    `;
-    hr.appendChild(el);
-  }
-  drawHourlyLine(hourlyRainVals);
+  // Hourly — 24 klst skipt í 4 síður af 6
+  buildHourlyPages(T, idx);
 
   // Daily
   const dc=document.getElementById('dailyCard');
