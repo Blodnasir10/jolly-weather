@@ -698,6 +698,42 @@ function buildTable(){
   document.getElementById('nTable').innerHTML=h;
 }
 
+
+// ── LOGIN ────────────────────────────────────────────────────────────────────
+function openLogin(){
+  document.getElementById('loginModal').classList.add('open');
+  document.getElementById('loginError').textContent='';
+  document.getElementById('loginUser').value='';
+  document.getElementById('loginPass').value='';
+  setTimeout(()=>document.getElementById('loginUser').focus(),100);
+}
+function closeLogin(){
+  document.getElementById('loginModal').classList.remove('open');
+}
+function tryLogin(){
+  const u=document.getElementById('loginUser').value.trim();
+  const p=document.getElementById('loginPass').value.trim();
+  if(u==='admin' && p==='admin'){
+    closeLogin();
+    document.getElementById('nanar').classList.add('open');
+    document.getElementById('nanar').scrollIntoView({behavior:'smooth'});
+  } else {
+    document.getElementById('loginError').textContent='Rangt notandanafn eða lykilorð';
+  }
+}
+function closeNanar(){
+  document.getElementById('nanar').classList.remove('open');
+  document.getElementById('forsida').scrollIntoView({behavior:'smooth'});
+}
+document.addEventListener('keydown', e=>{
+  if(e.key==='Enter' && document.getElementById('loginModal').classList.contains('open')){
+    tryLogin();
+  }
+  if(e.key==='Escape' && document.getElementById('loginModal').classList.contains('open')){
+    closeLogin();
+  }
+});
+
 load();
 </script>
 </body>
