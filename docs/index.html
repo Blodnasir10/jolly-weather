@@ -101,13 +101,15 @@ body{
 .wind-row{display:grid;grid-template-columns:1fr 148px 1fr;gap:10px;align-items:stretch}
 
 .stat-card{padding:18px 10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
-.stat-lbl{font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--sub);margin-bottom:4px}
+.stat-lbl{font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--sub);margin-bottom:4px;display:flex;align-items:center;gap:3px}
+.stat-lbl::after{content:'⌄';font-size:.75rem;opacity:.5;font-weight:400}
 .stat-val{font-size:2rem;font-weight:200;letter-spacing:-.03em;line-height:1}
 .stat-unit{font-size:.62rem;color:var(--dim);margin-top:2px}
 
 /* Compass */
 .compass-card{padding:14px 10px;display:flex;flex-direction:column;align-items:center;gap:0}
-.c-lbl{font-size:.55rem;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
+.c-lbl{font-size:.55rem;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:6px;display:flex;align-items:center;justify-content:center;gap:3px}
+.c-lbl::after{content:'⌄';font-size:.7rem;opacity:.5;font-weight:400}
 .compass{width:110px;height:110px;position:relative}
 .compass svg{width:100%;height:100%}
 .c-now{font-size:.68rem;font-weight:500;color:var(--text);margin-top:5px;letter-spacing:.05em}
@@ -118,8 +120,9 @@ body{
   font-size:.58rem;letter-spacing:.16em;text-transform:uppercase;
   color:var(--dim);padding:0 4px;margin-top:2px;
 }
-.hourly-wrap{overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.hourly-wrap{position:relative;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
 .hourly-wrap::-webkit-scrollbar{display:none}
+.hourly-line-svg{position:absolute;top:34px;left:0;height:26px;pointer-events:none;z-index:2}
 .hourly-row{display:flex;gap:8px;padding:2px 1px}
 .hour-card{
   flex-shrink:0;min-width:68px;padding:14px 10px 12px;
@@ -380,6 +383,7 @@ tr:hover td{background:rgba(255,255,255,0.025)}
   <!-- Hourly -->
   <div class="section-lbl">Næstu klukkustundir</div>
   <div class="hourly-wrap">
+    <svg id="hourlyLineSvg" class="hourly-line-svg" preserveAspectRatio="none"></svg>
     <div class="hourly-row" id="hourlyRow"></div>
   </div>
 
@@ -469,6 +473,26 @@ async function load(){
   }catch(e){document.getElementById('heroDesc').textContent='Villa við gagnasótt';console.error(e)}
 }
 
+function drawHourlyLine(vals){
+  const svg=document.getElementById('hourlyLineSvg');
+  const wrap=document.querySelector('.hourly-wrap');
+  if(!svg||!wrap||!vals.length)return;
+  const cardW=68+8; // min-width + gap approx
+  const totalW=vals.length*cardW;
+  svg.setAttribute('width',totalW);
+  svg.setAttribute('viewBox',`0 0 ${totalW} 26`);
+  svg.style.width=totalW+'px';
+  const maxV=Math.max(...vals,0.1);
+  const pts=vals.map((v,i)=>{
+    const x=cardW*i+cardW/2;
+    const y=26 - (v/maxV)*20 - 2;
+    return [x,y];
+  });
+  const pathD=pts.map((p,i)=>(i===0?'M':'L')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+  const dots=pts.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2" fill="rgba(147,197,253,0.85)"/>`).join('');
+  svg.innerHTML=`<path d="${pathD}" fill="none" stroke="rgba(147,197,253,0.55)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>${dots}`;
+}
+
 function renderForsida(){
   const T=FC.hourly.time;
   const now=new Date();
@@ -521,8 +545,11 @@ function renderForsida(){
   // Hourly
   const hr=document.getElementById('hourlyRow');
   hr.innerHTML='';
+  const hourlyRainVals=[];
+  const hourlyCount=Math.min(idx+13,T.length)-idx;
   for(let i=idx;i<Math.min(idx+13,T.length);i++){
     const r=FC.hourly.precipitation[i]||0;
+    hourlyRainVals.push(r);
     const ht=new Date(T[i]+'Z').getUTCHours();
     const ni=ht<6||ht>=22;
     const el=document.createElement('div');
@@ -535,6 +562,7 @@ function renderForsida(){
     `;
     hr.appendChild(el);
   }
+  drawHourlyLine(hourlyRainVals);
 
   // Daily
   const dc=document.getElementById('dailyCard');
