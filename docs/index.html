@@ -298,6 +298,7 @@ tr:hover td{background:rgba(255,255,255,0.025)}
   cursor:pointer;padding:4px;letter-spacing:.05em;
 }
 .login-cancel:hover{color:var(--sub)}
+.wx svg{width:100%;height:100%;display:block}
 </style>
 </head>
 <body>
@@ -460,14 +461,182 @@ const BG={
 
 function slot(h){return h<5?'nott':h<7?'dogun':h<19?'dagur':h<21?'solsetur':'kvold'}
 function wKey(mm){return mm>3?'rain':mm>0.3?'rain':mm>0?'cloudy':'clear'}
-const MC_BASE='https://cdn.meteocons.com/latest/svg/fill/';
-const MC_FALLBACK='overcast';
+// ── TÁKNKERFI ────────────────────────────────────────────────────────────────
+// Handteiknuð SVG tákn - engin ytri tenging, virka alltaf.
+// Byggð úr einingum: sól, tungl, ský, úrkoma. Canvas 128x128.
 
-// Byggir Meteocons <img> merki. Fellur aftur a 'overcast' ef taknid finnst ekki.
+const WX_C = {
+  sun1:'#FFD972', sun2:'#FF9F43',
+  moon1:'#EEF3FB', moon2:'#C3CEE0',
+  cloud1:'rgba(255,255,255,0.95)', cloud2:'rgba(214,226,240,0.85)',
+  dark1:'rgba(206,218,233,0.95)',  dark2:'rgba(160,176,196,0.9)',
+  rain:'#7DD3FC', snow:'#E8F6FF', bolt:'#FBBF24', fog:'rgba(255,255,255,0.6)',
+};
+
+function wxDefs(id){
+  return `<defs>
+    <linearGradient id="s${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${WX_C.sun1}"/><stop offset="1" stop-color="${WX_C.sun2}"/>
+    </linearGradient>
+    <linearGradient id="m${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${WX_C.moon1}"/><stop offset="1" stop-color="${WX_C.moon2}"/>
+    </linearGradient>
+    <linearGradient id="c${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${WX_C.cloud1}"/><stop offset="1" stop-color="${WX_C.cloud2}"/>
+    </linearGradient>
+    <linearGradient id="d${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${WX_C.dark1}"/><stop offset="1" stop-color="${WX_C.dark2}"/>
+    </linearGradient>
+  </defs>`;
+}
+
+// Sól - full stærð eða minni bak við ský
+function wxSun(id,cx,cy,r){
+  let rays='';
+  for(let i=0;i<8;i++){
+    const a=i*Math.PI/4, i1=r*1.35, i2=r*1.75;
+    rays+=`<line x1="${(cx+Math.cos(a)*i1).toFixed(1)}" y1="${(cy+Math.sin(a)*i1).toFixed(1)}"
+      x2="${(cx+Math.cos(a)*i2).toFixed(1)}" y2="${(cy+Math.sin(a)*i2).toFixed(1)}"
+      stroke="url(#s${id})" stroke-width="${(r*0.28).toFixed(1)}" stroke-linecap="round"/>`;
+  }
+  return rays+`<circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#s${id})"/>`;
+}
+
+function wxMoon(id,cx,cy,r){
+  return `<path d="M ${cx+r*0.30} ${cy-r}
+    a ${r} ${r} 0 1 0 ${r*0.78} ${r*1.62}
+    a ${r*0.82} ${r*0.82} 0 1 1 ${-r*0.78} ${-r*1.62} Z"
+    fill="url(#m${id})"/>`;
+}
+
+// Ský úr þremur hringjum + grunni
+function wxCloud(id,dx,dy,sc,dark){
+  const g = dark?`url(#d${id})`:`url(#c${id})`;
+  const t = (x,y,r)=>`<circle cx="${(dx+x*sc).toFixed(1)}" cy="${(dy+y*sc).toFixed(1)}" r="${(r*sc).toFixed(1)}" fill="${g}"/>`;
+  return `<g>${t(-16,4,17)}${t(4,-6,23)}${t(24,6,15)}
+    <rect x="${(dx-16*sc).toFixed(1)}" y="${(dy+2*sc).toFixed(1)}"
+      width="${(40*sc).toFixed(1)}" height="${(18*sc).toFixed(1)}"
+      rx="${(9*sc).toFixed(1)}" fill="${g}"/></g>`;
+}
+
+function wxRain(n,y0){
+  let o='';
+  const xs=[-16,0,16].slice(0,n);
+  xs.forEach((x,i)=>{
+    const yo=y0+(i%2)*6;
+    o+=`<line x1="${64+x}" y1="${yo}" x2="${64+x-5}" y2="${yo+15}"
+      stroke="${WX_C.rain}" stroke-width="5.5" stroke-linecap="round" opacity="0.95"/>`;
+  });
+  return o;
+}
+
+function wxSnow(n,y0){
+  let o='';
+  const xs=[-16,0,16].slice(0,n);
+  xs.forEach((x,i)=>{
+    const cy=y0+(i%2)*7+5;
+    o+=`<g stroke="${WX_C.snow}" stroke-width="3.4" stroke-linecap="round">
+      <line x1="${64+x-6}" y1="${cy}" x2="${64+x+6}" y2="${cy}"/>
+      <line x1="${64+x}" y1="${cy-6}" x2="${64+x}" y2="${cy+6}"/>
+      <line x1="${64+x-4}" y1="${cy-4}" x2="${64+x+4}" y2="${cy+4}"/>
+      <line x1="${64+x-4}" y1="${cy+4}" x2="${64+x+4}" y2="${cy-4}"/>
+    </g>`;
+  });
+  return o;
+}
+
+function wxSleet(y0){
+  return `<line x1="52" y1="${y0}" x2="47" y2="${y0+15}"
+      stroke="${WX_C.rain}" stroke-width="5.5" stroke-linecap="round"/>
+    <g stroke="${WX_C.snow}" stroke-width="3.4" stroke-linecap="round">
+      <line x1="70" y1="${y0+8}" x2="82" y2="${y0+8}"/>
+      <line x1="76" y1="${y0+2}" x2="76" y2="${y0+14}"/>
+      <line x1="72" y1="${y0+4}" x2="80" y2="${y0+12}"/>
+      <line x1="72" y1="${y0+12}" x2="80" y2="${y0+4}"/>
+    </g>`;
+}
+
+function wxBolt(){
+  return `<path d="M 68 84 L 56 106 L 66 106 L 60 122 L 78 98 L 68 98 Z"
+    fill="${WX_C.bolt}"/>`;
+}
+
+function wxFogLines(y0){
+  let o='';
+  [[26,102],[20,108],[30,98]].forEach((w,i)=>{
+    o+=`<line x1="${w[0]}" y1="${y0+i*14}" x2="${w[1]}" y2="${y0+i*14}"
+      stroke="${WX_C.fog}" stroke-width="7" stroke-linecap="round"/>`;
+  });
+  return o;
+}
+
+// Setur saman tákn út frá slug
+function wxBuild(slug,uid){
+  const D = wxDefs(uid);
+  const S = (b)=>`<svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">${D}${b}</svg>`;
+  const night = slug.includes('night');
+  const lum   = (cx,cy,r)=> night ? wxMoon(uid,cx,cy,r) : wxSun(uid,cx,cy,r);
+
+  switch(true){
+    case slug==='clear-day':    return S(wxSun(uid,64,64,24));
+    case slug==='clear-night':  return S(wxMoon(uid,66,62,30));
+
+    case slug.startsWith('partly-cloudy') && !slug.match(/rain|snow|sleet/):
+      return S(lum(46,44,17)+wxCloud(uid,68,72,0.92,false));
+
+    case slug==='overcast-day': case slug==='overcast-night':
+      return S(lum(44,40,14)+wxCloud(uid,64,70,1.05,false));
+
+    case slug==='overcast':
+      return S(wxCloud(uid,64,62,1.15,false));
+
+    case slug==='drizzle':
+      return S(wxCloud(uid,64,52,1.05,false)+wxRain(2,88));
+
+    case slug==='overcast-rain':
+      return S(wxCloud(uid,64,50,1.05,true)+wxRain(3,86));
+    case slug==='extreme-rain':
+      return S(wxCloud(uid,64,48,1.12,true)+wxRain(3,84)+
+               `<line x1="64" y1="102" x2="59" y2="117" stroke="${WX_C.rain}"
+                stroke-width="5.5" stroke-linecap="round"/>`);
+
+    case slug.includes('-rain') && slug.startsWith('partly'):
+      return S(lum(44,36,14)+wxCloud(uid,68,58,0.95,false)+wxRain(2,90));
+
+    case slug==='overcast-snow':
+      return S(wxCloud(uid,64,50,1.05,true)+wxSnow(3,84));
+    case slug==='extreme-snow':
+      return S(wxCloud(uid,64,48,1.12,true)+wxSnow(3,82)+wxSnow(1,100));
+    case slug.includes('-snow') && slug.startsWith('partly'):
+      return S(lum(44,36,14)+wxCloud(uid,68,58,0.95,false)+wxSnow(2,88));
+
+    case slug==='overcast-sleet': case slug==='extreme-sleet':
+      return S(wxCloud(uid,64,50,1.05,true)+wxSleet(86));
+    case slug.includes('-sleet') && slug.startsWith('partly'):
+      return S(lum(44,36,14)+wxCloud(uid,68,58,0.95,false)+wxSleet(88));
+
+    case slug.startsWith('thunderstorms'):
+      return S(wxCloud(uid,64,48,1.08,true)+wxBolt()+
+               `<line x1="44" y1="86" x2="39" y2="100" stroke="${WX_C.rain}"
+                stroke-width="5" stroke-linecap="round"/>
+                <line x1="90" y1="86" x2="85" y2="100" stroke="${WX_C.rain}"
+                stroke-width="5" stroke-linecap="round"/>`);
+
+    case slug.startsWith('fog'):
+      return S(wxCloud(uid,64,46,0.95,false)+wxFogLines(80));
+    case slug==='mist':
+      return S(wxFogLines(48)+wxFogLines(90));
+
+    default:
+      return S(wxCloud(uid,64,62,1.15,false));
+  }
+}
+
+let _wxUid = 0;
 function mcIcon(slug,size){
-  const s=slug||MC_FALLBACK;
-  return `<img src="${MC_BASE}${s}.svg" alt="" width="${size}" height="${size}" `
-       + `loading="lazy" onerror="this.onerror=null;this.src='${MC_BASE}${MC_FALLBACK}.svg'">`;
+  const s = slug || 'overcast';
+  const svg = wxBuild(s, ++_wxUid);
+  return `<span class="wx" style="width:${size}px;height:${size}px;display:block">${svg}</span>`;
 }
 
 function dir(deg){
