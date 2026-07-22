@@ -78,7 +78,9 @@ body{
 
 /* Hero */
 .hero{text-align:center;padding:8px 0 4px}
-.hero-icon{font-size:4.5rem;line-height:1;margin-bottom:2px;filter:drop-shadow(0 4px 20px rgba(0,0,0,0.4))}
+.hero-icon{line-height:1;margin-bottom:0;display:flex;justify-content:center;
+  filter:drop-shadow(0 6px 24px rgba(0,0,0,0.45))}
+.hero-icon img{width:120px;height:120px;display:block}
 .hero-temp{
   font-size:7rem;font-weight:100;letter-spacing:-.05em;
   line-height:.9;
@@ -136,7 +138,8 @@ body{
 }
 .hp-time{font-size:.62rem;color:var(--sub);letter-spacing:.04em;font-weight:400}
 .hp-time.now{color:var(--text);font-weight:600}
-.hp-icon{font-size:1.2rem;margin:8px 0 5px;line-height:1}
+.hp-icon{margin:6px 0 3px;line-height:1;display:flex;justify-content:center}
+.hp-icon img{width:34px;height:34px;display:block}
 .hp-temp{font-size:1.02rem;font-weight:300;letter-spacing:-.01em}
 .hourly-line-area{position:relative;height:32px;margin:10px 0 4px}
 .hourly-line-area svg{width:100%;height:100%;display:block;overflow:visible}
@@ -156,7 +159,8 @@ body{
 }
 .day-row:last-child{border-bottom:none}
 .d-name{font-size:.8rem;font-weight:300;color:var(--text)}
-.d-icon{font-size:1rem;text-align:center}
+.d-icon{display:flex;justify-content:center;align-items:center}
+.d-icon img{width:28px;height:28px;display:block}
 .d-rain{font-size:.68rem;color:rgba(147,197,253,0.7);font-weight:300}
 .d-bar-wrap{position:relative;height:3px;border-radius:2px;background:rgba(255,255,255,0.08)}
 .d-bar{position:absolute;height:100%;border-radius:2px;background:rgba(255,255,255,0.3)}
@@ -456,13 +460,16 @@ const BG={
 
 function slot(h){return h<5?'nott':h<7?'dogun':h<19?'dagur':h<21?'solsetur':'kvold'}
 function wKey(mm){return mm>3?'rain':mm>0.3?'rain':mm>0?'cloudy':'clear'}
-function wIcon(mm,isNight){
-  if(mm>3)return'🌧️';if(mm>0.5)return'🌦️';if(mm>0)return isNight?'🌧️':'🌦️';
-  return isNight?'🌙':'☀️';
+const MC_BASE='https://cdn.meteocons.com/latest/svg/fill/';
+const MC_FALLBACK='overcast';
+
+// Byggir Meteocons <img> merki. Fellur aftur a 'overcast' ef taknid finnst ekki.
+function mcIcon(slug,size){
+  const s=slug||MC_FALLBACK;
+  return `<img src="${MC_BASE}${s}.svg" alt="" width="${size}" height="${size}" `
+       + `loading="lazy" onerror="this.onerror=null;this.src='${MC_BASE}${MC_FALLBACK}.svg'">`;
 }
-function wDesc(mm){
-  if(mm>3)return'Rigning';if(mm>0.5)return'Létt rigning';if(mm>0)return'Lítils háttar rigning';return'Heiðskírt';
-}
+
 function dir(deg){
   if(deg===null||deg===undefined)return'—';
   const d=['N','NNA','NA','ANA','A','ASA','SA','SSA','S','SSV','SV','VSV','V','VNV','NV','NNV'];
@@ -515,10 +522,8 @@ function buildHourlyPages(T, idx){
     timeHtml+='</div><div class="hp-grid">';
     pageIndices.forEach(i=>{
       if(i===null){timeHtml+='<div></div>';return;}
-      const r=FC.hourly.precipitation[i]||0;
-      const ht=new Date(T[i]+'Z').getUTCHours();
-      const ni=ht<6||ht>=22;
-      timeHtml+=`<div class="hp-icon">${wIcon(r,ni)}</div>`;
+      const ic=FC.hourly.icon?FC.hourly.icon[i]:null;
+      timeHtml+=`<div class="hp-icon">${mcIcon(ic,34)}</div>`;
     });
     timeHtml+='</div><div class="hp-grid">';
     pageIndices.forEach(i=>{
@@ -621,9 +626,13 @@ function renderForsida(){
   document.getElementById('bg').style.background=`linear-gradient(160deg,${p[0]},${p[1]})`;
 
   // Hero
-  document.getElementById('heroIcon').textContent=wIcon(rain,isNight);
+  const heroSlug=FC.hourly.icon?FC.hourly.icon[idx]:null;
+  document.getElementById('heroIcon').innerHTML=mcIcon(heroSlug,120);
   document.getElementById('heroTemp').textContent=temp!==null?Math.round(temp):'—';
-  document.getElementById('heroDesc').textContent=wDesc(rain);
+  const cond=FC.hourly.condition?FC.hourly.condition[idx]:'';
+  const cc=FC.hourly.cloud_cover?FC.hourly.cloud_cover[idx]:null;
+  document.getElementById('heroDesc').textContent=
+    cond ? (cc!==null ? `${cond} · ${cc}% skýjahula` : cond) : '';
 
   // Min/max today
   const tod=T[idx].slice(0,10);
@@ -680,7 +689,7 @@ function renderForsida(){
       const dayName=DAGAR[dt.getUTCDay()]+' '+dt.getUTCDate()+'/'+(dt.getUTCMonth()+1);
       const bl=mn!==null?(((mn-gMin2)/range2)*100).toFixed(1):'0';
       const bw=(mn!==null&&mx!==null)?(((mx-mn)/range2)*100).toFixed(1):'100';
-      const ri=wIcon(rain/24,false);
+      const ri=mcIcon(dd.icon?dd.icon[i]:null,28);
       const el=document.createElement('div');
       el.className='day-row';
       el.innerHTML=`
@@ -704,7 +713,7 @@ function renderForsida(){
     const dayName=DAGAR[dt.getUTCDay()]+' '+dt.getUTCDate()+'/'+(dt.getUTCMonth()+1);
     const bl=((mn-gMin)/range*100).toFixed(1);
     const bw=((mx-mn)/range*100).toFixed(1);
-    const ri=wIcon(totalRain/v.rains.length,false);
+    const ri=mcIcon(null,28);
     const el=document.createElement('div');
     el.className='day-row';
     el.innerHTML=`
