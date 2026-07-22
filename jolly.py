@@ -122,11 +122,13 @@ def determine_icon(cloud_pct, precip_mm, temp_c, is_day, visibility_m, wind_ms, 
     if visibility_m is not None and visibility_m < 5000:
         return "mist"
 
-    # 6. Skyjahula
+    # 6. Skyjahula - 6 threp
     c = cloud_pct if cloud_pct is not None else 0
-    if c >= 85: return "overcast"
-    if c >= 50: return f"overcast-{dn}"
-    if c >= 20: return f"partly-cloudy-{dn}"
+    if c >= 95: return "overcast"
+    if c >= 80: return f"mostly-cloudy-{dn}"
+    if c >= 55: return f"half-cloudy-{dn}"
+    if c >= 30: return f"mostly-clear-{dn}"
+    if c >= 10: return f"partly-cloudy-{dn}"
     return f"clear-{dn}"
 
 # --- ISLENSK LYSING --------------------------------------------------------
@@ -159,16 +161,20 @@ def describe(cloud_pct, precip_mm, temp_c, visibility_m, wind_ms, cape=None):
     if visibility_m is not None and visibility_m < 5000:
         return "Mistur"
     c = cloud_pct if cloud_pct is not None else 0
-    if c >= 85: return "Alskyjad"
-    if c >= 50: return "Skyjad"
-    if c >= 20: return "Lettskyjad"
+    if c >= 95: return "Alskyjad"
+    if c >= 80: return "Ad mestu skyjad"
+    if c >= 55: return "Halfskyjad"
+    if c >= 30: return "Skyjad ad hluta"
+    if c >= 10: return "Lettskyjad"
     return "Heidskirt"
 
 def cloud_class(pct):
     if pct is None: return None
-    if pct < 20: return "heidskirt"
-    if pct < 50: return "lettskyjad"
-    if pct < 85: return "skyjad"
+    if pct < 10: return "heidskirt"
+    if pct < 30: return "lettskyjad"
+    if pct < 55: return "skyjad_hluta"
+    if pct < 80: return "halfskyjad"
+    if pct < 95: return "mestu_skyjad"
     return "alskyjad"
 
 # --- 1. METAR FRA BIEG -----------------------------------------------------
