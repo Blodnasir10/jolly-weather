@@ -1,25 +1,25 @@
 {
   "version": "1.0",
   "created": "2026-06-24T00:32:50.944399+00:00",
-  "training_days": 71,
+  "training_days": 72,
   "biases": {
     "icon": {
-      "hiti": -2.266545273560077,
-      "vindur": -0.8769410757156031,
+      "hiti": -2.3653134825260653,
+      "vindur": -0.8678106286439768,
       "urkoma_scale": 0.30645313656723305,
-      "sky": -43.557632510243806
+      "sky": -46.38827334799295
     },
     "gfs": {
-      "hiti": -2.304804023883092,
-      "vindur": -1.065626146622449,
+      "hiti": -2.410690563157771,
+      "vindur": -1.043942938914796,
       "urkoma_scale": 0.48814247248733555,
-      "sky": -45.724512632854015
+      "sky": -48.74976430935448
     },
     "ecmwf": {
-      "hiti": -1.585352897187225,
-      "vindur": 0.46563526769061014,
+      "hiti": -1.6443356768948554,
+      "vindur": 0.4837006918227329,
       "urkoma_scale": 0.3329118478203035,
-      "sky": -37.19753899517209
+      "sky": -39.90005100303913
     },
     "metno": {
       "hiti": 0.0,
@@ -34,19 +34,19 @@
       "sky": 2.853504843749999
     },
     "dmi": {
-      "hiti": -1.0112478606349073,
-      "vindur": -0.05158279935701615,
+      "hiti": -1.0711678243968141,
+      "vindur": -0.028309665167749447,
       "urkoma_scale": 1.0,
-      "sky": -24.493959525925607
+      "sky": -26.648437025608196
     }
   },
   "weights": {
-    "icon": 0.1438,
-    "gfs": 0.2022,
-    "ecmwf": 0.248,
+    "icon": 0.1424,
+    "gfs": 0.2001,
+    "ecmwf": 0.2406,
     "metno": 0.2,
     "harmonie": 0.2,
-    "dmi": 0.406
+    "dmi": 0.417
   },
   "mae_history": [
     {
@@ -2002,71 +2002,119 @@
           "n_sky": 0
         }
       }
+    },
+    {
+      "date": "2026-07-22 23:00",
+      "n_obs": 28,
+      "mae": {
+        "icon": {
+          "hiti": 2.09,
+          "vindur": 1.103,
+          "sky": 34.76,
+          "n": 28,
+          "n_sky": 28
+        },
+        "gfs": {
+          "hiti": 1.487,
+          "vindur": 1.569,
+          "sky": 38.39,
+          "n": 28,
+          "n_sky": 28
+        },
+        "ecmwf": {
+          "hiti": 1.237,
+          "vindur": 1.092,
+          "sky": 29.96,
+          "n": 28,
+          "n_sky": 28
+        },
+        "metno": {
+          "hiti": 0,
+          "vindur": 0,
+          "sky": 0,
+          "n": 0,
+          "n_sky": 0
+        },
+        "dmi": {
+          "hiti": 0.785,
+          "vindur": 0.948,
+          "sky": 28.62,
+          "n": 28,
+          "n_sky": 28
+        },
+        "harmonie": {
+          "hiti": 0,
+          "vindur": 0,
+          "sky": 0,
+          "n": 0,
+          "n_sky": 0
+        }
+      }
     }
   ],
-  "last_updated": "2026-07-22T23:28:41.249404+00:00",
+  "last_updated": "2026-07-22T23:54:37.275970+00:00",
   "obs_source": "open-meteo-best",
   "cloud_confusion": {
     "icon": {
       "skyjad": {
-        "heidskirt": 66
+        "heidskirt": 75
       },
       "alskyjad": {
-        "heidskirt": 61,
-        "lettskyjad": 8,
-        "skyjad": 27,
-        "alskyjad": 24
+        "heidskirt": 71,
+        "lettskyjad": 9,
+        "skyjad": 31,
+        "alskyjad": 27
       },
       "lettskyjad": {
-        "heidskirt": 8
+        "heidskirt": 9
       }
     },
     "gfs": {
       "alskyjad": {
-        "heidskirt": 87,
-        "lettskyjad": 8,
-        "skyjad": 27,
-        "alskyjad": 24
+        "heidskirt": 101,
+        "lettskyjad": 9,
+        "skyjad": 31,
+        "alskyjad": 27
       },
       "skyjad": {
-        "heidskirt": 24
+        "heidskirt": 27
       },
       "lettskyjad": {
-        "heidskirt": 16
+        "heidskirt": 18
       },
       "heidskirt": {
-        "heidskirt": 8
+        "heidskirt": 9
       }
     },
     "ecmwf": {
       "skyjad": {
-        "heidskirt": 64
+        "heidskirt": 72
       },
       "lettskyjad": {
-        "heidskirt": 32
+        "heidskirt": 36
       },
       "alskyjad": {
-        "heidskirt": 39,
-        "lettskyjad": 8,
-        "skyjad": 27,
-        "alskyjad": 24
+        "heidskirt": 47,
+        "lettskyjad": 9,
+        "skyjad": 31,
+        "alskyjad": 27
       }
     },
     "dmi": {
       "lettskyjad": {
-        "heidskirt": 35
+        "heidskirt": 40
       },
       "heidskirt": {
-        "heidskirt": 56
+        "heidskirt": 63
       },
       "alskyjad": {
-        "heidskirt": 20,
-        "lettskyjad": 8,
-        "skyjad": 27,
-        "alskyjad": 24
+        "heidskirt": 25,
+        "lettskyjad": 9,
+        "skyjad": 31,
+        "alskyjad": 27
       },
       "skyjad": {
-        "heidskirt": 24
+        "heidskirt": 27
       }
     },
     "harmonie": {
@@ -2081,5 +2129,5 @@
       }
     }
   },
-  "total_obs": 194
+  "total_obs": 222
 }
