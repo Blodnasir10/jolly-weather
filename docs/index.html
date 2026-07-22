@@ -581,8 +581,21 @@ function wxBuild(slug,uid){
     case slug==='clear-day':    return S(wxSun(uid,64,64,24));
     case slug==='clear-night':  return S(wxMoon(uid,66,62,30));
 
-    case slug.startsWith('partly-cloudy') && !slug.match(/rain|snow|sleet/):
-      return S(lum(46,44,17)+wxCloud(uid,68,72,0.92,false));
+    // Léttskýjað - stór sól/tungl, lítið ský neðst í horni
+    case slug==='partly-cloudy-day': case slug==='partly-cloudy-night':
+      return S(lum(52,46,19)+wxCloud(uid,74,78,0.72,false));
+
+    // Skýjað að hluta - meðalsól, meðalstórt ský
+    case slug==='mostly-clear-day': case slug==='mostly-clear-night':
+      return S(lum(48,42,17)+wxCloud(uid,70,74,0.9,false));
+
+    // Hálfskýjað - minni sól, stærra ský sem hylur til hálfs
+    case slug==='half-cloudy-day': case slug==='half-cloudy-night':
+      return S(lum(44,38,14)+wxCloud(uid,66,70,1.02,false));
+
+    // Að mestu skýjað - lítil sól kíkir yfir stórt ský
+    case slug==='mostly-cloudy-day': case slug==='mostly-cloudy-night':
+      return S(lum(42,34,11)+wxCloud(uid,64,66,1.12,false));
 
     case slug==='overcast-day': case slug==='overcast-night':
       return S(lum(44,40,14)+wxCloud(uid,64,70,1.05,false));
