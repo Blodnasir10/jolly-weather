@@ -427,9 +427,11 @@ tr:hover td{background:rgba(255,255,255,0.025)}
   <div class="n-leg">
     <div class="n-leg-item"><div class="n-leg-dot" style="background:#4ade80"></div>Jolly</div>
     <div class="n-leg-item"><div class="n-leg-dot" style="background:#22d3ee"></div>HARMONIE</div>
-    <div class="n-leg-item"><div class="n-leg-dot" style="background:#fb923c"></div>ICON</div>
-    <div class="n-leg-item"><div class="n-leg-dot" style="background:#a78bfa"></div>GFS27</div>
     <div class="n-leg-item"><div class="n-leg-dot" style="background:#f472b6"></div>ECMWF</div>
+    <div class="n-leg-item"><div class="n-leg-dot" style="background:#fb923c"></div>ICON</div>
+    <div class="n-leg-item"><div class="n-leg-dot" style="background:#34d399"></div>MetNo</div>
+    <div class="n-leg-item"><div class="n-leg-dot" style="background:#facc15"></div>DMI</div>
+    <div class="n-leg-item"><div class="n-leg-dot" style="background:#a78bfa"></div>GFS</div>
   </div>
   <div class="n-card"><canvas id="mainChart"></canvas></div>
 
@@ -448,8 +450,8 @@ tr:hover td{background:rgba(255,255,255,0.025)}
 const FC_URL   ='https://raw.githubusercontent.com/Blodnasir10/jolly-weather/main/docs/data/jolly_forecast.json';
 const MODEL_URL='https://raw.githubusercontent.com/Blodnasir10/jolly-weather/main/docs/data/jolly_model.json';
 const DAGAR=['Sun','Mán','Þri','Mið','Fim','Fös','Lau'];
-const MC={harmonie:"#22d3ee",icon:'#fb923c',gfs:'#a78bfa',ecmwf:'#f472b6'};
-const MN={harmonie:"HARMONIE",icon:'ICON',gfs:'GFS27',ecmwf:'ECMWF'};
+const MC={harmonie:"#22d3ee",ecmwf:'#f472b6',icon:'#fb923c',metno:'#34d399',dmi:'#facc15',gfs:'#a78bfa'};
+const MN={harmonie:"HARMONIE",ecmwf:'ECMWF',icon:'ICON',metno:'MetNo',dmi:'DMI',gfs:'GFS'};
 
 const BG={
   nott:    {clear:['#06090f','#0c1428'],cloudy:['#060809','#0b0f16'],rain:['#050708','#090d13'],snow:['#07090d','#0d1220'],thunder:['#050608','#080810']},
@@ -919,7 +921,7 @@ function renderNanar(){
   document.getElementById('nPills').innerHTML=`
     <div class="n-pill ok">🕐 Uppfært fyrir ${as}</div>
     <div class="n-pill ${MODEL.training_days>7?'ok':'warn'}">🧠 ${MODEL.training_days} þjálfunardagar</div>
-    <div class="n-pill">📡 ICON · GFS · ECMWF</div>
+    <div class="n-pill">📡 ${(MODEL.models_used||Object.keys(MC)).length} líkön</div>
   `;
   const mg=document.getElementById('nModelGrid');
   mg.innerHTML=Object.keys(MC).map(m=>{
@@ -979,27 +981,31 @@ function buildLearn(){
 
 function buildTable(){
   const T=FC.hourly.time;
-  let h=`<tr><th>Tími</th><th style="color:#4ade80">Jolly °C</th><th style="color:#fb923c">ICON</th><th style="color:#a78bfa">GFS</th><th style="color:#f472b6">ECMWF</th><th style="color:#4ade80">m/s</th><th style="color:#4ade80">mm</th></tr>`;
-  let ld='';
+  // Hvaða líkön hafa raunveruleg hitagögn?
+  const modelKeys=Object.keys(MC).filter(m=>{
+    const arr=FC.hourly.model_temperatures?.[m];
+    return arr && arr.some(v=>v!==null && v!==undefined);
+  });
+  const cols=modelKeys.length+4; // Tími, Jolly, [líkön], m/s, mm
+  let head=`<tr><th>Tími</th><th style="color:#4ade80">Jolly °C</th>`;
+  modelKeys.forEach(m=>head+=`<th style="color:${MC[m]}">${MN[m]}</th>`);
+  head+=`<th style="color:#4ade80">m/s</th><th style="color:#4ade80">mm</th></tr>`;
+  let h=head, ld='';
   T.forEach((t,i)=>{
     const d=new Date(t+'Z');
     const ds=DAGAR[d.getUTCDay()]+' '+d.getUTCDate()+'/'+(d.getUTCMonth()+1);
-    if(ds!==ld){h+=`<tr class="d-hdr"><td colspan="7">📅 ${ds}</td></tr>`;ld=ds;}
+    if(ds!==ld){h+=`<tr class="d-hdr"><td colspan="${cols}">📅 ${ds}</td></tr>`;ld=ds;}
     const jT=FC.hourly.temperature[i];
     const jW=FC.hourly.windspeed[i];
     const jP=FC.hourly.precipitation[i];
-    const iT=FC.hourly.model_temperatures?.icon?.[i];
-    const gT=FC.hourly.model_temperatures?.gfs?.[i];
-    const eT=FC.hourly.model_temperatures?.ecmwf?.[i];
-    h+=`<tr>
-      <td class="nd">${String(d.getUTCHours()).padStart(2,'0')}:00</td>
-      <td class="jv">${jT!==null?jT.toFixed(1):'—'}</td>
-      <td>${iT!=null?iT.toFixed(1):'<span class="nd">—</span>'}</td>
-      <td>${gT!=null?gT.toFixed(1):'<span class="nd">—</span>'}</td>
-      <td>${eT!=null?eT.toFixed(1):'<span class="nd">—</span>'}</td>
-      <td class="jv">${jW!==null?jW.toFixed(1):'—'}</td>
-      <td>${jP!==null&&jP>0?jP.toFixed(2):'<span class="nd">—</span>'}</td>
-    </tr>`;
+    h+=`<tr><td class="nd">${String(d.getUTCHours()).padStart(2,'0')}:00</td>`
+      +`<td class="jv">${jT!==null?jT.toFixed(1):'—'}</td>`;
+    modelKeys.forEach(m=>{
+      const v=FC.hourly.model_temperatures?.[m]?.[i];
+      h+=`<td>${v!=null?v.toFixed(1):'<span class="nd">—</span>'}</td>`;
+    });
+    h+=`<td class="jv">${jW!==null?jW.toFixed(1):'—'}</td>`
+      +`<td>${jP!==null&&jP>0?jP.toFixed(2):'<span class="nd">—</span>'}</td></tr>`;
   });
   document.getElementById('nTable').innerHTML=h;
 }
