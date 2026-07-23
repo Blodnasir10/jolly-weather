@@ -537,7 +537,7 @@ def make_forecast(fc, harm, model):
     J = {"generated": now.isoformat(),
          "station": {"lat":LAT,"lon":LON,"id":STATION_ID,
                      "name":"Egilsstadir","icao":ICAO},
-         "model_name":"Jolly v1.6",
+         "model_name":"Jolly v1.7",
          "training_days": model.get("training_days",0),
          "total_obs": model.get("total_obs",0),
          "weights": model["weights"], "models_used": keys,
@@ -549,6 +549,7 @@ def make_forecast(fc, harm, model):
                     "beaufort":[],
                     "model_temperatures":{m:[] for m in keys},
                     "model_windspeeds":{m:[] for m in keys},
+                    "model_precipitations":{m:[] for m in keys},
                     "model_clouds":{m:[] for m in keys}},
          "daily": {"date":[],"temp_max":[],"temp_min":[],
                    "precipitation_total":[],"wind_avg":[],
@@ -578,14 +579,16 @@ def make_forecast(fc, harm, model):
             ct = round(rt + b["hiti"], 1)                if rt is not None else None
             cw = round(max(0, rw + b["vindur"]), 1)      if rw is not None else None
             cc = round(min(100, max(0, rc + b["sky"])))  if rc is not None else None
+            cp_ = round(max(0, rp*b["urkoma_scale"]), 2) if rp is not None else None
             J["hourly"]["model_temperatures"][m].append(ct)
             J["hourly"]["model_windspeeds"][m].append(cw)
+            J["hourly"]["model_precipitations"][m].append(cp_)
             J["hourly"]["model_clouds"][m].append(cc)
             if ct is not None: T.append((ct, w))
             if cw is not None: W.append((cw, w))
             if rd is not None: D.append((rd, w))
             if cc is not None: C.append((cc, w))
-            if rp is not None: P.append((max(0, rp*b["urkoma_scale"]), w))
+            if cp_ is not None: P.append((cp_, w))
 
         hw = model["weights"].get("harmonie", 0); hb = model["biases"]["harmonie"]
         hT, hW = gh("temperature", t), gh("windspeed", t)
@@ -594,14 +597,16 @@ def make_forecast(fc, harm, model):
         ct = round(hT + hb["hiti"], 1)               if hT is not None else None
         cw = round(max(0, hW + hb["vindur"]), 1)     if hW is not None else None
         cc = round(min(100, max(0, hC + hb["sky"]))) if hC is not None else None
+        cp_ = round(max(0, hP*hb["urkoma_scale"]), 2) if hP is not None else None
         J["hourly"]["model_temperatures"]["harmonie"].append(ct)
         J["hourly"]["model_windspeeds"]["harmonie"].append(cw)
+        J["hourly"]["model_precipitations"]["harmonie"].append(cp_)
         J["hourly"]["model_clouds"]["harmonie"].append(cc)
         if ct is not None: T.append((ct, hw))
         if cw is not None: W.append((cw, hw))
         if hD is not None: D.append((hD, hw))
         if cc is not None: C.append((cc, hw))
-        if hP is not None: P.append((max(0, hP*hb["urkoma_scale"]), hw))
+        if cp_ is not None: P.append((cp_, hw))
 
         def wa(p):
             if not p: return None
@@ -713,7 +718,7 @@ def save(model, fcast):
 # --- MAIN ------------------------------------------------------------------
 def main():
     print("=" * 62)
-    print(f"JOLLY v1.6 - {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
+    print(f"JOLLY v1.7 - {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
     print("Skyjahula | METAR BIEG | 6 likon | Meteocons takn")
     print("=" * 62)
     metar = fetch_metar()
@@ -724,7 +729,7 @@ def main():
     fcast = make_forecast(fc, harm, model)
     save(model, fcast)
     print("=" * 62)
-    print("JOLLY v1.6 LOKID")
+    print("JOLLY v1.7 LOKID")
     if model.get("weights"):
         top = sorted(model["weights"].items(), key=lambda x: -x[1])[:3]
         print("  Topp: " + " | ".join(f"{m}: {w:.0%}" for m, w in top))
