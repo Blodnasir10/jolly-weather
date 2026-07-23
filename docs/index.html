@@ -227,7 +227,16 @@ canvas{max-height:240px}
 .n-tab.active{background:rgba(255,255,255,0.09);color:var(--text);border-color:rgba(255,255,255,0.18)}
 
 .n-leg{display:flex;gap:12px;font-size:.7rem;flex-wrap:wrap;margin-bottom:10px}
-.n-leg-item{display:flex;align-items:center;gap:5px}
+.n-leg-item{display:flex;align-items:center;gap:5px;cursor:pointer;
+  padding:4px 9px;border-radius:14px;border:1px solid transparent;
+  transition:background .15s,border-color .15s,opacity .15s;user-select:none}
+.n-leg-item:hover{background:rgba(255,255,255,0.06)}
+.n-leg-item.dim{opacity:.32}
+.n-leg-item.sel{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.22)}
+.n-leg-item.locked{cursor:default;opacity:1}
+.n-leg-hint{font-size:.58rem;color:var(--dim);letter-spacing:.06em;
+  margin:2px 0 10px;padding-left:2px}
+.n-leg-nodata{font-size:.62rem;color:#fbbf24;margin:6px 0 4px;padding-left:2px}
 .n-leg-dot{width:9px;height:9px;border-radius:50%}
 
 .n-model-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
@@ -425,14 +434,10 @@ tr:hover td{background:rgba(255,255,255,0.025)}
     <button class="n-tab" onclick="setMetric('urkoma',this)">🌧 Úrkoma</button>
   </div>
   <div class="n-leg">
-    <div class="n-leg-item"><div class="n-leg-dot" style="background:#4ade80"></div>Jolly</div>
-    <div class="n-leg-item"><div class="n-leg-dot" style="background:#22d3ee"></div>HARMONIE</div>
-    <div class="n-leg-item"><div class="n-leg-dot" style="background:#f472b6"></div>ECMWF</div>
-    <div class="n-leg-item"><div class="n-leg-dot" style="background:#fb923c"></div>ICON</div>
-    <div class="n-leg-item"><div class="n-leg-dot" style="background:#34d399"></div>MetNo</div>
-    <div class="n-leg-item"><div class="n-leg-dot" style="background:#facc15"></div>DMI</div>
-    <div class="n-leg-item"><div class="n-leg-dot" style="background:#a78bfa"></div>GFS</div>
+    <!-- byggt í buildLegend() -->
   </div>
+  <div class="n-leg-hint" id="nLegHint">Smelltu á líkan til að skoða það eitt á móti Jolly</div>
+  <div class="n-leg-nodata" id="nLegNoData" style="display:none"></div>
   <div class="n-card"><canvas id="mainChart"></canvas></div>
 
   <div class="n-sec">Líkanaþyngd og leiðréttingar</div>
@@ -937,13 +942,58 @@ function renderNanar(){
       <div class="n-wbar"><div class="n-wfill" style="width:${(w*100).toFixed(0)}%;background:${MC[m]}"></div></div>
     </div>`;
   }).join('');
-  buildChart();buildLearn();buildTable();
+  buildLegend();buildChart();buildLearn();buildTable();
 }
 
 function setMetric(m,el){
   activeMetric=m;
   document.querySelectorAll('.n-tab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');buildChart();
+  el.classList.add('active');
+  buildLegend();
+  buildChart();
+}
+
+// null = sýna öll líkön. Annars lykill þess líkans sem er í fókus.
+let focusModel = null;
+
+// Hvaða gagnalykill á við hvern mæli
+function metricKey(metric){
+  return metric==='hiti'   ? 'model_temperatures'
+       : metric==='vindur' ? 'model_windspeeds'
+       :                     'model_precipitations';
+}
+
+// Hefur líkanið raunveruleg gögn fyrir þennan mæli?
+function modelHasData(m, metric){
+  const arr = FC.hourly[metricKey(metric)]?.[m];
+  return !!(arr && arr.some(v=>v!==null && v!==undefined));
+}
+
+function buildLegend(){
+  const wrap = document.querySelector('.n-leg');
+  if(!wrap) return;
+  let html = '<div class="n-leg-item locked">'
+           + '<div class="n-leg-dot" style="background:#4ade80"></div>Jolly</div>';
+  Object.keys(MC).forEach(m=>{
+    const has = modelHasData(m, activeMetric);
+    const cls = focusModel===m ? 'sel'
+              : (focusModel && focusModel!==m) ? 'dim'
+              : (!has ? 'dim' : '');
+    html += `<div class="n-leg-item ${cls}" data-m="${m}" onclick="setFocus('${m}')">`
+          + `<div class="n-leg-dot" style="background:${MC[m]}"></div>${MN[m]}</div>`;
+  });
+  wrap.innerHTML = html;
+
+  const hint = document.getElementById('nLegHint');
+  if(hint) hint.textContent = focusModel
+    ? `Sýnir ${MN[focusModel]} á móti Jolly — smelltu aftur til að sjá öll`
+    : 'Smelltu á líkan til að skoða það eitt á móti Jolly';
+}
+
+function setFocus(m){
+  focusModel = (focusModel===m) ? null : m;
+  buildLegend();
+  buildChart();
 }
 
 function buildChart(){
@@ -953,11 +1003,38 @@ function buildChart(){
   const isBar=activeMetric==='urkoma';
   const unit=activeMetric==='hiti'?'°C':activeMetric==='vindur'?'m/s':'mm';
   const jd=activeMetric==='hiti'?FC.hourly.temperature:activeMetric==='vindur'?FC.hourly.windspeed:FC.hourly.precipitation;
-  const mk=activeMetric==='hiti'?'model_temperatures':'model_windspeeds';
+  const mk=metricKey(activeMetric);
+
+  // Hvaða líkön á að teikna
+  const keys = Object.keys(MC).filter(m=>modelHasData(m,activeMetric));
+  const shown = focusModel ? keys.filter(m=>m===focusModel) : keys;
+
+  // Skilaboð ef valið líkan hefur engin gögn fyrir þennan mæli
+  const nd = document.getElementById('nLegNoData');
+  if(nd){
+    if(focusModel && !modelHasData(focusModel,activeMetric)){
+      nd.style.display='block';
+      nd.textContent = `${MN[focusModel]} hefur engin ${activeMetric==='urkoma'?'úrkomu':activeMetric}gögn — aðeins Jolly sýnd.`;
+    } else if(!focusModel && keys.length===0){
+      nd.style.display='block';
+      nd.textContent = 'Engin líkanagögn fyrir þennan mæli — aðeins Jolly sýnd.';
+    } else { nd.style.display='none'; }
+  }
+
+  // Þegar eitt líkan er í fókus verður lína þess sterkari og heil
   const sets=[
-    ...Object.keys(MC).map(m=>({label:MN[m],data:FC.hourly[mk]?.[m]||[],borderColor:MC[m],backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:.3,spanGaps:true,borderDash:[4,3]})),
-    {label:'Jolly',data:jd,borderColor:'#4ade80',backgroundColor:'rgba(74,222,128,.07)',borderWidth:2.5,pointRadius:0,tension:.3,fill:!isBar},
+    ...shown.map(m=>({
+      label:MN[m], data:FC.hourly[mk]?.[m]||[],
+      borderColor:MC[m], backgroundColor:'transparent',
+      borderWidth: focusModel?2.2:1.5,
+      pointRadius:0, tension:.3, spanGaps:true,
+      borderDash: focusModel?[]:[4,3],
+    })),
+    {label:'Jolly',data:jd,borderColor:'#4ade80',
+     backgroundColor:'rgba(74,222,128,.07)',borderWidth:2.5,
+     pointRadius:0,tension:.3,fill:!isBar},
   ];
+
   charts.m=new Chart(ctx,{type:isBar?'bar':'line',data:{labels:T,datasets:sets},options:{
     responsive:true,interaction:{mode:'index',intersect:false},
     plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y!==null?c.parsed.y+' '+unit:'—'}`}}},
