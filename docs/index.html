@@ -308,6 +308,18 @@ tr:hover td{background:rgba(255,255,255,0.025)}
 }
 .login-cancel:hover{color:var(--sub)}
 .wx svg{width:100%;height:100%;display:block}
+
+/* Spálengdarveljari */
+.n-lead-picker{display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.n-lead-lbl{font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--dim);margin-right:4px}
+.n-lead{padding:4px 10px;border-radius:12px;cursor:pointer;font-size:.66rem;
+  background:rgba(255,255,255,0.04);color:var(--sub);
+  border:1px solid rgba(255,255,255,0.08);transition:all .15s}
+.n-lead:hover{background:rgba(255,255,255,0.08)}
+.n-lead.active{background:rgba(255,255,255,0.12);color:var(--text);
+  border-color:rgba(255,255,255,0.22)}
+.n-mc-dead{opacity:.42}
 </style>
 </head>
 <body>
@@ -441,6 +453,7 @@ tr:hover td{background:rgba(255,255,255,0.025)}
   <div class="n-card"><canvas id="mainChart"></canvas></div>
 
   <div class="n-sec">Líkanaþyngd og leiðréttingar</div>
+  <div class="n-lead-picker" id="nLeadPicker"></div>
   <div class="n-model-grid" id="nModelGrid"></div>
 
   <div class="n-sec">Nákvæmniferill</div>
@@ -923,29 +936,85 @@ function renderForsida(){
   }
 }
 
+// Valin spálengd fyrir bias/þyngdartöfluna
+let leadSel = '6';
+const isV2 = ()=> !!(MODEL && MODEL.version && MODEL.version.startsWith('2'));
+
+function leadList(){
+  return (MODEL.lead_buckets || FC.lead_buckets || [1,3,6,12,24,48]).map(String);
+}
+
+// Sækir bias/þyngd/MAE óháð því hvort líkanið er v1.x eða v2.0
+function modelStats(m){
+  if(isV2()){
+    const b  = MODEL.bias?.[m]?.[leadSel] || {};
+    const w  = MODEL.weights?.[leadSel]?.[m];
+    const lm = MODEL.lead_mae?.[leadSel]?.[m];
+    return {b, w, mae:lm?.hiti, n:lm?.n};
+  }
+  const b  = MODEL.biases?.[m] || {};
+  const w  = MODEL.weights?.[m];
+  const lm = MODEL.mae_history?.slice(-1)[0]?.mae?.[m];
+  return {b, w, mae:lm?.hiti, n:null};
+}
+
+function setLead(L){
+  leadSel = String(L);
+  renderModelGrid();
+  buildLearn();
+}
+
+function renderModelGrid(){
+  // Spálengdarveljari
+  const lp = document.getElementById('nLeadPicker');
+  if(lp){
+    lp.innerHTML = isV2()
+      ? '<span class="n-lead-lbl">Spálengd</span>' + leadList().map(L=>
+          `<button class="n-lead${L===leadSel?' active':''}" onclick="setLead('${L}')">`
+          + `${L} klst</button>`).join('')
+      : '';
+  }
+  const mg=document.getElementById('nModelGrid');
+  mg.innerHTML=Object.keys(MC).map(m=>{
+    const {b,w,mae,n}=modelStats(m);
+    const wp = (w===undefined||w===null) ? null : w*100;
+    const dead = wp!==null && wp<0.5;
+    return`<div class="n-mc${dead?' n-mc-dead':''}">
+      <div class="n-mc-name" style="color:${MC[m]}">${MN[m]}</div>
+      <div class="n-mc-bias">Hiti: <b>${b.hiti!==undefined?(b.hiti>=0?'+':'')+b.hiti.toFixed(2)+'°':'—'}</b></div>
+      <div class="n-mc-bias">Vind: <b>${b.vindur!==undefined?(b.vindur>=0?'+':'')+b.vindur.toFixed(2)+' m/s':'—'}</b></div>
+      <div class="n-mc-mae">MAE ${mae!==undefined&&mae!==null?mae.toFixed(2)+'°':'—'}${n?` · n=${n}`:''}</div>
+      <div style="font-size:.6rem;color:var(--dim);margin-top:3px">Þyngd ${wp!==null?wp.toFixed(0)+'%':'—'}</div>
+      <div class="n-wbar"><div class="n-wfill" style="width:${wp!==null?Math.max(0,wp).toFixed(0):0}%;background:${MC[m]}"></div></div>
+    </div>`;
+  }).join('');
+}
+
 function renderNanar(){
   const gen=new Date(FC.generated);
   const age=Math.round((Date.now()-gen)/60000);
   const as=age<60?`${age} mín`:`${Math.round(age/60)} klst`;
+  const runs = MODEL.runs ?? MODEL.training_days ?? 0;
+  const vp   = MODEL.verified_pairs;
+  const nMod = (MODEL.models_used||Object.keys(MC)).length;
   document.getElementById('nPills').innerHTML=`
     <div class="n-pill ok">🕐 Uppfært fyrir ${as}</div>
-    <div class="n-pill ${MODEL.training_days>7?'ok':'warn'}">🧠 ${MODEL.training_days} þjálfunardagar</div>
-    <div class="n-pill">📡 ${(MODEL.models_used||Object.keys(MC)).length} líkön</div>
+    <div class="n-pill ${runs>24?'ok':'warn'}">🔁 ${runs} keyrslur</div>
+    ${vp!==undefined?`<div class="n-pill ${vp>500?'ok':'warn'}">✓ ${vp.toLocaleString('is-IS')} staðfest pör</div>`:''}
+    <div class="n-pill">📡 ${nMod} líkön</div>
+    ${isV2()?'<div class="n-pill ok">📐 Spástaðfesting v2.0</div>':''}
   `;
-  const mg=document.getElementById('nModelGrid');
-  mg.innerHTML=Object.keys(MC).map(m=>{
-    const b=MODEL.biases?.[m]||{};
-    const w=MODEL.weights?.[m]||.333;
-    const lm=MODEL.mae_history?.slice(-1)[0]?.mae?.[m];
-    return`<div class="n-mc">
-      <div class="n-mc-name" style="color:${MC[m]}">${MN[m]}</div>
-      <div class="n-mc-bias">Hiti: <b>${b.hiti!==undefined?(b.hiti>=0?'+':'')+b.hiti.toFixed(2)+'°':'—'}</b></div>
-      <div class="n-mc-bias">Vind: <b>${b.vindur!==undefined?(b.vindur>=0?'+':'')+b.vindur.toFixed(2)+' m/s':'—'}</b></div>
-      <div class="n-mc-mae">MAE: ${lm?lm.hiti.toFixed(2)+'°':'—'}</div>
-      <div style="font-size:.6rem;color:var(--dim);margin-top:3px">Þyngd: ${(w*100).toFixed(0)}%</div>
-      <div class="n-wbar"><div class="n-wfill" style="width:${(w*100).toFixed(0)}%;background:${MC[m]}"></div></div>
-    </div>`;
-  }).join('');
+  // Sjálfgefin spálengd = sú sem hefur flest staðfest pör
+  if(isV2()){
+    let best=leadSel, bn=-1;
+    leadList().forEach(L=>{
+      const tot=Object.values(MODEL.lead_mae?.[L]||{})
+        .reduce((a,s)=>a+(s.n||0),0);
+      if(tot>bn){bn=tot;best=L;}
+    });
+    leadSel=best;
+  }
+  renderModelGrid();
   buildLegend();buildChart();buildLearn();buildTable();
 }
 
@@ -1052,12 +1121,28 @@ function buildChart(){
 function buildLearn(){
   if(charts.l)charts.l.destroy();
   const ctx=document.getElementById('learnChart').getContext('2d');
-  if(!MODEL.mae_history?.length)return;
-  const h=MODEL.mae_history.slice(-30);
+  const hist = isV2() ? MODEL.verify_history : MODEL.mae_history;
+  if(!hist?.length) return;
+  const h=hist.slice(-60);
+  // v2.0: verify_history[i].lead_mae[spálengd][líkan] = MAE
+  // v1.x: mae_history[i].mae[líkan].hiti
+  const pick = isV2()
+    ? (x,m)=> x.lead_mae?.[leadSel]?.[m] ?? null
+    : (x,m)=> x.mae?.[m]?.hiti ?? null;
+  const titleTxt = isV2()
+    ? `MAE hita — ${leadSel} klst spálengd (°C)`
+    : 'MAE hita eftir leiðréttingu (°C)';
   charts.l=new Chart(ctx,{type:'line',data:{
-    labels:h.map(x=>x.date),
-    datasets:Object.keys(MC).map(m=>({label:MN[m],data:h.map(x=>x.mae?.[m]?.hiti??null),borderColor:MC[m],backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3,spanGaps:true}))
-  },options:{responsive:true,plugins:{legend:{labels:{color:'rgba(255,255,255,0.35)',font:{size:10}}},title:{display:true,text:'MAE hita eftir leiðréttingu (°C)',color:'rgba(255,255,255,0.28)',font:{size:10}}},scales:{x:{ticks:{color:'rgba(255,255,255,0.28)',font:{size:9}}},y:{ticks:{color:'rgba(255,255,255,0.28)'},grid:{color:'rgba(255,255,255,0.05)'},title:{display:true,text:'°C',color:'rgba(255,255,255,0.18)'}}}}});
+    labels:h.map(x=>x.date||x.time),
+    datasets:Object.keys(MC).map(m=>({label:MN[m],data:h.map(x=>pick(x,m)),
+      borderColor:MC[m],backgroundColor:'transparent',borderWidth:2,
+      pointRadius:2,tension:.3,spanGaps:true}))
+  },options:{responsive:true,
+    plugins:{legend:{labels:{color:'rgba(255,255,255,0.35)',font:{size:10},boxWidth:10}},
+             title:{display:true,text:titleTxt,color:'rgba(255,255,255,0.28)',font:{size:10}}},
+    scales:{x:{ticks:{color:'rgba(255,255,255,0.28)',font:{size:8},maxTicksLimit:8}},
+            y:{ticks:{color:'rgba(255,255,255,0.28)'},grid:{color:'rgba(255,255,255,0.05)'},
+               title:{display:true,text:'°C',color:'rgba(255,255,255,0.18)'}}}}});
 }
 
 function buildTable(){
