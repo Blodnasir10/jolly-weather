@@ -31,6 +31,7 @@ ARCHIVE_HORIZON   = 48      # hversu langt fram vid geymum spa til stadfestingar
 LEAD_BUCKETS      = [1, 3, 6, 12, 24, 48]
 LR                = 0.12    # laerdomshraedi
 
+# Likon sott gegnum Open-Meteo
 MODELS = {
     # UWC-West HARMONIE AROME - sama kerfi sem Vedurstofan notar, 2 km
     "dmi":   "dmi_seamless",
@@ -41,9 +42,19 @@ MODELS = {
     "ukmo":  "ukmo_seamless",
     "mfr":   "meteofrance_seamless",
     "gfs":   "gfs_seamless",
-    "metno": "metno_nordic",
 }
-ALL_KEYS = list(MODELS.keys()) + ["harmonie"]
+
+# Gjafar med eigin API - hver med sina fetch-adferd
+EXTRA_KEYS = ["harmonie", "metno"]
+ALL_KEYS   = list(MODELS.keys()) + EXTRA_KEYS
+
+# --- MET Norway (api.met.no) --------------------------------------------
+# Skilmalar krefjast einkennandi User-Agent med tengilid. Almennur eda
+# vantandi UA gefur 403 Forbidden - ekki haegingu. Hnit mest 4 aukastafir.
+METNO_UA  = ("Jolly-Weather/2.1 "
+             "(+https://github.com/Blodnasir10/jolly-weather)")
+METNO_URL = ("https://api.met.no/weatherapi/locationforecast/2.0/complete"
+             f"?lat={LAT:.4f}&lon={LON:.4f}&altitude=23")   # BIEG er i 23 m
 
 # HARMONIE-kerfid er a 2 km yfir Island, hnattlikonin a 9-25 km
 MODEL_BONUS = {"harmonie": 1.20, "dmi": 1.15, "knmi": 1.10}
@@ -57,11 +68,27 @@ HOURLY_VARS = ",".join([
 ])
 
 # --- HJALPARFOLL -----------------------------------------------------------
-def fetch_url(url, as_text=False, timeout=30):
-    req = urllib.request.Request(url, headers={"User-Agent": "Jolly-Weather/2.0"})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        raw = r.read().decode("utf-8", errors="replace")
-        return raw if as_text else json.loads(raw)
+def fetch_url(url, as_text=False, timeout=30, headers=None, with_meta=False):
+    """
+    Saekir slod. Med with_meta=True skilar (gogn, svarhofud) i stad gagna,
+    og skilar (None, {"status": 304}) ef efnid hefur ekki breyst.
+    """
+    hdr = {"User-Agent": "Jolly-Weather/2.1"}
+    if headers: hdr.update(headers)
+    req = urllib.request.Request(url, headers=hdr)
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            raw = r.read().decode("utf-8", errors="replace")
+            data = raw if as_text else json.loads(raw)
+            if with_meta:
+                return data, {"status": r.status,
+                              "last_modified": r.headers.get("Last-Modified"),
+                              "expires": r.headers.get("Expires")}
+            return data
+    except urllib.error.HTTPError as e:
+        if e.code == 304 and with_meta:
+            return None, {"status": 304}
+        raise
 
 def load_json(path, default):
     if not path.exists():
@@ -356,6 +383,108 @@ WEATHER_TO_CLOUD = {
     "snjókoma": 90, "él": 70, "slydda": 90, "súld": 85,
 }
 
+def fetch_metno():
+    """
+    Saekir spa fra MET Norway (Vedurstofa Noregs) locationforecast 2.0.
+
+    'complete' gefur skyjahulu i threm haedum, thokuhlutfall og daggarmark -
+    einmitt thaer breytur sem vid notum i skyjaspana.
+
+    Skilmalar api.met.no:
+      - Einkennandi User-Agent med tengilid, annars 403
+      - Hnit mest 4 aukastafir, annars 403
+      - If-Modified-Since svo vid saekjum ekki obreytt efni
+
+    Vid geymum THATTAD nidurstodu i skyndiminni (ekki hraa svarid) svo
+    skrain se litil, og notum hana ef svarid er 304 Not Modified.
+    """
+    print("MET NORWAY (api.met.no):")
+    cache_path = DATA_DIR / "metno_cache.json"
+    cache = load_json(cache_path, {})
+
+    headers = {"User-Agent": METNO_UA}
+    if cache.get("last_modified"):
+        headers["If-Modified-Since"] = cache["last_modified"]
+
+    try:
+        data, meta = fetch_url(METNO_URL, headers=headers, with_meta=True)
+    except urllib.error.HTTPError as e:
+        hint = ""
+        if e.code == 403:
+            hint = " (User-Agent eda hnitanakvaemni - sja skilmala)"
+        elif e.code == 429:
+            hint = " (of margar beidnir)"
+        print(f"  VILLA HTTP {e.code}{hint}")
+        if cache.get("hourly"):
+            print(f"  Nota skyndiminni ({len(cache['hourly']['time'])} timapunktar)")
+            return {"hourly": cache["hourly"]}
+        return None
+    except Exception as e:
+        print(f"  VILLA: {e}")
+        if cache.get("hourly"):
+            print("  Nota skyndiminni")
+            return {"hourly": cache["hourly"]}
+        return None
+
+    if meta.get("status") == 304:
+        if cache.get("hourly"):
+            print(f"  304 obreytt - skyndiminni "
+                  f"({len(cache['hourly']['time'])} timapunktar)")
+            return {"hourly": cache["hourly"]}
+        print("  304 en ekkert skyndiminni")
+        return None
+
+    try:
+        series = data["properties"]["timeseries"]
+    except (KeyError, TypeError):
+        print("  Ovaent gagnasnid")
+        return None
+
+    h = {"time": [], "temperature": [], "windspeed": [], "winddirection": [],
+         "precipitation": [], "cloud_cover": [], "cloud_low": [],
+         "cloud_mid": [], "cloud_high": [], "fog": [], "dewpoint": []}
+
+    for e in series:
+        t = e.get("time", "")
+        if not t: continue
+        try:
+            dt = datetime.fromisoformat(t.replace("Z", "+00:00"))
+        except ValueError:
+            continue
+        det = (e.get("data", {}).get("instant", {}).get("details", {}) or {})
+        # Urkoma er i next_1_hours; naest 6 klst eftir ~2.5 daga
+        nxt = e.get("data", {}).get("next_1_hours") or {}
+        prec = (nxt.get("details", {}) or {}).get("precipitation_amount")
+        if prec is None:
+            n6 = e.get("data", {}).get("next_6_hours") or {}
+            p6 = (n6.get("details", {}) or {}).get("precipitation_amount")
+            prec = round(p6 / 6.0, 2) if p6 is not None else None
+
+        h["time"].append(fmt_t(dt.astimezone(timezone.utc)))
+        h["temperature"].append(det.get("air_temperature"))
+        h["windspeed"].append(det.get("wind_speed"))
+        h["winddirection"].append(det.get("wind_from_direction"))
+        h["precipitation"].append(prec)
+        h["cloud_cover"].append(det.get("cloud_area_fraction"))
+        h["cloud_low"].append(det.get("cloud_area_fraction_low"))
+        h["cloud_mid"].append(det.get("cloud_area_fraction_medium"))
+        h["cloud_high"].append(det.get("cloud_area_fraction_high"))
+        h["fog"].append(det.get("fog_area_fraction"))
+        h["dewpoint"].append(det.get("dew_point_temperature"))
+
+    if not h["time"]:
+        print("  Engir timapunktar")
+        return None
+
+    save_json(cache_path, {"last_modified": meta.get("last_modified"),
+                           "expires": meta.get("expires"),
+                           "fetched": datetime.now(timezone.utc).isoformat(),
+                           "hourly": h})
+    n_cloud = len([x for x in h["cloud_cover"] if x is not None])
+    # Skref eru 1 klst i ~2.5 daga, sidan 6 klst
+    print(f"  OK {len(h['time'])} timapunktar ({n_cloud} med skyjahulu)")
+    return {"hourly": h}
+
 def fetch_harmonie():
     print("HARMONIE (Vedurstofa):")
     url = (f"https://xmlweather.vedur.is/?op_w=xml&type=forec"
@@ -398,7 +527,7 @@ def fetch_harmonie():
         return None
 
 # --- 4. GEYMA SPA TIL STADFESTINGAR ---------------------------------------
-def archive_forecast(fc, harm):
+def archive_forecast(fc, extras):
     """
     Skrifar HRAA likanaspa (an bias-leidrettingar) i forecast_archive.json
     fyrir thaer spalengdir sem vid stadfestum sidar.
@@ -413,7 +542,8 @@ def archive_forecast(fc, harm):
     now   = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
     issue = fmt_t(now)
     ft    = fc["hourly"]["time"] if fc else []
-    ht    = harm["hourly"]["time"] if harm else []
+    et    = {k: (v["hourly"]["time"] if v else [])
+             for k, v in extras.items()}
 
     n_new = 0
     for lead in LEAD_BUCKETS:
@@ -432,15 +562,16 @@ def archive_forecast(fc, harm):
                 if any(v is not None for v in rec.values()):
                     models[m] = rec
 
-        if harm and vt in ht:
-            j = ht.index(vt)
-            def gh(key):
-                a = harm["hourly"].get(key, [])
-                return a[j] if j < len(a) else None
-            rec = {"t": gh("temperature"), "w": gh("windspeed"),
-                   "p": gh("precipitation"), "c": gh("cloud_cover")}
+        for k, src in extras.items():
+            if not src or vt not in et[k]: continue
+            j = et[k].index(vt)
+            def ge(key, _src=src, _j=j):
+                a = _src["hourly"].get(key, [])
+                return a[_j] if _j < len(a) else None
+            rec = {"t": ge("temperature"), "w": ge("windspeed"),
+                   "p": ge("precipitation"), "c": ge("cloud_cover")}
             if any(v is not None for v in rec.values()):
-                models["harmonie"] = rec
+                models[k] = rec
 
         if models:
             arch.setdefault(vt, {})[str(lead)] = {"issue": issue, "models": models}
@@ -463,7 +594,7 @@ def empty_bias():
 
 def init_model():
     return {
-        "version": "2.0",
+        "version": "2.1",
         "created": datetime.now(timezone.utc).isoformat(),
         "runs": 0,
         "verified_pairs": 0,
@@ -513,7 +644,7 @@ def load_model():
     path = DATA_DIR / "jolly_model.json"
     raw  = load_json(path, None)
     if raw is None:
-        print("  Nytt likan v2.0")
+        print("  Nytt likan v2.1")
         return init_model()
     if raw.get("version", "").startswith("2."):
         # tryggja ad allir lyklar seu til
@@ -527,7 +658,7 @@ def load_model():
             raw.setdefault("lead_mae", {}).setdefault(str(b), {})
             for m in ALL_KEYS:
                 raw["weights"][str(b)].setdefault(m, 0.0)
-        print(f"  Hladid v2.0 - {raw.get('runs',0)} keyrslur, "
+        print(f"  Hladid v2.x - {raw.get('runs',0)} keyrslur, "
               f"{raw.get('verified_pairs',0)} stadfest por")
         return raw
     return migrate_model(raw)
@@ -666,26 +797,32 @@ def verify_and_train(arch, obs_history, model):
     return model
 
 # --- 6. SPA ----------------------------------------------------------------
-def make_forecast(fc, harm, model):
+def make_forecast(fc, extras, model):
     print("SPA:")
     if fc is None:
         print("  Engin gogn"); return None
 
     ft  = fc["hourly"]["time"]
-    ht  = harm["hourly"]["time"] if harm else []
+    et  = {k: (v["hourly"]["time"] if v else []) for k, v in extras.items()}
     now = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
-    fut = [t for t in sorted(set(ft + ht)) if t >= fmt_t(now)]
+    all_t = set(ft)
+    for v in et.values(): all_t |= set(v)
+    fut = [t for t in sorted(all_t) if t >= fmt_t(now)]
 
     J = {"generated": datetime.now(timezone.utc).isoformat(),
          "station": {"lat": LAT, "lon": LON, "id": STATION_ID,
                      "name": "Egilsstaðir", "icao": ICAO},
-         "model_name": "Jolly v2.0",
+         "model_name": "Jolly v2.1",
          "runs": model.get("runs", 0),
          "verified_pairs": model.get("verified_pairs", 0),
          "lead_buckets": LEAD_BUCKETS,
          "weights": model["weights"],
          "lead_mae": model.get("lead_mae", {}),
          "models_used": ALL_KEYS,
+         "attribution": ["Vedurstofa Islands (apis.is, xmlweather)",
+                         "MET Norway (api.met.no) CC BY 4.0",
+                         "Open-Meteo CC BY 4.0",
+                         "NOAA aviationweather.gov METAR"],
          "hourly": {"time": [], "lead_hours": [], "temperature": [], "windspeed": [],
                     "winddirection": [], "windgust": [], "precipitation": [],
                     "cloud_cover": [], "cloud_low": [], "cloud_mid": [],
@@ -738,29 +875,30 @@ def make_forecast(fc, harm, model):
                 if cc is not None: C.append((cc, w))
                 if cp is not None: P.append((cp, w))
 
-        hw = model["weights"][bs].get("harmonie", 0.0)
-        hb = model["bias"]["harmonie"][bs]
-        j  = ht.index(t) if t in ht else None
-        def gh(key):
-            if j is None: return None
-            a = harm["hourly"].get(key, [])
-            return a[j] if j < len(a) else None
-        hT, hW, hP = gh("temperature"), gh("windspeed"), gh("precipitation")
-        hD, hC     = gh("winddirection"), gh("cloud_cover")
-        ct = round(hT + hb["hiti"], 1)                 if hT is not None else None
-        cw = round(max(0, hW + hb["vindur"]), 1)       if hW is not None else None
-        cp = round(max(0, hP * hb["urkoma_scale"]), 2) if hP is not None else None
-        cc = round(min(100, max(0, hC + hb["sky"])))   if hC is not None else None
-        J["hourly"]["model_temperatures"]["harmonie"].append(ct)
-        J["hourly"]["model_windspeeds"]["harmonie"].append(cw)
-        J["hourly"]["model_precipitations"]["harmonie"].append(cp)
-        J["hourly"]["model_clouds"]["harmonie"].append(cc)
-        if hw > 0:
-            if ct is not None: T.append((ct, hw))
-            if cw is not None: W.append((cw, hw))
-            if hD is not None: D.append((hD, hw))
-            if cc is not None: C.append((cc, hw))
-            if cp is not None: P.append((cp, hw))
+        for k, src in extras.items():
+            xw = model["weights"][bs].get(k, 0.0)
+            xb = model["bias"][k][bs]
+            j  = et[k].index(t) if (src and t in et[k]) else None
+            def ge(key, _src=src, _j=j):
+                if _j is None or not _src: return None
+                a = _src["hourly"].get(key, [])
+                return a[_j] if _j < len(a) else None
+            xT, xW, xP = ge("temperature"), ge("windspeed"), ge("precipitation")
+            xD, xC     = ge("winddirection"), ge("cloud_cover")
+            ct = round(xT + xb["hiti"], 1)                 if xT is not None else None
+            cw = round(max(0, xW + xb["vindur"]), 1)       if xW is not None else None
+            cp = round(max(0, xP * xb["urkoma_scale"]), 2) if xP is not None else None
+            cc = round(min(100, max(0, xC + xb["sky"])))   if xC is not None else None
+            J["hourly"]["model_temperatures"][k].append(ct)
+            J["hourly"]["model_windspeeds"][k].append(cw)
+            J["hourly"]["model_precipitations"][k].append(cp)
+            J["hourly"]["model_clouds"][k].append(cc)
+            if xw > 0:
+                if ct is not None: T.append((ct, xw))
+                if cw is not None: W.append((cw, xw))
+                if xD is not None: D.append((xD, xw))
+                if cc is not None: C.append((cc, xw))
+                if cp is not None: P.append((cp, xw))
 
         def wa(p):
             if not p: return None
@@ -857,28 +995,29 @@ def save(model, fcast):
                 "runs": model.get("runs", 0),
                 "verified_pairs": model.get("verified_pairs", 0),
                 "status": "ok" if fcast else "partial",
-                "version": "2.0"})
+                "version": "2.1"})
     save_json(DATA_DIR / "run_log.json", log[-168:])
     print("VISTAD")
 
 # --- MAIN ------------------------------------------------------------------
 def main():
     print("=" * 64)
-    print(f"JOLLY v2.0  {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
-    print("Eiginleg spastadfesting eftir spalengd | 9 likon | stod 571 + BIEG")
+    print(f"JOLLY v2.1  {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
+    print("Eiginleg spastadfesting eftir spalengd | 9 gjafar | stod 571 + BIEG")
     print("=" * 64)
 
     metar        = fetch_metar()
     obs, _fresh  = fetch_and_store_observations(metar)
     fc           = fetch_forecasts()
-    harm         = fetch_harmonie()
+    extras       = {"harmonie": fetch_harmonie(),
+                    "metno":    fetch_metno()}
 
     print("LIKAN:")
     model = load_model()
 
-    arch  = archive_forecast(fc, harm)
+    arch  = archive_forecast(fc, extras)
     model = verify_and_train(arch, obs, model)
-    fcast = make_forecast(fc, harm, model)
+    fcast = make_forecast(fc, extras, model)
     save(model, fcast)
 
     print("=" * 64)
