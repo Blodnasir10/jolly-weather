@@ -1,25 +1,25 @@
 {
   "version": "1.0",
   "created": "2026-06-24T00:32:50.944399+00:00",
-  "training_days": 85,
+  "training_days": 86,
   "biases": {
     "icon": {
-      "hiti": -2.2658056829129887,
-      "vindur": -0.6327083164133992,
+      "hiti": -2.2513194458606556,
+      "vindur": -0.6072636074129277,
       "urkoma_scale": 0.30645313656723305,
-      "sky": -52.80454293541261
+      "sky": -52.003092264331485
     },
     "gfs": {
-      "hiti": -2.344493722474616,
-      "vindur": -1.222969141250111,
+      "hiti": -2.3208004333341927,
+      "vindur": -1.2523506931395174,
       "urkoma_scale": 0.48814247248733555,
-      "sky": -54.54814736061522
+      "sky": -53.216886794984475
     },
     "ecmwf": {
-      "hiti": -1.5989707542606346,
-      "vindur": 0.7468210424146077,
+      "hiti": -1.6126828334292318,
+      "vindur": 0.7549421168216472,
       "urkoma_scale": 0.3329118478203035,
-      "sky": -41.78261003884355
+      "sky": -40.909449302247786
     },
     "metno": {
       "hiti": 0.0,
@@ -34,19 +34,19 @@
       "sky": 2.9246465660629237
     },
     "dmi": {
-      "hiti": -0.894461821263663,
-      "vindur": 0.3698751606375623,
+      "hiti": -0.8719271634587289,
+      "vindur": 0.3954515788496203,
       "urkoma_scale": 1.0,
-      "sky": -35.23165471889183
+      "sky": -34.415175741827284
     }
   },
   "weights": {
-    "icon": 0.1744,
-    "gfs": 0.2199,
-    "ecmwf": 0.2496,
+    "icon": 0.1776,
+    "gfs": 0.2171,
+    "ecmwf": 0.2517,
     "metno": 0.2,
     "harmonie": 0.2,
-    "dmi": 0.356
+    "dmi": 0.3537
   },
   "mae_history": [
     {
@@ -2674,9 +2674,57 @@
           "n_sky": 0
         }
       }
+    },
+    {
+      "date": "2026-07-23 23:00",
+      "n_obs": 52,
+      "mae": {
+        "icon": {
+          "hiti": 1.858,
+          "vindur": 1.273,
+          "sky": 31.92,
+          "n": 52,
+          "n_sky": 52
+        },
+        "gfs": {
+          "hiti": 1.52,
+          "vindur": 1.775,
+          "sky": 41.37,
+          "n": 52,
+          "n_sky": 52
+        },
+        "ecmwf": {
+          "hiti": 1.311,
+          "vindur": 1.366,
+          "sky": 32.07,
+          "n": 52,
+          "n_sky": 52
+        },
+        "metno": {
+          "hiti": 0,
+          "vindur": 0,
+          "sky": 0,
+          "n": 0,
+          "n_sky": 0
+        },
+        "dmi": {
+          "hiti": 1.026,
+          "vindur": 1.267,
+          "sky": 35.56,
+          "n": 52,
+          "n_sky": 52
+        },
+        "harmonie": {
+          "hiti": 0,
+          "vindur": 0,
+          "sky": 0,
+          "n": 0,
+          "n_sky": 0
+        }
+      }
     }
   ],
-  "last_updated": "2026-07-23T23:03:04.647392+00:00",
+  "last_updated": "2026-07-23T23:06:48.445892+00:00",
   "obs_source": "open-meteo-best",
   "cloud_confusion": {
     "icon": {
@@ -2684,62 +2732,62 @@
         "heidskirt": 75
       },
       "alskyjad": {
-        "heidskirt": 135,
+        "heidskirt": 140,
         "lettskyjad": 9,
         "skyjad": 31,
-        "alskyjad": 66,
-        "skyjad_hluta": 13,
-        "halfskyjad": 46
+        "alskyjad": 69,
+        "skyjad_hluta": 14,
+        "halfskyjad": 50
       },
       "lettskyjad": {
-        "heidskirt": 22
+        "heidskirt": 23
       },
       "halfskyjad": {
-        "heidskirt": 102,
-        "halfskyjad": 8,
-        "skyjad_hluta": 4,
-        "alskyjad": 2
+        "heidskirt": 111,
+        "halfskyjad": 9,
+        "skyjad_hluta": 5,
+        "alskyjad": 4
       },
       "mestu_skyjad": {
-        "heidskirt": 113,
-        "halfskyjad": 64
+        "heidskirt": 122,
+        "halfskyjad": 73
       },
       "skyjad_hluta": {
-        "heidskirt": 53,
-        "lettskyjad": 3
+        "heidskirt": 59,
+        "lettskyjad": 4
       }
     },
     "gfs": {
       "alskyjad": {
-        "heidskirt": 314,
+        "heidskirt": 331,
         "lettskyjad": 9,
         "skyjad": 31,
-        "alskyjad": 66,
-        "skyjad_hluta": 13,
-        "halfskyjad": 89
+        "alskyjad": 69,
+        "skyjad_hluta": 14,
+        "halfskyjad": 98
       },
       "skyjad": {
         "heidskirt": 27
       },
       "lettskyjad": {
-        "heidskirt": 40
+        "heidskirt": 42
       },
       "heidskirt": {
-        "heidskirt": 22,
-        "lettskyjad": 3,
-        "alskyjad": 2
+        "heidskirt": 24,
+        "lettskyjad": 4,
+        "alskyjad": 4
       },
       "halfskyjad": {
-        "heidskirt": 70,
-        "halfskyjad": 7
+        "heidskirt": 77,
+        "halfskyjad": 8
       },
       "skyjad_hluta": {
-        "heidskirt": 26,
-        "skyjad_hluta": 4
+        "heidskirt": 28,
+        "skyjad_hluta": 5
       },
       "mestu_skyjad": {
         "heidskirt": 1,
-        "halfskyjad": 22
+        "halfskyjad": 26
       }
     },
     "ecmwf": {
@@ -2747,68 +2795,69 @@
         "heidskirt": 72
       },
       "lettskyjad": {
-        "heidskirt": 63,
+        "heidskirt": 65,
         "skyjad_hluta": 1,
-        "lettskyjad": 3,
-        "alskyjad": 2
+        "lettskyjad": 4,
+        "alskyjad": 4
       },
       "alskyjad": {
-        "heidskirt": 87,
+        "heidskirt": 90,
         "lettskyjad": 9,
         "skyjad": 31,
-        "alskyjad": 66,
-        "skyjad_hluta": 13,
-        "halfskyjad": 58
+        "alskyjad": 69,
+        "skyjad_hluta": 14,
+        "halfskyjad": 63
       },
       "skyjad_hluta": {
-        "heidskirt": 89,
+        "heidskirt": 98,
         "halfskyjad": 8
       },
       "halfskyjad": {
-        "heidskirt": 88,
-        "halfskyjad": 21,
-        "skyjad_hluta": 3
+        "heidskirt": 95,
+        "halfskyjad": 23,
+        "skyjad_hluta": 4
       },
       "mestu_skyjad": {
-        "heidskirt": 75,
-        "halfskyjad": 31
+        "heidskirt": 81,
+        "halfskyjad": 38
       },
       "heidskirt": {
-        "heidskirt": 26
+        "heidskirt": 29
       }
     },
     "dmi": {
       "lettskyjad": {
-        "heidskirt": 100
+        "heidskirt": 105
       },
       "heidskirt": {
-        "heidskirt": 154,
-        "halfskyjad": 6,
-        "skyjad_hluta": 4,
-        "lettskyjad": 3,
-        "alskyjad": 2
+        "heidskirt": 163,
+        "halfskyjad": 7,
+        "skyjad_hluta": 5,
+        "lettskyjad": 4,
+        "alskyjad": 3
       },
       "alskyjad": {
-        "heidskirt": 140,
+        "heidskirt": 150,
         "lettskyjad": 9,
         "skyjad": 31,
-        "alskyjad": 66,
-        "skyjad_hluta": 13,
-        "halfskyjad": 102
+        "alskyjad": 69,
+        "skyjad_hluta": 14,
+        "halfskyjad": 113
       },
       "skyjad": {
         "heidskirt": 27
       },
       "skyjad_hluta": {
-        "heidskirt": 40
+        "heidskirt": 43
       },
       "halfskyjad": {
-        "heidskirt": 26,
-        "halfskyjad": 1
+        "heidskirt": 28,
+        "halfskyjad": 1,
+        "alskyjad": 1
       },
       "mestu_skyjad": {
-        "heidskirt": 13,
-        "halfskyjad": 9
+        "heidskirt": 14,
+        "halfskyjad": 11
       }
     },
     "harmonie": {
@@ -2840,5 +2889,5 @@
       }
     }
   },
-  "total_obs": 746
+  "total_obs": 798
 }
