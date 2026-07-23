@@ -1,3137 +1,437 @@
 {
-  "version": "1.0",
+  "version": "2.0",
   "created": "2026-06-24T00:32:50.944399+00:00",
-  "training_days": 88,
-  "biases": {
-    "icon": {
-      "hiti": -2.228539838095862,
-      "vindur": -0.5672518025096865,
-      "urkoma_scale": 0.30645313656723305,
-      "sky": -50.74281108405642
-    },
-    "gfs": {
-      "hiti": -2.283542736160877,
-      "vindur": -1.298553183485609,
-      "urkoma_scale": 0.48814247248733555,
-      "sky": -51.123479555530125
-    },
-    "ecmwf": {
-      "hiti": -1.6342450779218507,
-      "vindur": 0.7677125063267171,
-      "urkoma_scale": 0.3329118478203035,
-      "sky": -39.536404043950945
-    },
-    "metno": {
-      "hiti": 0.0,
-      "vindur": 0.0,
-      "urkoma_scale": 1.0,
-      "sky": 0.0
-    },
-    "harmonie": {
-      "hiti": -0.16786429349926318,
-      "vindur": 0.5241006857172072,
-      "urkoma_scale": 1.0,
-      "sky": 2.9246465660629237
-    },
+  "runs": 89,
+  "verified_pairs": 0,
+  "lead_buckets": [
+    1,
+    3,
+    6,
+    12,
+    24,
+    48
+  ],
+  "bias": {
     "dmi": {
-      "hiti": -0.83649141406047,
-      "vindur": 0.4356704964880814,
-      "urkoma_scale": 1.0,
-      "sky": -33.13126255039329
+      "1": {
+        "hiti": -0.83649141406047,
+        "vindur": 0.4356704964880814,
+        "sky": -33.13126255039329,
+        "urkoma_scale": 1.0
+      },
+      "3": {
+        "hiti": -0.83649141406047,
+        "vindur": 0.4356704964880814,
+        "sky": -33.13126255039329,
+        "urkoma_scale": 1.0
+      },
+      "6": {
+        "hiti": -0.83649141406047,
+        "vindur": 0.4356704964880814,
+        "sky": -33.13126255039329,
+        "urkoma_scale": 1.0
+      },
+      "12": {
+        "hiti": -0.83649141406047,
+        "vindur": 0.4356704964880814,
+        "sky": -33.13126255039329,
+        "urkoma_scale": 1.0
+      },
+      "24": {
+        "hiti": -0.83649141406047,
+        "vindur": 0.4356704964880814,
+        "sky": -33.13126255039329,
+        "urkoma_scale": 1.0
+      },
+      "48": {
+        "hiti": -0.83649141406047,
+        "vindur": 0.4356704964880814,
+        "sky": -33.13126255039329,
+        "urkoma_scale": 1.0
+      }
     },
     "knmi": {
-      "hiti": -0.23427403846153844,
-      "vindur": 0.09659134615384614,
-      "urkoma_scale": 1.0,
-      "sky": -8.292980769230768
+      "1": {
+        "hiti": -0.23427403846153844,
+        "vindur": 0.09659134615384614,
+        "sky": -8.292980769230768,
+        "urkoma_scale": 1.0
+      },
+      "3": {
+        "hiti": -0.23427403846153844,
+        "vindur": 0.09659134615384614,
+        "sky": -8.292980769230768,
+        "urkoma_scale": 1.0
+      },
+      "6": {
+        "hiti": -0.23427403846153844,
+        "vindur": 0.09659134615384614,
+        "sky": -8.292980769230768,
+        "urkoma_scale": 1.0
+      },
+      "12": {
+        "hiti": -0.23427403846153844,
+        "vindur": 0.09659134615384614,
+        "sky": -8.292980769230768,
+        "urkoma_scale": 1.0
+      },
+      "24": {
+        "hiti": -0.23427403846153844,
+        "vindur": 0.09659134615384614,
+        "sky": -8.292980769230768,
+        "urkoma_scale": 1.0
+      },
+      "48": {
+        "hiti": -0.23427403846153844,
+        "vindur": 0.09659134615384614,
+        "sky": -8.292980769230768,
+        "urkoma_scale": 1.0
+      }
+    },
+    "ecmwf": {
+      "1": {
+        "hiti": -1.6342450779218507,
+        "vindur": 0.7677125063267171,
+        "sky": -39.536404043950945,
+        "urkoma_scale": 0.3329118478203035
+      },
+      "3": {
+        "hiti": -1.6342450779218507,
+        "vindur": 0.7677125063267171,
+        "sky": -39.536404043950945,
+        "urkoma_scale": 0.3329118478203035
+      },
+      "6": {
+        "hiti": -1.6342450779218507,
+        "vindur": 0.7677125063267171,
+        "sky": -39.536404043950945,
+        "urkoma_scale": 0.3329118478203035
+      },
+      "12": {
+        "hiti": -1.6342450779218507,
+        "vindur": 0.7677125063267171,
+        "sky": -39.536404043950945,
+        "urkoma_scale": 0.3329118478203035
+      },
+      "24": {
+        "hiti": -1.6342450779218507,
+        "vindur": 0.7677125063267171,
+        "sky": -39.536404043950945,
+        "urkoma_scale": 0.3329118478203035
+      },
+      "48": {
+        "hiti": -1.6342450779218507,
+        "vindur": 0.7677125063267171,
+        "sky": -39.536404043950945,
+        "urkoma_scale": 0.3329118478203035
+      }
+    },
+    "icon": {
+      "1": {
+        "hiti": -2.228539838095862,
+        "vindur": -0.5672518025096865,
+        "sky": -50.74281108405642,
+        "urkoma_scale": 0.30645313656723305
+      },
+      "3": {
+        "hiti": -2.228539838095862,
+        "vindur": -0.5672518025096865,
+        "sky": -50.74281108405642,
+        "urkoma_scale": 0.30645313656723305
+      },
+      "6": {
+        "hiti": -2.228539838095862,
+        "vindur": -0.5672518025096865,
+        "sky": -50.74281108405642,
+        "urkoma_scale": 0.30645313656723305
+      },
+      "12": {
+        "hiti": -2.228539838095862,
+        "vindur": -0.5672518025096865,
+        "sky": -50.74281108405642,
+        "urkoma_scale": 0.30645313656723305
+      },
+      "24": {
+        "hiti": -2.228539838095862,
+        "vindur": -0.5672518025096865,
+        "sky": -50.74281108405642,
+        "urkoma_scale": 0.30645313656723305
+      },
+      "48": {
+        "hiti": -2.228539838095862,
+        "vindur": -0.5672518025096865,
+        "sky": -50.74281108405642,
+        "urkoma_scale": 0.30645313656723305
+      }
     },
     "ukmo": {
-      "hiti": -0.49096153846153845,
-      "vindur": 0.1702355769230769,
-      "urkoma_scale": 1.0,
-      "sky": -10.913221153846154
+      "1": {
+        "hiti": -0.49096153846153845,
+        "vindur": 0.1702355769230769,
+        "sky": -10.913221153846154,
+        "urkoma_scale": 1.0
+      },
+      "3": {
+        "hiti": -0.49096153846153845,
+        "vindur": 0.1702355769230769,
+        "sky": -10.913221153846154,
+        "urkoma_scale": 1.0
+      },
+      "6": {
+        "hiti": -0.49096153846153845,
+        "vindur": 0.1702355769230769,
+        "sky": -10.913221153846154,
+        "urkoma_scale": 1.0
+      },
+      "12": {
+        "hiti": -0.49096153846153845,
+        "vindur": 0.1702355769230769,
+        "sky": -10.913221153846154,
+        "urkoma_scale": 1.0
+      },
+      "24": {
+        "hiti": -0.49096153846153845,
+        "vindur": 0.1702355769230769,
+        "sky": -10.913221153846154,
+        "urkoma_scale": 1.0
+      },
+      "48": {
+        "hiti": -0.49096153846153845,
+        "vindur": 0.1702355769230769,
+        "sky": -10.913221153846154,
+        "urkoma_scale": 1.0
+      }
     },
     "mfr": {
-      "hiti": -0.2321394230769231,
-      "vindur": 0.018037499999999984,
-      "urkoma_scale": 1.0,
-      "sky": -8.87466346153846
+      "1": {
+        "hiti": -0.2321394230769231,
+        "vindur": 0.018037499999999984,
+        "sky": -8.87466346153846,
+        "urkoma_scale": 1.0
+      },
+      "3": {
+        "hiti": -0.2321394230769231,
+        "vindur": 0.018037499999999984,
+        "sky": -8.87466346153846,
+        "urkoma_scale": 1.0
+      },
+      "6": {
+        "hiti": -0.2321394230769231,
+        "vindur": 0.018037499999999984,
+        "sky": -8.87466346153846,
+        "urkoma_scale": 1.0
+      },
+      "12": {
+        "hiti": -0.2321394230769231,
+        "vindur": 0.018037499999999984,
+        "sky": -8.87466346153846,
+        "urkoma_scale": 1.0
+      },
+      "24": {
+        "hiti": -0.2321394230769231,
+        "vindur": 0.018037499999999984,
+        "sky": -8.87466346153846,
+        "urkoma_scale": 1.0
+      },
+      "48": {
+        "hiti": -0.2321394230769231,
+        "vindur": 0.018037499999999984,
+        "sky": -8.87466346153846,
+        "urkoma_scale": 1.0
+      }
+    },
+    "gfs": {
+      "1": {
+        "hiti": -2.283542736160877,
+        "vindur": -1.298553183485609,
+        "sky": -51.123479555530125,
+        "urkoma_scale": 0.48814247248733555
+      },
+      "3": {
+        "hiti": -2.283542736160877,
+        "vindur": -1.298553183485609,
+        "sky": -51.123479555530125,
+        "urkoma_scale": 0.48814247248733555
+      },
+      "6": {
+        "hiti": -2.283542736160877,
+        "vindur": -1.298553183485609,
+        "sky": -51.123479555530125,
+        "urkoma_scale": 0.48814247248733555
+      },
+      "12": {
+        "hiti": -2.283542736160877,
+        "vindur": -1.298553183485609,
+        "sky": -51.123479555530125,
+        "urkoma_scale": 0.48814247248733555
+      },
+      "24": {
+        "hiti": -2.283542736160877,
+        "vindur": -1.298553183485609,
+        "sky": -51.123479555530125,
+        "urkoma_scale": 0.48814247248733555
+      },
+      "48": {
+        "hiti": -2.283542736160877,
+        "vindur": -1.298553183485609,
+        "sky": -51.123479555530125,
+        "urkoma_scale": 0.48814247248733555
+      }
+    },
+    "metno": {
+      "1": {
+        "hiti": 0.0,
+        "vindur": 0.0,
+        "sky": 0.0,
+        "urkoma_scale": 1.0
+      },
+      "3": {
+        "hiti": 0.0,
+        "vindur": 0.0,
+        "sky": 0.0,
+        "urkoma_scale": 1.0
+      },
+      "6": {
+        "hiti": 0.0,
+        "vindur": 0.0,
+        "sky": 0.0,
+        "urkoma_scale": 1.0
+      },
+      "12": {
+        "hiti": 0.0,
+        "vindur": 0.0,
+        "sky": 0.0,
+        "urkoma_scale": 1.0
+      },
+      "24": {
+        "hiti": 0.0,
+        "vindur": 0.0,
+        "sky": 0.0,
+        "urkoma_scale": 1.0
+      },
+      "48": {
+        "hiti": 0.0,
+        "vindur": 0.0,
+        "sky": 0.0,
+        "urkoma_scale": 1.0
+      }
+    },
+    "harmonie": {
+      "1": {
+        "hiti": -0.16786429349926318,
+        "vindur": 0.5241006857172072,
+        "sky": 2.9246465660629237,
+        "urkoma_scale": 1.0
+      },
+      "3": {
+        "hiti": -0.16786429349926318,
+        "vindur": 0.5241006857172072,
+        "sky": 2.9246465660629237,
+        "urkoma_scale": 1.0
+      },
+      "6": {
+        "hiti": -0.16786429349926318,
+        "vindur": 0.5241006857172072,
+        "sky": 2.9246465660629237,
+        "urkoma_scale": 1.0
+      },
+      "12": {
+        "hiti": -0.16786429349926318,
+        "vindur": 0.5241006857172072,
+        "sky": 2.9246465660629237,
+        "urkoma_scale": 1.0
+      },
+      "24": {
+        "hiti": -0.16786429349926318,
+        "vindur": 0.5241006857172072,
+        "sky": 2.9246465660629237,
+        "urkoma_scale": 1.0
+      },
+      "48": {
+        "hiti": -0.16786429349926318,
+        "vindur": 0.5241006857172072,
+        "sky": 2.9246465660629237,
+        "urkoma_scale": 1.0
+      }
     }
   },
   "weights": {
-    "icon": 0.0994,
-    "gfs": 0.1216,
-    "ecmwf": 0.1406,
-    "metno": 0.0,
-    "harmonie": 0.0,
-    "dmi": 0.2066,
-    "knmi": 0.1924,
-    "ukmo": 0.1134,
-    "mfr": 0.1259
-  },
-  "mae_history": [
-    {
-      "date": "2026-06-24",
-      "mae": {
-        "icon": {
-          "hiti": 0.81,
-          "vindur": 1.351
-        },
-        "gfs": {
-          "hiti": 0.841,
-          "vindur": 1.158
-        },
-        "ecmwf": {
-          "hiti": 0.836,
-          "vindur": 1.033
-        }
-      }
-    },
-    {
-      "date": "2026-06-24",
-      "mae": {
-        "icon": {
-          "hiti": 0.766,
-          "vindur": 1.317
-        },
-        "gfs": {
-          "hiti": 0.841,
-          "vindur": 1.115
-        },
-        "ecmwf": {
-          "hiti": 0.771,
-          "vindur": 1.033
-        }
-      }
-    },
-    {
-      "date": "2026-06-24",
-      "mae": {
-        "icon": {
-          "hiti": 0.75,
-          "vindur": 1.297
-        },
-        "gfs": {
-          "hiti": 0.841,
-          "vindur": 1.095
-        },
-        "ecmwf": {
-          "hiti": 0.747,
-          "vindur": 1.04
-        }
-      }
-    },
-    {
-      "date": "2026-06-24",
-      "mae": {
-        "icon": {
-          "hiti": 0.744,
-          "vindur": 1.287
-        },
-        "gfs": {
-          "hiti": 0.841,
-          "vindur": 1.083
-        },
-        "ecmwf": {
-          "hiti": 0.723,
-          "vindur": 1.041
-        }
-      }
-    },
-    {
-      "date": "2026-06-24",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.741,
-          "vindur": 1.282
-        },
-        "gfs": {
-          "hiti": 0.841,
-          "vindur": 1.078
-        },
-        "ecmwf": {
-          "hiti": 0.708,
-          "vindur": 1.042
-        }
-      }
-    },
-    {
-      "date": "2026-06-24",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.74,
-          "vindur": 1.28
-        },
-        "gfs": {
-          "hiti": 0.841,
-          "vindur": 1.075
-        },
-        "ecmwf": {
-          "hiti": 0.698,
-          "vindur": 1.043
-        }
-      }
-    },
-    {
-      "date": "2026-06-24",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.741,
-          "vindur": 1.278
-        },
-        "gfs": {
-          "hiti": 0.841,
-          "vindur": 1.074
-        },
-        "ecmwf": {
-          "hiti": 0.691,
-          "vindur": 1.043
-        }
-      }
-    },
-    {
-      "date": "2026-06-24",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.742,
-          "vindur": 1.278
-        },
-        "gfs": {
-          "hiti": 0.841,
-          "vindur": 1.073
-        },
-        "ecmwf": {
-          "hiti": 0.686,
-          "vindur": 1.044
-        }
-      }
-    },
-    {
-      "date": "2026-06-25",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.73,
-          "vindur": 1.277
-        },
-        "gfs": {
-          "hiti": 1.058,
-          "vindur": 1.09
-        },
-        "ecmwf": {
-          "hiti": 0.753,
-          "vindur": 0.972
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-06-25",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.731,
-          "vindur": 1.277
-        },
-        "gfs": {
-          "hiti": 1.057,
-          "vindur": 1.081
-        },
-        "ecmwf": {
-          "hiti": 0.753,
-          "vindur": 0.968
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-06-25",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.731,
-          "vindur": 1.277
-        },
-        "gfs": {
-          "hiti": 1.056,
-          "vindur": 1.076
-        },
-        "ecmwf": {
-          "hiti": 0.753,
-          "vindur": 0.966
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-06-25",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.731,
-          "vindur": 1.277
-        },
-        "gfs": {
-          "hiti": 1.056,
-          "vindur": 1.074
-        },
-        "ecmwf": {
-          "hiti": 0.753,
-          "vindur": 0.965
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-06-25",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.731,
-          "vindur": 1.277
-        },
-        "gfs": {
-          "hiti": 1.056,
-          "vindur": 1.073
-        },
-        "ecmwf": {
-          "hiti": 0.753,
-          "vindur": 0.964
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-06-25",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.731,
-          "vindur": 1.277
-        },
-        "gfs": {
-          "hiti": 1.057,
-          "vindur": 1.073
-        },
-        "ecmwf": {
-          "hiti": 0.753,
-          "vindur": 0.963
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-06-25",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.732,
-          "vindur": 1.277
-        },
-        "gfs": {
-          "hiti": 1.057,
-          "vindur": 1.073
-        },
-        "ecmwf": {
-          "hiti": 0.753,
-          "vindur": 0.963
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-06-25",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.732,
-          "vindur": 1.277
-        },
-        "gfs": {
-          "hiti": 1.058,
-          "vindur": 1.073
-        },
-        "ecmwf": {
-          "hiti": 0.753,
-          "vindur": 0.963
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-06-25",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.732,
-          "vindur": 1.277
-        },
-        "gfs": {
-          "hiti": 1.058,
-          "vindur": 1.074
-        },
-        "ecmwf": {
-          "hiti": 0.761,
-          "vindur": 0.946
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-06-25",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.732,
-          "vindur": 1.277
-        },
-        "gfs": {
-          "hiti": 1.058,
-          "vindur": 1.074
-        },
-        "ecmwf": {
-          "hiti": 0.761,
-          "vindur": 0.946
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-06-25",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.732,
-          "vindur": 1.277
-        },
-        "gfs": {
-          "hiti": 1.058,
-          "vindur": 1.074
-        },
-        "ecmwf": {
-          "hiti": 0.76,
-          "vindur": 0.946
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-06-26",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.834,
-          "vindur": 1.291
-        },
-        "gfs": {
-          "hiti": 1.249,
-          "vindur": 1.184
-        },
-        "ecmwf": {
-          "hiti": 0.899,
-          "vindur": 0.92
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-06-26",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.828,
-          "vindur": 1.291
-        },
-        "gfs": {
-          "hiti": 1.248,
-          "vindur": 1.183
-        },
-        "ecmwf": {
-          "hiti": 0.902,
-          "vindur": 0.92
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-06-26",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.826,
-          "vindur": 1.291
-        },
-        "gfs": {
-          "hiti": 1.249,
-          "vindur": 1.183
-        },
-        "ecmwf": {
-          "hiti": 0.905,
-          "vindur": 0.92
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-06-26",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.825,
-          "vindur": 1.291
-        },
-        "gfs": {
-          "hiti": 1.25,
-          "vindur": 1.183
-        },
-        "ecmwf": {
-          "hiti": 0.907,
-          "vindur": 0.92
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-06-27",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.902,
-          "vindur": 1.237
-        },
-        "gfs": {
-          "hiti": 1.312,
-          "vindur": 1.347
-        },
-        "ecmwf": {
-          "hiti": 0.9,
-          "vindur": 0.947
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-06-27",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.9,
-          "vindur": 1.236
-        },
-        "gfs": {
-          "hiti": 1.312,
-          "vindur": 1.348
-        },
-        "ecmwf": {
-          "hiti": 0.901,
-          "vindur": 0.947
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-06-27",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.898,
-          "vindur": 1.235
-        },
-        "gfs": {
-          "hiti": 1.312,
-          "vindur": 1.348
-        },
-        "ecmwf": {
-          "hiti": 0.901,
-          "vindur": 0.948
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-06-27",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.897,
-          "vindur": 1.234
-        },
-        "gfs": {
-          "hiti": 1.313,
-          "vindur": 1.348
-        },
-        "ecmwf": {
-          "hiti": 0.901,
-          "vindur": 0.948
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-06-28",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.933,
-          "vindur": 1.164
-        },
-        "gfs": {
-          "hiti": 1.292,
-          "vindur": 1.455
-        },
-        "ecmwf": {
-          "hiti": 0.905,
-          "vindur": 0.961
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-06-28",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.932,
-          "vindur": 1.161
-        },
-        "gfs": {
-          "hiti": 1.288,
-          "vindur": 1.449
-        },
-        "ecmwf": {
-          "hiti": 0.9,
-          "vindur": 0.965
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-06-28",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.931,
-          "vindur": 1.162
-        },
-        "gfs": {
-          "hiti": 1.287,
-          "vindur": 1.447
-        },
-        "ecmwf": {
-          "hiti": 0.896,
-          "vindur": 0.968
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-06-28",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.93,
-          "vindur": 1.163
-        },
-        "gfs": {
-          "hiti": 1.288,
-          "vindur": 1.445
-        },
-        "ecmwf": {
-          "hiti": 0.895,
-          "vindur": 0.971
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-06-29",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.893,
-          "vindur": 1.198
-        },
-        "gfs": {
-          "hiti": 1.177,
-          "vindur": 1.529
-        },
-        "ecmwf": {
-          "hiti": 0.869,
-          "vindur": 1.016
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-06-29",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.894,
-          "vindur": 1.2
-        },
-        "gfs": {
-          "hiti": 1.176,
-          "vindur": 1.522
-        },
-        "ecmwf": {
-          "hiti": 0.865,
-          "vindur": 1.021
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-06-29",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.894,
-          "vindur": 1.201
-        },
-        "gfs": {
-          "hiti": 1.176,
-          "vindur": 1.519
-        },
-        "ecmwf": {
-          "hiti": 0.865,
-          "vindur": 1.028
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-06-29",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.894,
-          "vindur": 1.202
-        },
-        "gfs": {
-          "hiti": 1.175,
-          "vindur": 1.517
-        },
-        "ecmwf": {
-          "hiti": 0.864,
-          "vindur": 1.034
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-06-30",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.931,
-          "vindur": 1.234
-        },
-        "gfs": {
-          "hiti": 1.167,
-          "vindur": 1.608
-        },
-        "ecmwf": {
-          "hiti": 0.836,
-          "vindur": 1.042
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-06-30",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.932,
-          "vindur": 1.234
-        },
-        "gfs": {
-          "hiti": 1.164,
-          "vindur": 1.608
-        },
-        "ecmwf": {
-          "hiti": 0.835,
-          "vindur": 1.049
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-06-30",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.933,
-          "vindur": 1.234
-        },
-        "gfs": {
-          "hiti": 1.166,
-          "vindur": 1.609
-        },
-        "ecmwf": {
-          "hiti": 0.835,
-          "vindur": 1.052
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-06-30",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.933,
-          "vindur": 1.234
-        },
-        "gfs": {
-          "hiti": 1.167,
-          "vindur": 1.609
-        },
-        "ecmwf": {
-          "hiti": 0.835,
-          "vindur": 1.054
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-01",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.856,
-          "vindur": 1.276
-        },
-        "gfs": {
-          "hiti": 1.114,
-          "vindur": 1.57
-        },
-        "ecmwf": {
-          "hiti": 0.742,
-          "vindur": 1.001
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-01",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.849,
-          "vindur": 1.267
-        },
-        "gfs": {
-          "hiti": 1.109,
-          "vindur": 1.567
-        },
-        "ecmwf": {
-          "hiti": 0.74,
-          "vindur": 0.998
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-01",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.846,
-          "vindur": 1.262
-        },
-        "gfs": {
-          "hiti": 1.105,
-          "vindur": 1.567
-        },
-        "ecmwf": {
-          "hiti": 0.74,
-          "vindur": 0.995
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-01",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.843,
-          "vindur": 1.259
-        },
-        "gfs": {
-          "hiti": 1.104,
-          "vindur": 1.567
-        },
-        "ecmwf": {
-          "hiti": 0.74,
-          "vindur": 0.994
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-02",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.886,
-          "vindur": 1.18
-        },
-        "gfs": {
-          "hiti": 1.025,
-          "vindur": 1.585
-        },
-        "ecmwf": {
-          "hiti": 0.705,
-          "vindur": 0.916
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-02",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.886,
-          "vindur": 1.179
-        },
-        "gfs": {
-          "hiti": 1.025,
-          "vindur": 1.585
-        },
-        "ecmwf": {
-          "hiti": 0.706,
-          "vindur": 0.912
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-02",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.886,
-          "vindur": 1.179
-        },
-        "gfs": {
-          "hiti": 1.026,
-          "vindur": 1.584
-        },
-        "ecmwf": {
-          "hiti": 0.706,
-          "vindur": 0.911
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-02",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.886,
-          "vindur": 1.178
-        },
-        "gfs": {
-          "hiti": 1.026,
-          "vindur": 1.584
-        },
-        "ecmwf": {
-          "hiti": 0.706,
-          "vindur": 0.909
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-03",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.796,
-          "vindur": 1.236
-        },
-        "gfs": {
-          "hiti": 0.824,
-          "vindur": 1.573
-        },
-        "ecmwf": {
-          "hiti": 0.619,
-          "vindur": 0.867
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-03",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.796,
-          "vindur": 1.238
-        },
-        "gfs": {
-          "hiti": 0.825,
-          "vindur": 1.573
-        },
-        "ecmwf": {
-          "hiti": 0.619,
-          "vindur": 0.867
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-04",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.855,
-          "vindur": 1.298
-        },
-        "gfs": {
-          "hiti": 0.919,
-          "vindur": 1.6
-        },
-        "ecmwf": {
-          "hiti": 0.692,
-          "vindur": 0.891
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-04",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.854,
-          "vindur": 1.298
-        },
-        "gfs": {
-          "hiti": 0.904,
-          "vindur": 1.618
-        },
-        "ecmwf": {
-          "hiti": 0.668,
-          "vindur": 0.884
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-04",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.854,
-          "vindur": 1.298
-        },
-        "gfs": {
-          "hiti": 0.901,
-          "vindur": 1.617
-        },
-        "ecmwf": {
-          "hiti": 0.667,
-          "vindur": 0.886
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-04",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.854,
-          "vindur": 1.298
-        },
-        "gfs": {
-          "hiti": 0.9,
-          "vindur": 1.617
-        },
-        "ecmwf": {
-          "hiti": 0.667,
-          "vindur": 0.886
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-05",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.889,
-          "vindur": 1.194
-        },
-        "gfs": {
-          "hiti": 0.918,
-          "vindur": 1.494
-        },
-        "ecmwf": {
-          "hiti": 0.665,
-          "vindur": 0.816
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-05",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.887,
-          "vindur": 1.197
-        },
-        "gfs": {
-          "hiti": 0.911,
-          "vindur": 1.491
-        },
-        "ecmwf": {
-          "hiti": 0.665,
-          "vindur": 0.812
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-05",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.886,
-          "vindur": 1.2
-        },
-        "gfs": {
-          "hiti": 0.907,
-          "vindur": 1.491
-        },
-        "ecmwf": {
-          "hiti": 0.665,
-          "vindur": 0.81
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-05",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.886,
-          "vindur": 1.201
-        },
-        "gfs": {
-          "hiti": 0.907,
-          "vindur": 1.492
-        },
-        "ecmwf": {
-          "hiti": 0.665,
-          "vindur": 0.808
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-06",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.95,
-          "vindur": 1.159
-        },
-        "gfs": {
-          "hiti": 0.972,
-          "vindur": 1.329
-        },
-        "ecmwf": {
-          "hiti": 0.681,
-          "vindur": 0.761
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-06",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.949,
-          "vindur": 1.161
-        },
-        "gfs": {
-          "hiti": 0.969,
-          "vindur": 1.324
-        },
-        "ecmwf": {
-          "hiti": 0.681,
-          "vindur": 0.755
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-06",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.948,
-          "vindur": 1.163
-        },
-        "gfs": {
-          "hiti": 0.969,
-          "vindur": 1.322
-        },
-        "ecmwf": {
-          "hiti": 0.68,
-          "vindur": 0.752
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-06",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.948,
-          "vindur": 1.165
-        },
-        "gfs": {
-          "hiti": 0.969,
-          "vindur": 1.322
-        },
-        "ecmwf": {
-          "hiti": 0.68,
-          "vindur": 0.752
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-07",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.934,
-          "vindur": 1.24
-        },
-        "gfs": {
-          "hiti": 0.939,
-          "vindur": 1.344
-        },
-        "ecmwf": {
-          "hiti": 0.677,
-          "vindur": 0.715
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-07",
-      "obs_source": "open-meteo-best",
-      "mae": {
-        "icon": {
-          "hiti": 0.927,
-          "vindur": 1.23
-        },
-        "gfs": {
-          "hiti": 0.939,
-          "vindur": 1.339
-        },
-        "ecmwf": {
-          "hiti": 0.675,
-          "vindur": 0.715
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-22 18:00",
-      "n_obs": 23,
-      "mae": {
-        "icon": {
-          "hiti": 3.091,
-          "vindur": 0.932,
-          "sky": 52.9,
-          "n": 23,
-          "n_sky": 23
-        },
-        "gfs": {
-          "hiti": 2.265,
-          "vindur": 1.545,
-          "sky": 54.89,
-          "n": 23,
-          "n_sky": 23
-        },
-        "ecmwf": {
-          "hiti": 2.046,
-          "vindur": 0.937,
-          "sky": 44.61,
-          "n": 23,
-          "n_sky": 23
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        },
-        "dmi": {
-          "hiti": 1.235,
-          "vindur": 0.621,
-          "sky": 28.83,
-          "n": 23,
-          "n_sky": 23
-        },
-        "harmonie": {
-          "hiti": 0.633,
-          "vindur": 1.303,
-          "sky": 8.5,
-          "n": 3,
-          "n_sky": 3
-        }
-      }
-    },
-    {
-      "date": "2026-07-22 18:00",
-      "n_obs": 23,
-      "mae": {
-        "icon": {
-          "hiti": 2.915,
-          "vindur": 0.93,
-          "sky": 47.31,
-          "n": 23,
-          "n_sky": 23
-        },
-        "gfs": {
-          "hiti": 2.046,
-          "vindur": 1.547,
-          "sky": 49.09,
-          "n": 23,
-          "n_sky": 23
-        },
-        "ecmwf": {
-          "hiti": 1.87,
-          "vindur": 0.938,
-          "sky": 39.96,
-          "n": 23,
-          "n_sky": 23
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        },
-        "dmi": {
-          "hiti": 1.12,
-          "vindur": 0.621,
-          "sky": 26.75,
-          "n": 23,
-          "n_sky": 23
-        },
-        "harmonie": {
-          "hiti": 0.605,
-          "vindur": 1.108,
-          "sky": 7.22,
-          "n": 3,
-          "n_sky": 3
-        }
-      }
-    },
-    {
-      "date": "2026-07-22 18:00",
-      "n_obs": 23,
-      "mae": {
-        "icon": {
-          "hiti": 2.789,
-          "vindur": 0.928,
-          "sky": 42.64,
-          "n": 23,
-          "n_sky": 23
-        },
-        "gfs": {
-          "hiti": 1.879,
-          "vindur": 1.55,
-          "sky": 44.72,
-          "n": 23,
-          "n_sky": 23
-        },
-        "ecmwf": {
-          "hiti": 1.741,
-          "vindur": 0.94,
-          "sky": 36.0,
-          "n": 23,
-          "n_sky": 23
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        },
-        "dmi": {
-          "hiti": 1.039,
-          "vindur": 0.62,
-          "sky": 26.0,
-          "n": 23,
-          "n_sky": 23
-        },
-        "harmonie": {
-          "hiti": 0.581,
-          "vindur": 0.942,
-          "sky": 6.14,
-          "n": 3,
-          "n_sky": 3
-        }
-      }
-    },
-    {
-      "date": "2026-07-22 18:00",
-      "n_obs": 23,
-      "mae": {
-        "icon": {
-          "hiti": 2.682,
-          "vindur": 0.927,
-          "sky": 40.04,
-          "n": 23,
-          "n_sky": 23
-        },
-        "gfs": {
-          "hiti": 1.755,
-          "vindur": 1.553,
-          "sky": 42.19,
-          "n": 23,
-          "n_sky": 23
-        },
-        "ecmwf": {
-          "hiti": 1.633,
-          "vindur": 0.942,
-          "sky": 32.69,
-          "n": 23,
-          "n_sky": 23
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        },
-        "dmi": {
-          "hiti": 0.978,
-          "vindur": 0.62,
-          "sky": 25.62,
-          "n": 23,
-          "n_sky": 23
-        },
-        "harmonie": {
-          "hiti": 0.56,
-          "vindur": 0.8,
-          "sky": 5.22,
-          "n": 3,
-          "n_sky": 3
-        }
-      }
-    },
-    {
-      "date": "2026-07-22 18:00",
-      "n_obs": 23,
-      "mae": {
-        "icon": {
-          "hiti": 2.591,
-          "vindur": 0.926,
-          "sky": 38.22,
-          "n": 23,
-          "n_sky": 23
-        },
-        "gfs": {
-          "hiti": 1.661,
-          "vindur": 1.555,
-          "sky": 40.5,
-          "n": 23,
-          "n_sky": 23
-        },
-        "ecmwf": {
-          "hiti": 1.554,
-          "vindur": 0.944,
-          "sky": 30.81,
-          "n": 23,
-          "n_sky": 23
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        },
-        "dmi": {
-          "hiti": 0.932,
-          "vindur": 0.62,
-          "sky": 25.29,
-          "n": 23,
-          "n_sky": 23
-        },
-        "harmonie": {
-          "hiti": 0.543,
-          "vindur": 0.68,
-          "sky": 4.44,
-          "n": 3,
-          "n_sky": 3
-        }
-      }
-    },
-    {
-      "date": "2026-07-22 20:00",
-      "n_obs": 25,
-      "mae": {
-        "icon": {
-          "hiti": 2.383,
-          "vindur": 1.007,
-          "sky": 36.62,
-          "n": 25,
-          "n_sky": 25
-        },
-        "gfs": {
-          "hiti": 1.701,
-          "vindur": 1.608,
-          "sky": 39.11,
-          "n": 25,
-          "n_sky": 25
-        },
-        "ecmwf": {
-          "hiti": 1.365,
-          "vindur": 1.019,
-          "sky": 29.75,
-          "n": 25,
-          "n_sky": 25
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        },
-        "dmi": {
-          "hiti": 0.873,
-          "vindur": 0.72,
-          "sky": 24.25,
-          "n": 25,
-          "n_sky": 25
-        },
-        "harmonie": {
-          "hiti": 0.535,
-          "vindur": 1.782,
-          "sky": 17.5,
-          "n": 2,
-          "n_sky": 2
-        }
-      }
-    },
-    {
-      "date": "2026-07-22 22:00",
-      "n_obs": 27,
-      "mae": {
-        "icon": {
-          "hiti": 2.172,
-          "vindur": 1.071,
-          "sky": 36.47,
-          "n": 27,
-          "n_sky": 27
-        },
-        "gfs": {
-          "hiti": 1.566,
-          "vindur": 1.535,
-          "sky": 39.57,
-          "n": 27,
-          "n_sky": 27
-        },
-        "ecmwf": {
-          "hiti": 1.255,
-          "vindur": 1.091,
-          "sky": 30.76,
-          "n": 27,
-          "n_sky": 27
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        },
-        "dmi": {
-          "hiti": 0.862,
-          "vindur": 0.869,
-          "sky": 27.0,
-          "n": 27,
-          "n_sky": 27
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-22 23:00",
-      "n_obs": 27,
-      "mae": {
-        "icon": {
-          "hiti": 2.138,
-          "vindur": 1.071,
-          "sky": 35.22,
-          "n": 27,
-          "n_sky": 27
-        },
-        "gfs": {
-          "hiti": 1.521,
-          "vindur": 1.536,
-          "sky": 38.7,
-          "n": 27,
-          "n_sky": 27
-        },
-        "ecmwf": {
-          "hiti": 1.24,
-          "vindur": 1.093,
-          "sky": 29.75,
-          "n": 27,
-          "n_sky": 27
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        },
-        "dmi": {
-          "hiti": 0.833,
-          "vindur": 0.869,
-          "sky": 26.61,
-          "n": 27,
-          "n_sky": 27
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-22 23:00",
-      "n_obs": 28,
-      "mae": {
-        "icon": {
-          "hiti": 2.09,
-          "vindur": 1.103,
-          "sky": 34.76,
-          "n": 28,
-          "n_sky": 28
-        },
-        "gfs": {
-          "hiti": 1.487,
-          "vindur": 1.569,
-          "sky": 38.39,
-          "n": 28,
-          "n_sky": 28
-        },
-        "ecmwf": {
-          "hiti": 1.237,
-          "vindur": 1.092,
-          "sky": 29.96,
-          "n": 28,
-          "n_sky": 28
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        },
-        "dmi": {
-          "hiti": 0.785,
-          "vindur": 0.948,
-          "sky": 28.62,
-          "n": 28,
-          "n_sky": 28
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-22 23:00",
-      "n_obs": 28,
-      "mae": {
-        "icon": {
-          "hiti": 2.072,
-          "vindur": 1.105,
-          "sky": 33.73,
-          "n": 28,
-          "n_sky": 28
-        },
-        "gfs": {
-          "hiti": 1.468,
-          "vindur": 1.569,
-          "sky": 37.66,
-          "n": 28,
-          "n_sky": 28
-        },
-        "ecmwf": {
-          "hiti": 1.229,
-          "vindur": 1.093,
-          "sky": 29.14,
-          "n": 28,
-          "n_sky": 28
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        },
-        "dmi": {
-          "hiti": 0.77,
-          "vindur": 0.947,
-          "sky": 28.78,
-          "n": 28,
-          "n_sky": 28
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-23 00:00",
-      "n_obs": 28,
-      "mae": {
-        "icon": {
-          "hiti": 1.994,
-          "vindur": 1.093,
-          "sky": 32.49,
-          "n": 28,
-          "n_sky": 28
-        },
-        "gfs": {
-          "hiti": 1.457,
-          "vindur": 1.569,
-          "sky": 37.03,
-          "n": 28,
-          "n_sky": 28
-        },
-        "ecmwf": {
-          "hiti": 1.226,
-          "vindur": 1.094,
-          "sky": 28.45,
-          "n": 28,
-          "n_sky": 28
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        },
-        "dmi": {
-          "hiti": 0.761,
-          "vindur": 0.946,
-          "sky": 29.01,
-          "n": 28,
-          "n_sky": 28
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-23 00:00",
-      "n_obs": 29,
-      "mae": {
-        "icon": {
-          "hiti": 1.975,
-          "vindur": 1.092,
-          "sky": 32.22,
-          "n": 29,
-          "n_sky": 29
-        },
-        "gfs": {
-          "hiti": 1.458,
-          "vindur": 1.568,
-          "sky": 36.73,
-          "n": 29,
-          "n_sky": 29
-        },
-        "ecmwf": {
-          "hiti": 1.27,
-          "vindur": 1.067,
-          "sky": 28.75,
-          "n": 29,
-          "n_sky": 29
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        },
-        "dmi": {
-          "hiti": 0.742,
-          "vindur": 0.961,
-          "sky": 30.59,
-          "n": 29,
-          "n_sky": 29
-        },
-        "harmonie": {
-          "hiti": 1.245,
-          "vindur": 1.927,
-          "sky": 78.93,
-          "n": 1,
-          "n_sky": 1
-        }
-      }
-    },
-    {
-      "date": "2026-07-23 04:00",
-      "n_obs": 33,
-      "mae": {
-        "icon": {
-          "hiti": 1.831,
-          "vindur": 1.199,
-          "sky": 29.67,
-          "n": 33,
-          "n_sky": 33
-        },
-        "gfs": {
-          "hiti": 1.423,
-          "vindur": 1.518,
-          "sky": 37.1,
-          "n": 33,
-          "n_sky": 33
-        },
-        "ecmwf": {
-          "hiti": 1.245,
-          "vindur": 1.127,
-          "sky": 28.48,
-          "n": 33,
-          "n_sky": 33
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        },
-        "dmi": {
-          "hiti": 0.728,
-          "vindur": 0.996,
-          "sky": 34.05,
-          "n": 33,
-          "n_sky": 33
-        },
-        "harmonie": {
-          "hiti": 1.271,
-          "vindur": 1.957,
-          "sky": 50.09,
-          "n": 4,
-          "n_sky": 4
-        }
-      }
-    },
-    {
-      "date": "2026-07-23 07:00",
-      "n_obs": 36,
-      "mae": {
-        "icon": {
-          "hiti": 1.887,
-          "vindur": 1.229,
-          "sky": 27.5,
-          "n": 36,
-          "n_sky": 36
-        },
-        "gfs": {
-          "hiti": 1.482,
-          "vindur": 1.541,
-          "sky": 35.0,
-          "n": 36,
-          "n_sky": 36
-        },
-        "ecmwf": {
-          "hiti": 1.279,
-          "vindur": 1.165,
-          "sky": 27.17,
-          "n": 36,
-          "n_sky": 36
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        },
-        "dmi": {
-          "hiti": 0.8,
-          "vindur": 0.996,
-          "sky": 34.3,
-          "n": 36,
-          "n_sky": 36
-        },
-        "harmonie": {
-          "hiti": 1.93,
-          "vindur": 1.422,
-          "sky": 29.51,
-          "n": 4,
-          "n_sky": 4
-        }
-      }
-    },
-    {
-      "date": "2026-07-23 10:00",
-      "n_obs": 39,
-      "mae": {
-        "icon": {
-          "hiti": 1.942,
-          "vindur": 1.181,
-          "sky": 28.57,
-          "n": 39,
-          "n_sky": 39
-        },
-        "gfs": {
-          "hiti": 1.52,
-          "vindur": 1.564,
-          "sky": 34.79,
-          "n": 39,
-          "n_sky": 39
-        },
-        "ecmwf": {
-          "hiti": 1.308,
-          "vindur": 1.16,
-          "sky": 31.64,
-          "n": 39,
-          "n_sky": 39
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        },
-        "dmi": {
-          "hiti": 0.916,
-          "vindur": 1.044,
-          "sky": 32.72,
-          "n": 39,
-          "n_sky": 39
-        },
-        "harmonie": {
-          "hiti": 0.673,
-          "vindur": 2.546,
-          "sky": 21.51,
-          "n": 4,
-          "n_sky": 4
-        }
-      }
-    },
-    {
-      "date": "2026-07-23 12:00",
-      "n_obs": 41,
-      "mae": {
-        "icon": {
-          "hiti": 1.964,
-          "vindur": 1.143,
-          "sky": 29.08,
-          "n": 41,
-          "n_sky": 41
-        },
-        "gfs": {
-          "hiti": 1.564,
-          "vindur": 1.654,
-          "sky": 35.04,
-          "n": 41,
-          "n_sky": 41
-        },
-        "ecmwf": {
-          "hiti": 1.295,
-          "vindur": 1.138,
-          "sky": 32.42,
-          "n": 41,
-          "n_sky": 41
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        },
-        "dmi": {
-          "hiti": 1.022,
-          "vindur": 1.033,
-          "sky": 31.91,
-          "n": 41,
-          "n_sky": 41
-        },
-        "harmonie": {
-          "hiti": 0.448,
-          "vindur": 1.895,
-          "sky": 21.7,
-          "n": 3,
-          "n_sky": 3
-        }
-      }
-    },
-    {
-      "date": "2026-07-23 15:00",
-      "n_obs": 44,
-      "mae": {
-        "icon": {
-          "hiti": 1.999,
-          "vindur": 1.126,
-          "sky": 30.32,
-          "n": 44,
-          "n_sky": 44
-        },
-        "gfs": {
-          "hiti": 1.601,
-          "vindur": 1.679,
-          "sky": 35.52,
-          "n": 44,
-          "n_sky": 44
-        },
-        "ecmwf": {
-          "hiti": 1.307,
-          "vindur": 1.134,
-          "sky": 30.81,
-          "n": 44,
-          "n_sky": 44
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        },
-        "dmi": {
-          "hiti": 1.084,
-          "vindur": 1.102,
-          "sky": 32.8,
-          "n": 44,
-          "n_sky": 44
-        },
-        "harmonie": {
-          "hiti": 0.852,
-          "vindur": 1.809,
-          "sky": 18.44,
-          "n": 3,
-          "n_sky": 3
-        }
-      }
-    },
-    {
-      "date": "2026-07-23 17:00",
-      "n_obs": 46,
-      "mae": {
-        "icon": {
-          "hiti": 1.967,
-          "vindur": 1.104,
-          "sky": 30.28,
-          "n": 46,
-          "n_sky": 46
-        },
-        "gfs": {
-          "hiti": 1.549,
-          "vindur": 1.655,
-          "sky": 36.39,
-          "n": 46,
-          "n_sky": 46
-        },
-        "ecmwf": {
-          "hiti": 1.26,
-          "vindur": 1.115,
-          "sky": 32.14,
-          "n": 46,
-          "n_sky": 46
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        },
-        "dmi": {
-          "hiti": 1.074,
-          "vindur": 1.115,
-          "sky": 32.97,
-          "n": 46,
-          "n_sky": 46
-        },
-        "harmonie": {
-          "hiti": 2.076,
-          "vindur": 0.7,
-          "sky": 60.3,
-          "n": 2,
-          "n_sky": 2
-        }
-      }
-    },
-    {
-      "date": "2026-07-23 19:00",
-      "n_obs": 48,
-      "mae": {
-        "icon": {
-          "hiti": 1.924,
-          "vindur": 1.137,
-          "sky": 29.96,
-          "n": 48,
-          "n_sky": 48
-        },
-        "gfs": {
-          "hiti": 1.538,
-          "vindur": 1.872,
-          "sky": 35.83,
-          "n": 48,
-          "n_sky": 48
-        },
-        "ecmwf": {
-          "hiti": 1.278,
-          "vindur": 1.152,
-          "sky": 32.92,
-          "n": 48,
-          "n_sky": 48
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        },
-        "dmi": {
-          "hiti": 1.057,
-          "vindur": 1.148,
-          "sky": 33.38,
-          "n": 48,
-          "n_sky": 48
-        },
-        "harmonie": {
-          "hiti": 1.553,
-          "vindur": 1.253,
-          "sky": 38.15,
-          "n": 4,
-          "n_sky": 4
-        }
-      }
-    },
-    {
-      "date": "2026-07-23 21:00",
-      "n_obs": 50,
-      "mae": {
-        "icon": {
-          "hiti": 1.877,
-          "vindur": 1.185,
-          "sky": 29.63,
-          "n": 50,
-          "n_sky": 50
-        },
-        "gfs": {
-          "hiti": 1.524,
-          "vindur": 1.791,
-          "sky": 37.01,
-          "n": 50,
-          "n_sky": 50
-        },
-        "ecmwf": {
-          "hiti": 1.296,
-          "vindur": 1.336,
-          "sky": 28.57,
-          "n": 50,
-          "n_sky": 50
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        },
-        "dmi": {
-          "hiti": 1.036,
-          "vindur": 1.219,
-          "sky": 33.73,
-          "n": 50,
-          "n_sky": 50
-        },
-        "harmonie": {
-          "hiti": 1.389,
-          "vindur": 1.725,
-          "sky": 8.97,
-          "n": 3,
-          "n_sky": 3
-        }
-      }
-    },
-    {
-      "date": "2026-07-23 23:00",
-      "n_obs": 51,
-      "mae": {
-        "icon": {
-          "hiti": 1.891,
-          "vindur": 1.242,
-          "sky": 30.87,
-          "n": 51,
-          "n_sky": 51
-        },
-        "gfs": {
-          "hiti": 1.5,
-          "vindur": 1.799,
-          "sky": 39.25,
-          "n": 51,
-          "n_sky": 51
-        },
-        "ecmwf": {
-          "hiti": 1.318,
-          "vindur": 1.362,
-          "sky": 30.37,
-          "n": 51,
-          "n_sky": 51
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        },
-        "dmi": {
-          "hiti": 1.018,
-          "vindur": 1.256,
-          "sky": 35.42,
-          "n": 51,
-          "n_sky": 51
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-23 23:00",
-      "n_obs": 51,
-      "mae": {
-        "icon": {
-          "hiti": 1.889,
-          "vindur": 1.243,
-          "sky": 30.84,
-          "n": 51,
-          "n_sky": 51
-        },
-        "gfs": {
-          "hiti": 1.498,
-          "vindur": 1.796,
-          "sky": 39.21,
-          "n": 51,
-          "n_sky": 51
-        },
-        "ecmwf": {
-          "hiti": 1.32,
-          "vindur": 1.362,
-          "sky": 30.31,
-          "n": 51,
-          "n_sky": 51
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        },
-        "dmi": {
-          "hiti": 1.018,
-          "vindur": 1.257,
-          "sky": 35.15,
-          "n": 51,
-          "n_sky": 51
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-23 23:00",
-      "n_obs": 52,
-      "mae": {
-        "icon": {
-          "hiti": 1.858,
-          "vindur": 1.273,
-          "sky": 31.92,
-          "n": 52,
-          "n_sky": 52
-        },
-        "gfs": {
-          "hiti": 1.52,
-          "vindur": 1.775,
-          "sky": 41.37,
-          "n": 52,
-          "n_sky": 52
-        },
-        "ecmwf": {
-          "hiti": 1.311,
-          "vindur": 1.366,
-          "sky": 32.07,
-          "n": 52,
-          "n_sky": 52
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        },
-        "dmi": {
-          "hiti": 1.026,
-          "vindur": 1.267,
-          "sky": 35.56,
-          "n": 52,
-          "n_sky": 52
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-23 23:00",
-      "n_obs": 52,
-      "mae": {
-        "dmi": {
-          "hiti": 1.027,
-          "vindur": 1.269,
-          "sky": 35.31,
-          "n": 52,
-          "n_sky": 52
-        },
-        "knmi": {
-          "hiti": 1.101,
-          "vindur": 1.325,
-          "sky": 38.74,
-          "n": 52,
-          "n_sky": 52
-        },
-        "ecmwf": {
-          "hiti": 1.311,
-          "vindur": 1.365,
-          "sky": 31.98,
-          "n": 52,
-          "n_sky": 52
-        },
-        "icon": {
-          "hiti": 1.857,
-          "vindur": 1.273,
-          "sky": 31.92,
-          "n": 52,
-          "n_sky": 52
-        },
-        "ukmo": {
-          "hiti": 1.743,
-          "vindur": 1.129,
-          "sky": 43.07,
-          "n": 52,
-          "n_sky": 52
-        },
-        "mfr": {
-          "hiti": 1.501,
-          "vindur": 1.103,
-          "sky": 39.0,
-          "n": 52,
-          "n_sky": 52
-        },
-        "gfs": {
-          "hiti": 1.517,
-          "vindur": 1.774,
-          "sky": 41.33,
-          "n": 52,
-          "n_sky": 52
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        }
-      }
-    },
-    {
-      "date": "2026-07-23 23:00",
-      "n_obs": 52,
-      "mae": {
-        "dmi": {
-          "hiti": 1.027,
-          "vindur": 1.27,
-          "sky": 35.1,
-          "n": 52,
-          "n_sky": 52
-        },
-        "knmi": {
-          "hiti": 1.055,
-          "vindur": 1.329,
-          "sky": 37.04,
-          "n": 52,
-          "n_sky": 52
-        },
-        "ecmwf": {
-          "hiti": 1.312,
-          "vindur": 1.365,
-          "sky": 31.91,
-          "n": 52,
-          "n_sky": 52
-        },
-        "icon": {
-          "hiti": 1.856,
-          "vindur": 1.274,
-          "sky": 31.93,
-          "n": 52,
-          "n_sky": 52
-        },
-        "ukmo": {
-          "hiti": 1.627,
-          "vindur": 1.093,
-          "sky": 40.86,
-          "n": 52,
-          "n_sky": 52
-        },
-        "mfr": {
-          "hiti": 1.466,
-          "vindur": 1.103,
-          "sky": 37.75,
-          "n": 52,
-          "n_sky": 52
-        },
-        "gfs": {
-          "hiti": 1.517,
-          "vindur": 1.773,
-          "sky": 41.29,
-          "n": 52,
-          "n_sky": 52
-        },
-        "metno": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        },
-        "harmonie": {
-          "hiti": 0,
-          "vindur": 0,
-          "sky": 0,
-          "n": 0,
-          "n_sky": 0
-        }
-      }
-    }
-  ],
-  "last_updated": "2026-07-23T23:22:20.122585+00:00",
-  "obs_source": "open-meteo-best",
-  "cloud_confusion": {
-    "icon": {
-      "skyjad": {
-        "heidskirt": 75
-      },
-      "alskyjad": {
-        "heidskirt": 150,
-        "lettskyjad": 9,
-        "skyjad": 31,
-        "alskyjad": 75,
-        "skyjad_hluta": 16,
-        "halfskyjad": 58
-      },
-      "lettskyjad": {
-        "heidskirt": 25
-      },
-      "halfskyjad": {
-        "heidskirt": 129,
-        "halfskyjad": 11,
-        "skyjad_hluta": 7,
-        "alskyjad": 8
-      },
-      "mestu_skyjad": {
-        "heidskirt": 140,
-        "halfskyjad": 91
-      },
-      "skyjad_hluta": {
-        "heidskirt": 71,
-        "lettskyjad": 6
-      }
-    },
-    "gfs": {
-      "alskyjad": {
-        "heidskirt": 365,
-        "lettskyjad": 9,
-        "skyjad": 31,
-        "alskyjad": 75,
-        "skyjad_hluta": 16,
-        "halfskyjad": 116
-      },
-      "skyjad": {
-        "heidskirt": 27
-      },
-      "lettskyjad": {
-        "heidskirt": 46
-      },
-      "heidskirt": {
-        "heidskirt": 28,
-        "lettskyjad": 6,
-        "alskyjad": 8
-      },
-      "halfskyjad": {
-        "heidskirt": 91,
-        "halfskyjad": 10
-      },
-      "skyjad_hluta": {
-        "heidskirt": 32,
-        "skyjad_hluta": 7
-      },
-      "mestu_skyjad": {
-        "heidskirt": 1,
-        "halfskyjad": 34
-      }
-    },
-    "ecmwf": {
-      "skyjad": {
-        "heidskirt": 72
-      },
-      "lettskyjad": {
-        "heidskirt": 69,
-        "skyjad_hluta": 1,
-        "lettskyjad": 6,
-        "alskyjad": 8
-      },
-      "alskyjad": {
-        "heidskirt": 96,
-        "lettskyjad": 9,
-        "skyjad": 31,
-        "alskyjad": 75,
-        "skyjad_hluta": 16,
-        "halfskyjad": 73
-      },
-      "skyjad_hluta": {
-        "heidskirt": 116,
-        "halfskyjad": 8
-      },
-      "halfskyjad": {
-        "heidskirt": 109,
-        "halfskyjad": 27,
-        "skyjad_hluta": 6
-      },
-      "mestu_skyjad": {
-        "heidskirt": 93,
-        "halfskyjad": 52
-      },
-      "heidskirt": {
-        "heidskirt": 35
-      }
-    },
-    "dmi": {
-      "lettskyjad": {
-        "heidskirt": 115
-      },
-      "heidskirt": {
-        "heidskirt": 181,
-        "halfskyjad": 9,
-        "skyjad_hluta": 7,
-        "lettskyjad": 6,
-        "alskyjad": 5
-      },
-      "alskyjad": {
-        "heidskirt": 170,
-        "lettskyjad": 9,
-        "skyjad": 31,
-        "alskyjad": 75,
-        "skyjad_hluta": 16,
-        "halfskyjad": 135
-      },
-      "skyjad": {
-        "heidskirt": 27
-      },
-      "skyjad_hluta": {
-        "heidskirt": 49
-      },
-      "halfskyjad": {
-        "heidskirt": 32,
-        "halfskyjad": 1,
-        "alskyjad": 3
-      },
-      "mestu_skyjad": {
-        "heidskirt": 16,
-        "halfskyjad": 15
-      }
-    },
-    "harmonie": {
-      "alskyjad": {
-        "alskyjad": 15
-      },
-      "skyjad": {
-        "skyjad": 1
-      },
-      "lettskyjad": {
-        "heidskirt": 1
-      },
-      "mestu_skyjad": {
-        "heidskirt": 3
-      },
-      "halfskyjad": {
-        "heidskirt": 3,
-        "halfskyjad": 9
-      },
-      "skyjad_hluta": {
-        "heidskirt": 3,
-        "halfskyjad": 2
-      },
-      "heidskirt": {
-        "heidskirt": 4,
-        "halfskyjad": 2,
-        "skyjad_hluta": 1,
-        "lettskyjad": 1
-      }
-    },
-    "knmi": {
-      "heidskirt": {
-        "heidskirt": 18,
-        "halfskyjad": 4,
-        "skyjad_hluta": 2
-      },
-      "lettskyjad": {
-        "heidskirt": 12,
-        "alskyjad": 2
-      },
-      "skyjad_hluta": {
-        "heidskirt": 6,
-        "lettskyjad": 2
-      },
-      "alskyjad": {
-        "heidskirt": 22,
-        "skyjad_hluta": 2,
-        "halfskyjad": 24,
-        "alskyjad": 6
-      },
-      "mestu_skyjad": {
-        "heidskirt": 2,
-        "alskyjad": 2
-      }
-    },
-    "ukmo": {
-      "halfskyjad": {
-        "heidskirt": 10,
-        "halfskyjad": 8,
-        "skyjad_hluta": 2
-      },
-      "skyjad_hluta": {
-        "heidskirt": 4,
-        "alskyjad": 2
-      },
-      "alskyjad": {
-        "heidskirt": 16,
-        "skyjad_hluta": 2,
-        "halfskyjad": 2,
-        "alskyjad": 2
-      },
-      "lettskyjad": {
-        "heidskirt": 6,
-        "alskyjad": 2
-      },
-      "mestu_skyjad": {
-        "heidskirt": 16,
-        "halfskyjad": 18,
-        "alskyjad": 4
-      },
-      "heidskirt": {
-        "heidskirt": 8,
-        "lettskyjad": 2
-      }
-    },
-    "mfr": {
-      "halfskyjad": {
-        "heidskirt": 28,
-        "halfskyjad": 16,
-        "alskyjad": 4
-      },
-      "skyjad_hluta": {
-        "heidskirt": 4,
-        "halfskyjad": 4
-      },
-      "mestu_skyjad": {
-        "heidskirt": 8,
-        "alskyjad": 2,
-        "halfskyjad": 4
-      },
-      "alskyjad": {
-        "skyjad_hluta": 2,
-        "halfskyjad": 4,
-        "alskyjad": 4,
-        "heidskirt": 6
-      },
-      "lettskyjad": {
-        "heidskirt": 10,
-        "skyjad_hluta": 2,
-        "lettskyjad": 2
-      },
-      "heidskirt": {
-        "heidskirt": 4
-      }
+    "1": {
+      "dmi": 0.2066,
+      "knmi": 0.1924,
+      "ecmwf": 0.1406,
+      "icon": 0.0994,
+      "ukmo": 0.1134,
+      "mfr": 0.1259,
+      "gfs": 0.1216,
+      "metno": 0.0,
+      "harmonie": 0.0
+    },
+    "3": {
+      "dmi": 0.2066,
+      "knmi": 0.1924,
+      "ecmwf": 0.1406,
+      "icon": 0.0994,
+      "ukmo": 0.1134,
+      "mfr": 0.1259,
+      "gfs": 0.1216,
+      "metno": 0.0,
+      "harmonie": 0.0
+    },
+    "6": {
+      "dmi": 0.2066,
+      "knmi": 0.1924,
+      "ecmwf": 0.1406,
+      "icon": 0.0994,
+      "ukmo": 0.1134,
+      "mfr": 0.1259,
+      "gfs": 0.1216,
+      "metno": 0.0,
+      "harmonie": 0.0
+    },
+    "12": {
+      "dmi": 0.2066,
+      "knmi": 0.1924,
+      "ecmwf": 0.1406,
+      "icon": 0.0994,
+      "ukmo": 0.1134,
+      "mfr": 0.1259,
+      "gfs": 0.1216,
+      "metno": 0.0,
+      "harmonie": 0.0
+    },
+    "24": {
+      "dmi": 0.2066,
+      "knmi": 0.1924,
+      "ecmwf": 0.1406,
+      "icon": 0.0994,
+      "ukmo": 0.1134,
+      "mfr": 0.1259,
+      "gfs": 0.1216,
+      "metno": 0.0,
+      "harmonie": 0.0
+    },
+    "48": {
+      "dmi": 0.2066,
+      "knmi": 0.1924,
+      "ecmwf": 0.1406,
+      "icon": 0.0994,
+      "ukmo": 0.1134,
+      "mfr": 0.1259,
+      "gfs": 0.1216,
+      "metno": 0.0,
+      "harmonie": 0.0
     }
   },
-  "total_obs": 902
+  "lead_mae": {
+    "1": {},
+    "3": {},
+    "6": {},
+    "12": {},
+    "24": {},
+    "48": {}
+  },
+  "verify_history": [],
+  "last_updated": "2026-07-23T23:40:52.872466+00:00",
+  "migrated_from": "1.0"
 }
