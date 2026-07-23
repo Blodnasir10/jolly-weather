@@ -20,12 +20,22 @@ DATA_DIR.mkdir(exist_ok=True, parents=True)
 OBS_HISTORY_HOURS = 720
 
 MODELS = {
-    "icon":  "icon_seamless",
-    "gfs":   "gfs_seamless",
-    "ecmwf": "ecmwf_ifs025",
-    "metno": "metno_nordic",
+    # Hakerfi (UWC-West) - sama HARMONIE AROME sem Vedurstofan notar, 2 km
     "dmi":   "dmi_seamless",
+    "knmi":  "knmi_seamless",
+    # Hnattlikon
+    "ecmwf": "ecmwf_ifs025",
+    "icon":  "icon_seamless",
+    "ukmo":  "ukmo_seamless",
+    "mfr":   "meteofrance_seamless",
+    "gfs":   "gfs_seamless",
+    # Naer liklega ekki til Islands - haldid inni til stadfestingar
+    "metno": "metno_nordic",
 }
+
+# Bonus i thyngdarutdeilingu. HARMONIE-kerfid er a 2 km upplausn yfir Island
+# medan hnattlikonin eru a 9-11 km, svo thau fa forskot.
+MODEL_BONUS = {"harmonie": 1.20, "dmi": 1.15, "knmi": 1.10}
 
 HOURLY_VARS = ",".join([
     "temperature_2m","dew_point_2m","relative_humidity_2m",
@@ -411,13 +421,13 @@ def train_jolly(fc, obs_history, harm):
         print(f"  Hladid inn: {model.get('training_days',0)} keyrslur, "
               f"{model.get('total_obs',0)} samanburdir")
     else:
-        model = {"version":"1.6","created":datetime.now(timezone.utc).isoformat(),
+        model = {"version":"1.8","created":datetime.now(timezone.utc).isoformat(),
                  "training_days":0,"total_obs":0,"obs_source":"apis.is-571+metar",
                  "biases":{m:{"hiti":0.0,"vindur":0.0,"urkoma_scale":1.0,"sky":0.0}
                            for m in keys},
                  "weights":{m:1.0/len(keys) for m in keys},
                  "cloud_confusion":{},"mae_history":[],"last_updated":None}
-        print("  Nytt likan v1.6")
+        print("  Nytt likan v1.8")
 
     if not obs_history or not fc:
         print("  Gogn vantar - thjalfun sleppt")
@@ -488,15 +498,20 @@ def train_jolly(fc, obs_history, harm):
             "sky":    round(mae([(o,f+b["sky"])    for o,f in pairs[m]["sky"]])    or 0, 2),
             "n": len(pairs[m]["hiti"]), "n_sky": len(pairs[m]["sky"])}
 
+    # Adeins likon med raunveruleg gogn fa thyngd. Likan sem skilar engu
+    # fer i 0 - annars heldur thad gomlu thyngdinni og thynnir ut hin.
     hm = {m: summary[m]["hiti"] for m in summary
           if summary[m]["hiti"] > 0 and summary[m]["n"] > 5}
     if hm:
         inv = {m: 1.0/v for m, v in hm.items()}
-        if "harmonie" in inv: inv["harmonie"] *= 1.2
-        if "dmi"      in inv: inv["dmi"]      *= 1.1
+        for m, b in MODEL_BONUS.items():
+            if m in inv: inv[m] *= b
         tot = sum(inv.values())
         for m in keys:
-            if m in inv: model["weights"][m] = round(inv[m]/tot, 4)
+            model["weights"][m] = round(inv[m]/tot, 4) if m in inv else 0.0
+        dead = [m for m in keys if model["weights"][m] == 0.0]
+        if dead:
+            print(f"  Engin gogn (thyngd=0): {', '.join(dead)}")
 
     for m, cm in confusion.items():
         model["cloud_confusion"].setdefault(m, {})
@@ -537,7 +552,7 @@ def make_forecast(fc, harm, model):
     J = {"generated": now.isoformat(),
          "station": {"lat":LAT,"lon":LON,"id":STATION_ID,
                      "name":"Egilsstadir","icao":ICAO},
-         "model_name":"Jolly v1.7",
+         "model_name":"Jolly v1.8",
          "training_days": model.get("training_days",0),
          "total_obs": model.get("total_obs",0),
          "weights": model["weights"], "models_used": keys,
@@ -573,6 +588,11 @@ def make_forecast(fc, harm, model):
 
         for m, api in MODELS.items():
             w = model["weights"].get(m, 1.0/len(keys)); b = model["biases"][m]
+            if w == 0:   # likan an gagna - skrair null en tekur ekki thatt
+                for k in ("model_temperatures","model_windspeeds",
+                          "model_precipitations","model_clouds"):
+                    J["hourly"][k][m].append(None)
+                continue
             rt = g(f"temperature_2m_{api}", i);   rw = g(f"windspeed_10m_{api}", i)
             rp = g(f"precipitation_{api}", i);    rd = g(f"winddirection_10m_{api}", i)
             rc = g(f"cloud_cover_{api}", i)
@@ -710,7 +730,7 @@ def save(model, fcast):
     log.append({"time": datetime.now(timezone.utc).isoformat(),
                 "training_days": model.get("training_days",0),
                 "total_obs": model.get("total_obs",0),
-                "status": "ok" if fcast else "partial", "version":"1.6"})
+                "status": "ok" if fcast else "partial", "version":"1.8"})
     with open(lp, "w") as f:
         json.dump(log[-168:], f, indent=2)
     print("  Allt vistad")
@@ -718,8 +738,8 @@ def save(model, fcast):
 # --- MAIN ------------------------------------------------------------------
 def main():
     print("=" * 62)
-    print(f"JOLLY v1.7 - {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
-    print("Skyjahula | METAR BIEG | 6 likon | Meteocons takn")
+    print(f"JOLLY v1.8 - {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
+    print("Skyjahula | METAR BIEG | 8 likon | HARMONIE 2km")
     print("=" * 62)
     metar = fetch_metar()
     obs   = fetch_and_store_observation(metar)
@@ -729,7 +749,7 @@ def main():
     fcast = make_forecast(fc, harm, model)
     save(model, fcast)
     print("=" * 62)
-    print("JOLLY v1.7 LOKID")
+    print("JOLLY v1.8 LOKID")
     if model.get("weights"):
         top = sorted(model["weights"].items(), key=lambda x: -x[1])[:3]
         print("  Topp: " + " | ".join(f"{m}: {w:.0%}" for m, w in top))
