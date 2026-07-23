@@ -226,7 +226,7 @@ canvas{max-height:240px}
 }
 .n-tab.active{background:rgba(255,255,255,0.09);color:var(--text);border-color:rgba(255,255,255,0.18)}
 
-.n-leg{display:flex;gap:12px;font-size:.7rem;flex-wrap:wrap;margin-bottom:10px}
+.n-leg{display:flex;gap:6px;font-size:.68rem;flex-wrap:wrap;margin-bottom:6px}
 .n-leg-item{display:flex;align-items:center;gap:5px;cursor:pointer;
   padding:4px 9px;border-radius:14px;border:1px solid transparent;
   transition:background .15s,border-color .15s,opacity .15s;user-select:none}
@@ -239,7 +239,7 @@ canvas{max-height:240px}
 .n-leg-nodata{font-size:.62rem;color:#fbbf24;margin:6px 0 4px;padding-left:2px}
 .n-leg-dot{width:9px;height:9px;border-radius:50%}
 
-.n-model-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.n-model-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px;margin-bottom:10px}
 .n-mc{background:rgba(255,255,255,0.04);border-radius:12px;padding:12px;border:1px solid rgba(255,255,255,0.06);text-align:center}
 .n-mc-name{font-size:.68rem;font-weight:600;margin-bottom:6px}
 .n-mc-bias{font-size:.7rem;margin-bottom:2px}
@@ -455,8 +455,12 @@ tr:hover td{background:rgba(255,255,255,0.025)}
 const FC_URL   ='https://raw.githubusercontent.com/Blodnasir10/jolly-weather/main/docs/data/jolly_forecast.json';
 const MODEL_URL='https://raw.githubusercontent.com/Blodnasir10/jolly-weather/main/docs/data/jolly_model.json';
 const DAGAR=['Sun','Mán','Þri','Mið','Fim','Fös','Lau'];
-const MC={harmonie:"#22d3ee",ecmwf:'#f472b6',icon:'#fb923c',metno:'#34d399',dmi:'#facc15',gfs:'#a78bfa'};
-const MN={harmonie:"HARMONIE",ecmwf:'ECMWF',icon:'ICON',metno:'MetNo',dmi:'DMI',gfs:'GFS'};
+const MC={harmonie:'#22d3ee',dmi:'#facc15',knmi:'#fb7185',
+          ecmwf:'#f472b6',icon:'#fb923c',ukmo:'#818cf8',
+          mfr:'#2dd4bf',gfs:'#a78bfa',metno:'#34d399'};
+const MN={harmonie:'HARMONIE',dmi:'DMI',knmi:'KNMI',
+          ecmwf:'ECMWF',icon:'ICON',ukmo:'UKMO',
+          mfr:'Météo-France',gfs:'GFS',metno:'MetNo'};
 
 const BG={
   nott:    {clear:['#06090f','#0c1428'],cloudy:['#060809','#0b0f16'],rain:['#050708','#090d13'],snow:['#07090d','#0d1220'],thunder:['#050608','#080810']},
