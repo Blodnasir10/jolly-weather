@@ -461,7 +461,8 @@ tr:hover td{background:rgba(255,255,255,0.025)}
 
   <div class="n-sec">Tímaspá — 72 klst.</div>
   <div class="n-tbl-wrap"><table id="nTable"></table></div>
-  <p class="n-note">Jolly v1.1 · Open-Meteo · Veðurstofa Íslands stöð 571 · Uppfærist á 6 klst. fresti</p>
+  <div class="n-sec">Heimildir</div>
+  <p class="n-note" id="nAttrib"></p>
 </div>
 
 <script>
@@ -473,7 +474,7 @@ const MC={harmonie:'#22d3ee',dmi:'#facc15',knmi:'#fb7185',
           mfr:'#2dd4bf',gfs:'#a78bfa',metno:'#34d399'};
 const MN={harmonie:'HARMONIE',dmi:'DMI',knmi:'KNMI',
           ecmwf:'ECMWF',icon:'ICON',ukmo:'UKMO',
-          mfr:'Météo-France',gfs:'GFS',metno:'MetNo'};
+          mfr:'Météo-France',gfs:'GFS',metno:'MET Norway'};
 
 const BG={
   nott:    {clear:['#06090f','#0c1428'],cloudy:['#060809','#0b0f16'],rain:['#050708','#090d13'],snow:['#07090d','#0d1220'],thunder:['#050608','#080810']},
@@ -1015,6 +1016,13 @@ function renderNanar(){
     leadSel=best;
   }
   renderModelGrid();
+  const at=document.getElementById('nAttrib');
+  if(at){
+    const src = FC.attribution || ['Open-Meteo','Veðurstofa Íslands'];
+    at.innerHTML = src.map(x=>`<span>${x}</span>`).join(' · ')
+      + `<br>Jolly ${(MODEL.version||'').startsWith('2')?'v2.1':'v1.x'}`
+      + ' · uppfærist á klukkustundar fresti';
+  }
   buildLegend();buildChart();buildLearn();buildTable();
 }
 
