@@ -464,6 +464,7 @@ tr:hover td{background:rgba(255,255,255,0.025)}
     <button class="n-tab active" onclick="setMetric('hiti',this)">🌡 Hiti</button>
     <button class="n-tab" onclick="setMetric('vindur',this)">💨 Vindur</button>
     <button class="n-tab" onclick="setMetric('urkoma',this)">🌧 Úrkoma</button>
+    <button class="n-tab" onclick="setMetric('att',this)">🧭 Vindátt</button>
     <button class="n-tab" onclick="setMetric('sky',this)">☁️ Skýjahula</button>
   </div>
   <div class="n-leg">
@@ -995,6 +996,35 @@ function setLead(L){
   buildLearn();
 }
 
+// Bias-lina fylgir valinni breytu
+function biasLine(b){
+  const f=(v,u,d)=> v===undefined||v===null ? '—'
+    : (v>=0?'+':'')+v.toFixed(d)+u;
+  if(activeMetric==='vindur') return `Vind: <b>${f(b.vindur,' m/s',2)}</b>`;
+  if(activeMetric==='att')    return `Átt: <b>${f(b.att,'°',1)}</b>`;
+  if(activeMetric==='sky')    return `Ský: <b>${f(b.sky,'%',1)}</b>`;
+  if(activeMetric==='urkoma') return `Úrk: <b>${b.urkoma_scale!=null
+      ?'×'+b.urkoma_scale.toFixed(2):'—'}</b>`;
+  return `Hiti: <b>${f(b.hiti,'°',2)}</b>`;
+}
+
+// Restleidretting a Jolly sjalfri - lykkjan er lokud
+function jollyResidual(){
+  const jb = (MODEL.jolly_bias||{})[leadSel];
+  if(!jb) return '';
+  const v = activeMetric==='urkoma'
+    ? (jb.urkoma_scale!=null?'×'+jb.urkoma_scale.toFixed(2):'—')
+    : (jb[activeMetric]!=null
+        ? (jb[activeMetric]>=0?'+':'')+jb[activeMetric].toFixed(
+            activeMetric==='hiti'||activeMetric==='vindur'?2:1)
+          + (UNIT_OF[activeMetric]||'')
+        : '—');
+  return `<div class="n-skill-note" style="margin-top:10px">
+    Restleiðrétting á Jolly við ${leadSel} klst: <b>${v}</b> — lærð af
+    hennar eigin mældu skekkju, því vegin blanda getur haft hlutdrægni
+    sem er ekki summa hlutanna.</div>`;
+}
+
 function renderModelGrid(){
   // Spálengdarveljari
   const lp = document.getElementById('nLeadPicker');
@@ -1012,8 +1042,7 @@ function renderModelGrid(){
     const dead = wp!==null && wp<0.5;
     return`<div class="n-mc${dead?' n-mc-dead':''}">
       <div class="n-mc-name" style="color:${MC[m]}">${MN[m]}</div>
-      <div class="n-mc-bias">Hiti: <b>${b.hiti!==undefined?(b.hiti>=0?'+':'')+b.hiti.toFixed(2)+'°':'—'}</b></div>
-      <div class="n-mc-bias">Vind: <b>${b.vindur!==undefined?(b.vindur>=0?'+':'')+b.vindur.toFixed(2)+' m/s':'—'}</b></div>
+      <div class="n-mc-bias">${biasLine(b)}</div>
       <div class="n-mc-mae">MAE ${mae!==undefined&&mae!==null?mae.toFixed(2)+'°':'—'}${n?` · n=${n}`:''}</div>
       <div style="font-size:.6rem;color:var(--dim);margin-top:3px">Þyngd ${wp!==null?wp.toFixed(0)+'%':'—'}</div>
       <div class="n-wbar"><div class="n-wfill" style="width:${wp!==null?Math.max(0,wp).toFixed(0):0}%;background:${MC[m]}"></div></div>
@@ -1056,6 +1085,7 @@ function renderSkill(){
   el.innerHTML = `<div class="n-skill">
     <div class="n-skill-hd">Jolly á móti besta líkani · ${activeMetric}</div>
     ${body}
+    ${jollyResidual()}
     <div class="n-skill-note">Grænt = Jolly nákvæmari en besta einstaka líkanið.
     Talan við hlið er MAE (${unit}) þess líkans. «—» þýðir að skekkjan er
     undir mælinákvæmni og hlutfallið því ekki marktækt.</div></div>`;
@@ -1116,9 +1146,10 @@ function metricKey(metric){
   return metric==='hiti'   ? 'model_temperatures'
        : metric==='vindur' ? 'model_windspeeds'
        : metric==='sky'    ? 'model_clouds'
+       : metric==='att'    ? 'model_winddirections'
        :                     'model_precipitations';
 }
-const UNIT_OF = {hiti:'°C', vindur:'m/s', urkoma:'mm', sky:'%'};
+const UNIT_OF = {hiti:'°C', vindur:'m/s', att:'°', urkoma:'mm', sky:'%'};
 
 // Hefur líkanið raunveruleg gögn fyrir þennan mæli?
 function modelHasData(m, metric){
