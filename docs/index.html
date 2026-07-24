@@ -320,6 +320,26 @@ tr:hover td{background:rgba(255,255,255,0.025)}
 .n-lead.active{background:rgba(255,255,255,0.12);color:var(--text);
   border-color:rgba(255,255,255,0.22)}
 .n-mc-dead{opacity:.42}
+
+/* Skill-kort: Jolly a moti besta einstaka likani */
+.n-skill{background:rgba(255,255,255,0.045);border:1px solid rgba(255,255,255,0.09);
+  border-radius:14px;padding:14px 16px;margin-bottom:12px}
+.n-skill-hd{font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--dim);margin-bottom:10px}
+.n-skill-row{display:grid;grid-template-columns:52px 1fr 66px 62px;
+  align-items:center;gap:8px;padding:5px 0;font-size:.7rem}
+.n-skill-lead{color:var(--sub);font-size:.66rem}
+.n-skill-bar{position:relative;height:5px;border-radius:3px;
+  background:rgba(255,255,255,0.07);overflow:hidden}
+.n-skill-fill{position:absolute;top:0;bottom:0;border-radius:3px}
+.n-skill-fill.pos{background:linear-gradient(90deg,rgba(74,222,128,.5),#4ade80)}
+.n-skill-fill.neg{background:linear-gradient(90deg,#f87171,rgba(248,113,113,.5))}
+.n-skill-val{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.n-skill-val.pos{color:#4ade80}.n-skill-val.neg{color:#f87171}
+.n-skill-val.na{color:var(--dim);font-weight:400}
+.n-skill-vs{color:var(--dim);font-size:.62rem;text-align:right}
+.n-skill-empty{font-size:.66rem;color:#fbbf24;line-height:1.6}
+.n-skill-note{font-size:.58rem;color:var(--dim);margin-top:8px;line-height:1.5}
 </style>
 </head>
 <body>
@@ -444,10 +464,12 @@ tr:hover td{background:rgba(255,255,255,0.025)}
     <button class="n-tab active" onclick="setMetric('hiti',this)">🌡 Hiti</button>
     <button class="n-tab" onclick="setMetric('vindur',this)">💨 Vindur</button>
     <button class="n-tab" onclick="setMetric('urkoma',this)">🌧 Úrkoma</button>
+    <button class="n-tab" onclick="setMetric('sky',this)">☁️ Skýjahula</button>
   </div>
   <div class="n-leg">
     <!-- byggt í buildLegend() -->
   </div>
+  <div id="nSkill"></div>
   <div class="n-leg-hint" id="nLegHint">Smelltu á líkan til að skoða það eitt á móti Jolly</div>
   <div class="n-leg-nodata" id="nLegNoData" style="display:none"></div>
   <div class="n-card"><canvas id="mainChart"></canvas></div>
@@ -946,12 +968,19 @@ function leadList(){
 }
 
 // Sækir bias/þyngd/MAE óháð því hvort líkanið er v1.x eða v2.0
+// Eru þyngdir sér fyrir hverja breytu? (v2.3+)
+const perVar = ()=> !!(MODEL.weights && MODEL.weights.hiti
+                       && MODEL.weights.hiti[leadSel]);
+
 function modelStats(m){
   if(isV2()){
     const b  = MODEL.bias?.[m]?.[leadSel] || {};
-    const w  = MODEL.weights?.[leadSel]?.[m];
+    // Þyngd og MAE fylgja breytunni sem er valin í flipunum
+    const w  = perVar() ? MODEL.weights?.[activeMetric]?.[leadSel]?.[m]
+                        : MODEL.weights?.[leadSel]?.[m];
     const lm = MODEL.lead_mae?.[leadSel]?.[m];
-    return {b, w, mae:lm?.hiti, n:lm?.n};
+    const nv = lm?.n_var?.[activeMetric] ?? lm?.n;
+    return {b, w, mae:lm?.[activeMetric], n:nv};
   }
   const b  = MODEL.biases?.[m] || {};
   const w  = MODEL.weights?.[m];
@@ -962,6 +991,7 @@ function modelStats(m){
 function setLead(L){
   leadSel = String(L);
   renderModelGrid();
+  renderSkill();
   buildLearn();
 }
 
@@ -991,6 +1021,46 @@ function renderModelGrid(){
   }).join('');
 }
 
+
+// ── SKILL: er Jolly nakvaemari en besta einstaka likanid? ──────────────────
+function renderSkill(){
+  const el=document.getElementById('nSkill');
+  if(!el) return;
+  const rows = MODEL.skill?.[activeMetric] || (activeMetric==='hiti'
+    ? (MODEL.skill && !MODEL.skill.hiti ? MODEL.skill : null) : null);
+  const unit = UNIT_OF[activeMetric]||'';
+  if(!rows || !Object.keys(rows).length){
+    el.innerHTML = `<div class="n-skill">
+      <div class="n-skill-hd">Jolly á móti besta líkani</div>
+      <div class="n-skill-empty">Bíð staðfestingar. Jolly-spáin er geymd við
+      útgáfu og mæld þegar veðrið gengur yfir — fyrstu tölur koma eftir
+      klukkustund, allar spálengdir eftir tvo daga.</div></div>`;
+    return;
+  }
+  let body='';
+  leadList().forEach(L=>{
+    const s=rows[L];
+    if(!s) return;
+    const ok = s.meaningful!==false;
+    const pct = s.skill*100;
+    const w = Math.min(100, Math.abs(pct)*2.5);
+    const cls = pct>0?'pos':'neg';
+    body += `<div class="n-skill-row">
+      <div class="n-skill-lead">${L} klst</div>
+      <div class="n-skill-bar">${ok?`<div class="n-skill-fill ${cls}"
+        style="${pct>0?'left:50%':'right:50%'};width:${w/2}%"></div>`:''}</div>
+      <div class="n-skill-vs">${s.best_model} ${s.best_mae.toFixed(2)}</div>
+      <div class="n-skill-val ${ok?cls:'na'}">${ok?(pct>0?'+':'')+pct.toFixed(1)+'%':'—'}</div>
+    </div>`;
+  });
+  el.innerHTML = `<div class="n-skill">
+    <div class="n-skill-hd">Jolly á móti besta líkani · ${activeMetric}</div>
+    ${body}
+    <div class="n-skill-note">Grænt = Jolly nákvæmari en besta einstaka líkanið.
+    Talan við hlið er MAE (${unit}) þess líkans. «—» þýðir að skekkjan er
+    undir mælinákvæmni og hlutfallið því ekki marktækt.</div></div>`;
+}
+
 function renderNanar(){
   const gen=new Date(FC.generated);
   const age=Math.round((Date.now()-gen)/60000);
@@ -1016,6 +1086,7 @@ function renderNanar(){
     leadSel=best;
   }
   renderModelGrid();
+  renderSkill();
   const at=document.getElementById('nAttrib');
   if(at){
     const src = FC.attribution || ['Open-Meteo','Veðurstofa Íslands'];
@@ -1030,8 +1101,11 @@ function setMetric(m,el){
   activeMetric=m;
   document.querySelectorAll('.n-tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
+  renderModelGrid();   // þyngdir og MAE eru breytubundnar
+  renderSkill();
   buildLegend();
   buildChart();
+  buildLearn();
 }
 
 // null = sýna öll líkön. Annars lykill þess líkans sem er í fókus.
@@ -1041,8 +1115,10 @@ let focusModel = null;
 function metricKey(metric){
   return metric==='hiti'   ? 'model_temperatures'
        : metric==='vindur' ? 'model_windspeeds'
+       : metric==='sky'    ? 'model_clouds'
        :                     'model_precipitations';
 }
+const UNIT_OF = {hiti:'°C', vindur:'m/s', urkoma:'mm', sky:'%'};
 
 // Hefur líkanið raunveruleg gögn fyrir þennan mæli?
 function modelHasData(m, metric){
