@@ -48,6 +48,37 @@ MODELS = {
 EXTRA_KEYS = ["harmonie", "metno"]
 ALL_KEYS   = list(MODELS.keys()) + EXTRA_KEYS
 
+# Jolly sjalf er stadfest eins og hver annar gjafi, en hun fer ALDREI
+# i thyngdarutdeilingu ne bias-leidrettingu - hun ER nidurstadan.
+# An thessa hofum vid engan malikvarda a hvort Jolly se betri en
+# besta einstaka likanid.
+JOLLY_KEY   = "jolly"
+VERIFY_KEYS = ALL_KEYS + [JOLLY_KEY]
+
+# Skyjahula: lagmarksfjoldi i hverjum flokki adur en flokkabundin
+# leidretting er notud i stad flatrar
+MIN_CLOUD_N = 6
+
+# --- THYNGDIR ERU SER FYRIR HVERJA BREYTU --------------------------------
+# GFS getur verid lelegt i hita en gott i vindi. Ad nota hitaskekkju til ad
+# vega vindspa er villa - hver breyta faer sina eigin rodun.
+WEIGHT_VARS = ["hiti", "vindur", "urkoma", "sky"]
+
+# EPS ver okkur gegn 1/MAE -> uendanlegt og VERDUR ad passa vid kvarda
+# breytunnar: hiti/vindur i einingum ~1, urkoma i mm ~0.1, sky i % ~10.
+EPS_BY_VAR = {"hiti": 0.05, "vindur": 0.05, "urkoma": 0.02, "sky": 2.0}
+
+# Urkoma er strjal (mest nullur) svo hun tharf fleiri samanburdi
+# adur en rodun er marktaek.
+MIN_N_BY_VAR = {"hiti": 4, "vindur": 4, "urkoma": 12, "sky": 6}
+
+# Undir thessu er MAE svo lag ad hlutfallsbati er merkingarlaus
+# (samsvarar um thad bil maelinakvaemni stodvarinnar)
+SKILL_FLOOR = {"hiti": 0.15, "vindur": 0.20, "urkoma": 0.05, "sky": 3.0}
+
+VAR_LABEL = {"hiti": "hiti", "vindur": "vindur",
+             "urkoma": "urkoma", "sky": "sky"}
+
 # --- MET Norway (api.met.no) --------------------------------------------
 # Skilmalar krefjast einkennandi User-Agent med tengilid. Almennur eda
 # vantandi UA gefur 403 Forbidden - ekki haegingu. Hnit mest 4 aukastafir.
@@ -214,6 +245,26 @@ def describe(cloud, precip, temp, vis, wind, cape=None):
     if c >= 30: return "Skýjað að hluta"
     if c >= 10: return "Léttskýjað"
     return "Heiðskírt"
+
+def correct_cloud(raw, model, m, bs):
+    """
+    Leidrettir skyjahulu med flokkabundnu viki. Fellur aftur a flata
+    bias-leidrettingu ef flokkurinn hefur ekki nog gogn, og klemmir
+    nidurstoduna i 0-100.
+    """
+    if raw is None:
+        return None
+    flat = model["bias"][m][bs].get("sky", 0.0)
+    fk   = cloud_class(raw)
+    e    = (model.get("cloud_map", {}).get(m, {}).get(bs, {}) or {}).get(fk)
+    if e and e.get("n", 0) >= MIN_CLOUD_N:
+        fc_mean  = e["fc_sum"]  / e["n"]
+        obs_mean = e["obs_sum"] / e["n"]
+        shift    = obs_mean - fc_mean
+    else:
+        shift = flat
+    return int(round(min(100.0, max(0.0, raw + shift))))
+
 
 def cloud_class(pct):
     if pct is None: return None
@@ -588,24 +639,57 @@ def archive_forecast(fc, extras):
     print(f"  Safnid: {len(arch)} gildistimar (hreinsadi {before - len(arch)})")
     return arch
 
+def archive_jolly(arch, fcast):
+    """
+    Skrair Jolly-spana i sama safn og medlimina, svo hun se stadfest
+    med somu adferd. Thetta er kallad EFTIR make_forecast, thvi Jolly
+    er ekki til fyrr en thyngdir og bias hafa verid notud.
+
+    Vid skrum thad sem vid raunverulega birtum - ekki endurreiknad gildi.
+    """
+    if not fcast: return arch
+    H = fcast["hourly"]
+    now = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
+    issue = fmt_t(now)
+    n = 0
+    for i, t in enumerate(H["time"]):
+        lead = H["lead_hours"][i]
+        if lead not in LEAD_BUCKETS: continue
+        rec = {"t": H["temperature"][i], "w": H["windspeed"][i],
+               "p": H["precipitation"][i], "c": H["cloud_cover"][i]}
+        if not any(v is not None for v in rec.values()): continue
+        slot = arch.setdefault(t, {}).setdefault(str(lead),
+                                                {"issue": issue, "models": {}})
+        slot.setdefault("models", {})[JOLLY_KEY] = rec
+        n += 1
+    save_json(DATA_DIR / "forecast_archive.json", arch)
+    print(f"  Jolly skrad i safnid: {n} spalengdir")
+    return arch
+
+
 # --- 5. STADFESTA OG THJALFA ----------------------------------------------
 def empty_bias():
     return {"hiti": 0.0, "vindur": 0.0, "sky": 0.0, "urkoma_scale": 1.0}
 
 def init_model():
     return {
-        "version": "2.1",
+        "version": "2.3",
         "created": datetime.now(timezone.utc).isoformat(),
         "runs": 0,
         "verified_pairs": 0,
         "lead_buckets": LEAD_BUCKETS,
         # bias[likan][spalengd] = {hiti, vindur, sky, urkoma_scale}
         "bias": {m: {str(b): empty_bias() for b in LEAD_BUCKETS} for m in ALL_KEYS},
-        # weights[spalengd][likan]
-        "weights": {str(b): {m: 1.0 / len(ALL_KEYS) for m in ALL_KEYS}
-                    for b in LEAD_BUCKETS},
+        # weights[breyta][spalengd][likan]
+        "weights": {v: {str(b): {m: 1.0 / len(ALL_KEYS) for m in ALL_KEYS}
+                        for b in LEAD_BUCKETS} for v in WEIGHT_VARS},
         # lead_mae[spalengd][likan] = {hiti, vindur, sky, n}
         "lead_mae": {str(b): {} for b in LEAD_BUCKETS},
+        # skill[breyta][spalengd] = {jolly_mae, best_model, best_mae, skill}
+        "skill": {v: {} for v in WEIGHT_VARS},
+        # cloud_map[likan][spalengd][flokkur] = {n, fc_sum, obs_sum}
+        "cloud_map": {},
+        "cloud_confusion": {},
         "verify_history": [],
         "last_updated": None,
     }
@@ -632,9 +716,10 @@ def migrate_model(old):
     if ow:
         tot = sum(v for v in ow.values() if v)
         if tot > 0:
-            for b in LEAD_BUCKETS:
-                new["weights"][str(b)] = {m: round(ow.get(m, 0.0) / tot, 4)
-                                          for m in ALL_KEYS}
+            seed = {m: round(ow.get(m, 0.0) / tot, 4) for m in ALL_KEYS}
+            for v in WEIGHT_VARS:
+                for b in LEAD_BUCKETS:
+                    new["weights"][v][str(b)] = dict(seed)
     new["migrated_from"] = old.get("version", "1.x")
     print(f"  Faerdi {seeded} likon ur v{new['migrated_from']} - "
           f"bias notad sem upphafsgildi fyrir allar spalengdir")
@@ -644,20 +729,43 @@ def load_model():
     path = DATA_DIR / "jolly_model.json"
     raw  = load_json(path, None)
     if raw is None:
-        print("  Nytt likan v2.1")
+        print("  Nytt likan v2.3")
         return init_model()
     if raw.get("version", "").startswith("2."):
-        # tryggja ad allir lyklar seu til
         for m in ALL_KEYS:
             raw.setdefault("bias", {}).setdefault(m, {})
             for b in LEAD_BUCKETS:
                 raw["bias"][m].setdefault(str(b), empty_bias())
+
+        # Uppfaersla ur v2.0-2.2: thyngdir voru weights[spalengd][likan],
+        # reiknadar EINGONGU ur hitaskekkju og notadar a allar breytur.
+        # Nu eru thaer weights[breyta][spalengd][likan]. Vid afritum gomlu
+        # rodunina yfir a allar breytur sem upphafsgildi og hver breyta
+        # ferist sidan i sina att jafnodum og hun er stadfest.
+        w = raw.get("weights", {})
+        flat = bool(w) and not any(v in w for v in WEIGHT_VARS)
+        if flat:
+            raw["weights"] = {v: {b: dict(w.get(b, {})) for b in w}
+                              for v in WEIGHT_VARS}
+            print("  Uppfaerdi thyngdir: flatar -> ser fyrir hverja breytu")
+
+        for v in WEIGHT_VARS:
+            raw.setdefault("weights", {}).setdefault(v, {})
+            for b in LEAD_BUCKETS:
+                raw["weights"][v].setdefault(
+                    str(b), {m: 1.0 / len(ALL_KEYS) for m in ALL_KEYS})
+                for m in ALL_KEYS:
+                    raw["weights"][v][str(b)].setdefault(m, 0.0)
+
+        sk = raw.get("skill", {})
+        if sk and not any(v in sk for v in WEIGHT_VARS):
+            raw["skill"] = {"hiti": sk}       # gamla skill var hitabundid
+        for v in WEIGHT_VARS:
+            raw.setdefault("skill", {}).setdefault(v, {})
+
         for b in LEAD_BUCKETS:
-            raw.setdefault("weights", {}).setdefault(
-                str(b), {m: 1.0 / len(ALL_KEYS) for m in ALL_KEYS})
             raw.setdefault("lead_mae", {}).setdefault(str(b), {})
-            for m in ALL_KEYS:
-                raw["weights"][str(b)].setdefault(m, 0.0)
+
         print(f"  Hladid v2.x - {raw.get('runs',0)} keyrslur, "
               f"{raw.get('verified_pairs',0)} stadfest por")
         return raw
@@ -677,7 +785,7 @@ def verify_and_train(arch, obs_history, model):
     obs_by_t = {o["time"]: o for o in obs_history}
 
     # pairs[spalengd][likan][breyta] = [(maeling, spa), ...]
-    pairs = {str(b): {m: {v: [] for v, _, _ in VAR_MAP} for m in ALL_KEYS}
+    pairs = {str(b): {m: {v: [] for v, _, _ in VAR_MAP} for m in VERIFY_KEYS}
              for b in LEAD_BUCKETS}
     n_pairs = 0
     verified_times = set()
@@ -687,23 +795,30 @@ def verify_and_train(arch, obs_history, model):
         if not o: continue
         for lead_s, entry in leads.items():
             if lead_s not in pairs: continue
-            # Hvert par er adeins laert EINU SINNI. Annars ytir sama
-            # maelingin bias-inu itrekad, thvi safnid heldur faerslum
-            # i ARCHIVE_KEEP_PAST klst eftir gildistima.
-            if entry.get("done"): continue
-            used = False
+            # Hver gjafi er adeins laerdur EINU SINNI a hverjum gildistima.
+            # 'done' er listi af gjofum sem thegar hafa verid stadfestir -
+            # ekki eitt boolean, thvi Jolly er skrad i safnid EFTIR ad
+            # medlimirnir hafa verid stadfestir og maetti annars aldrei.
+            done = entry.get("done")
+            if done is True:                 # gamalt snid ur v2.0/2.1
+                done = list(entry.get("models", {}).keys())
+            elif not isinstance(done, list):
+                done = []
             for m, fcv in entry.get("models", {}).items():
-                if m not in ALL_KEYS: continue
+                if m not in VERIFY_KEYS or m in done: continue
+                used = False
                 for var, fkey, okey in VAR_MAP:
                     ov, fv = o.get(okey), fcv.get(fkey)
                     if ov is not None and fv is not None:
                         pairs[lead_s][m][var].append((ov, fv))
                         n_pairs += 1
                         used = True
-            if used:
-                entry["done"] = True
+                if used:
+                    done.append(m)
+                    verified_times.add(vt)
+            if done:
+                entry["done"] = done
                 entry["verified_at"] = fmt_t(datetime.now(timezone.utc))
-                verified_times.add(vt)
 
     if n_pairs == 0:
         n_done = sum(1 for l in arch.values() for e in l.values() if e.get("done"))
@@ -721,9 +836,26 @@ def verify_and_train(arch, obs_history, model):
     for b in LEAD_BUCKETS:
         bs = str(b)
         summary[bs] = {}
-        for m in ALL_KEYS:
+        for m in VERIFY_KEYS:
             pv = pairs[bs][m]
             if not any(pv.values()): continue
+
+            # Jolly er MAELD en ekki leidrett - hun er thegar leidrett
+            if m == JOLLY_KEY:
+                store = model["lead_mae"][bs].setdefault(
+                    JOLLY_KEY, {"hiti": None, "vindur": None, "sky": None,
+                                "urkoma": None, "n": 0})
+                store.setdefault("n_var", {})
+                for var in WEIGHT_VARS:
+                    v = mae(pv[var])
+                    if v is None: continue
+                    prev = store.get(var)
+                    store[var] = round(v, 3) if prev is None \
+                                 else round((1 - LR) * prev + LR * v, 3)
+                    store["n_var"][var] = store["n_var"].get(var, 0) + len(pv[var])
+                store["n"] = store.get("n", 0) + len(pv["hiti"])
+                continue
+
             bias_rec = model["bias"][m][bs]
 
             for var in ("hiti", "vindur", "sky"):
@@ -737,44 +869,124 @@ def verify_and_train(arch, obs_history, model):
                     bias_rec["urkoma_scale"] = ((1 - LR) * bias_rec["urkoma_scale"]
                                                 + LR * (om / fm))
 
+            # --- SKYJAHULA: flokkabundin leidretting ---
+            # Prosenta 0-100 hegdar sér EKKI linulega: '+5' sem virkar vid
+            # 95% er gagnslaus vid 20%, thvi thakid er 100. Vid laerum thvi
+            # ser vik fyrir hvern skyjaflokk, plus confusion matrix til
+            # ad sja hvada flokkar ruglast.
+            if pv["sky"]:
+                cm  = model.setdefault("cloud_map", {}) \
+                           .setdefault(m, {}).setdefault(bs, {})
+                cf  = model.setdefault("cloud_confusion", {}) \
+                           .setdefault(m, {})
+                for ov, fv in pv["sky"]:
+                    fk = cloud_class(fv)
+                    ok = cloud_class(ov)
+                    if fk is None or ok is None: continue
+                    e = cm.setdefault(fk, {"n": 0, "fc_sum": 0.0, "obs_sum": 0.0})
+                    e["n"]      += 1
+                    e["fc_sum"] += fv
+                    e["obs_sum"] += ov
+                    cf.setdefault(fk, {})
+                    cf[fk][ok] = cf[fk].get(ok, 0) + 1
+
             # MAE thessarar keyrslu, eftir bias-leidrettingu
             corr = lambda var: [(o, f + bias_rec[var]) for o, f in pv[var]]
+            # Urkoma: leidrett med kvarda, ekki samlagningu
+            pr_corr = [(o, f * bias_rec["urkoma_scale"]) for o, f in pv["urkoma"]]
             run_mae = {"hiti":   mae(corr("hiti")),
                        "vindur": mae(corr("vindur")),
-                       "sky":    mae(corr("sky"))}
+                       "sky":    mae(corr("sky")),
+                       "urkoma": mae(pr_corr)}
 
             # Safna MAE upp milli keyrslna. Hver keyrsla stadfestir adeins
             # einn nyjan gildistima per spalengd, svo eitt maelingasett
             # er alltof lidid til ad reikna thyngd ur. Vid geymum thvi
             # veldisjafnad medaltal og fjolda samanburda.
             store = model["lead_mae"][bs].setdefault(
-                m, {"hiti": None, "vindur": None, "sky": None, "n": 0})
-            for var in ("hiti", "vindur", "sky"):
-                v = run_mae[var]
+                m, {"hiti": None, "vindur": None, "sky": None,
+                    "urkoma": None, "n": 0})
+            # Ser fjoldi per breytu - urkoma og sky berast ekki alltaf
+            store.setdefault("n_var", {})
+            for var in WEIGHT_VARS:
+                v = run_mae.get(var)
                 if v is None: continue
                 prev = store.get(var)
                 store[var] = round(v, 3) if prev is None \
                              else round((1 - LR) * prev + LR * v, 3)
+                store["n_var"][var] = store["n_var"].get(var, 0) + len(pv[var])
             store["n"] = store.get("n", 0) + len(pv["hiti"])
 
-            summary[bs][m] = {"hiti": store["hiti"] or 0.0,
-                              "vindur": store["vindur"] or 0.0,
-                              "sky": store["sky"] or 0.0,
-                              "n": store["n"]}
+            summary[bs][m] = {v: (store.get(v) or 0.0) for v in WEIGHT_VARS}
+            summary[bs][m]["n"] = store["n"]
 
-        # Thyngdir fyrir thessa spalengd, ur uppsofnudu MAE.
-        # MIN_N: nog margir samanburdir til ad talan se marktaek.
-        # EPS: kemur i veg fyrir ad 1/MAE sprengi upp thegar MAE -> 0.
-        MIN_N, EPS = 4, 0.05
-        usable = {m: st["hiti"] for m, st in model["lead_mae"][bs].items()
-                  if st.get("hiti") is not None and st.get("n", 0) >= MIN_N}
-        if usable:
-            inv = {m: 1.0 / (v + EPS) for m, v in usable.items()}
+        # Thyngdir: SER RODUN FYRIR HVERJA BREYTU.
+        # Hvert likan er metid fjorum sinnum og faer fjorar thyngdir.
+        # Likan sem er godt i vindi en lelegt i hita faer ha vindthyngd
+        # og laga hitathyngd - i stad einnar thyngdar ur hitaskekkju.
+        for var in WEIGHT_VARS:
+            eps   = EPS_BY_VAR[var]
+            min_n = MIN_N_BY_VAR[var]
+            usable = {}
+            for m, st in model["lead_mae"][bs].items():
+                if m == JOLLY_KEY: continue
+                v  = st.get(var)
+                nv = (st.get("n_var") or {}).get(var, st.get("n", 0))
+                if v is not None and nv >= min_n:
+                    usable[m] = v
+            if not usable:
+                continue
+            inv = {m: 1.0 / (v + eps) for m, v in usable.items()}
             for m, bonus in MODEL_BONUS.items():
                 if m in inv: inv[m] *= bonus
             tot = sum(inv.values())
             for m in ALL_KEYS:
-                model["weights"][bs][m] = round(inv[m] / tot, 4) if m in inv else 0.0
+                model["weights"][var][bs][m] = \
+                    round(inv[m] / tot, 4) if m in inv else 0.0
+
+    # --- Malikvardinn: er Jolly betri en besta einstaka likanid? ---
+    # Reiknad SER FYRIR HVERJA BREYTU. Jolly getur verid betri i hita en
+    # lakari i urkomu - eitt tal myndi fela thad.
+    model.setdefault("skill", {})
+    for var in WEIGHT_VARS:
+        model["skill"].setdefault(var, {})
+        for b in LEAD_BUCKETS:
+            bs = str(b)
+            lm = model["lead_mae"].get(bs, {})
+            js = lm.get(JOLLY_KEY)
+            if not js or js.get(var) is None:
+                continue
+            members = {}
+            for m, st in lm.items():
+                if m == JOLLY_KEY: continue
+                v  = st.get(var)
+                nv = (st.get("n_var") or {}).get(var, st.get("n", 0))
+                if v is not None and nv >= 2:
+                    members[m] = v
+            if not members:
+                continue
+            best_m = min(members, key=members.get)
+            best   = members[best_m]
+            jmae   = js[var]
+            # Hlutfallsbati verdur merkingarlaus thegar besta MAE naegir
+            # nulli - (best-jolly)/best sprengir upp. Vid notum gólf sem
+            # samsvarar maelinakvaemni breytunnar.
+            floor = SKILL_FLOOR[var]
+            if best < floor:
+                skill = 0.0
+                meaningful = False
+            else:
+                skill = (best - jmae) / best
+                meaningful = True
+            model["skill"][var][bs] = {
+                "jolly_mae":   round(jmae, 3),
+                "best_model":  best_m,
+                "best_mae":    round(best, 3),
+                "skill":       round(max(-1.0, min(1.0, skill)), 4),
+                "meaningful":  meaningful,
+                "mean_member": round(sum(members.values()) / len(members), 3),
+                "n":           (js.get("n_var") or {}).get(var, js.get("n", 0)),
+            }
 
     model["runs"]           = model.get("runs", 0) + 1
     model["verified_pairs"] = model.get("verified_pairs", 0) + n_pairs
@@ -787,13 +999,46 @@ def verify_and_train(arch, obs_history, model):
     })
     model["verify_history"] = model["verify_history"][-720:]
 
-    # Skyrsla
-    for b in LEAD_BUCKETS:
-        bs = str(b)
-        if not summary.get(bs): continue
-        best = sorted(summary[bs].items(), key=lambda x: x[1]["hiti"] or 99)
-        line = "  ".join(f"{m}={s['hiti']:.2f}" for m, s in best[:4] if s["hiti"] > 0)
-        print(f"  {b:2d} klst | {line}")
+    # Skyrsla: JOLLY A MOTI BESTA MEDLIM, ser fyrir hverja breytu
+    UNIT = {"hiti": "C", "vindur": "m/s", "urkoma": "mm", "sky": "%"}
+    any_skill = False
+    for var in WEIGHT_VARS:
+        rows = model.get("skill", {}).get(var, {})
+        if not rows: continue
+        any_skill = True
+        print(f"  [{var}]")
+        for b in LEAD_BUCKETS:
+            sk = rows.get(str(b))
+            if not sk: continue
+            if not sk.get("meaningful", True):
+                tag = "(MAE undir maelinakvaemni)"
+                pct = "     -"
+            else:
+                tag = "BETRI" if sk["skill"] > 0 else "lakari"
+                pct = f"{sk['skill']:+6.1%}"
+            print(f"    {b:2d} klst  Jolly {sk['jolly_mae']:6.2f}{UNIT[var]}  "
+                  f"besti {sk['best_model']:<8} {sk['best_mae']:6.2f}  "
+                  f"-> {pct} {tag}  (n={sk['n']})")
+    if not any_skill:
+        for b in LEAD_BUCKETS:
+            bs = str(b)
+            if not summary.get(bs): continue
+            best = sorted(summary[bs].items(), key=lambda x: x[1]["hiti"] or 99)
+            line = "  ".join(f"{m}={s['hiti']:.2f}" for m, s in best[:4]
+                             if s["hiti"] > 0)
+            print(f"  {b:2d} klst | {line}  (Jolly ekki stadfest enn)")
+
+    # Bestu likon per breytu vid 6 klst - synir hvort rodun er raunverulega ólik
+    b6 = "6"
+    tops = []
+    for var in WEIGHT_VARS:
+        w = model["weights"][var].get(b6, {})
+        live = {m: v for m, v in w.items() if v > 0}
+        if live:
+            bm = max(live, key=live.get)
+            tops.append(f"{var}: {bm} {live[bm]:.0%}")
+    if tops:
+        print("  Haest thyngd @6klst -> " + " | ".join(tops))
     return model
 
 # --- 6. SPA ----------------------------------------------------------------
@@ -812,12 +1057,14 @@ def make_forecast(fc, extras, model):
     J = {"generated": datetime.now(timezone.utc).isoformat(),
          "station": {"lat": LAT, "lon": LON, "id": STATION_ID,
                      "name": "Egilsstaðir", "icao": ICAO},
-         "model_name": "Jolly v2.1",
+         "model_name": "Jolly v2.3",
          "runs": model.get("runs", 0),
          "verified_pairs": model.get("verified_pairs", 0),
          "lead_buckets": LEAD_BUCKETS,
          "weights": model["weights"],
          "lead_mae": model.get("lead_mae", {}),
+         "skill": model.get("skill", {}),
+         "cloud_confusion": model.get("cloud_confusion", {}),
          "models_used": ALL_KEYS,
          "attribution": ["Vedurstofa Islands (apis.is, xmlweather)",
                          "MET Norway (api.met.no) CC BY 4.0",
@@ -847,8 +1094,9 @@ def make_forecast(fc, extras, model):
         T, W, P, D, C = [], [], [], [], []
 
         for m, api in MODELS.items():
-            w = model["weights"][bs].get(m, 0.0)
-            b = model["bias"][m][bs]
+            # Fjorar thyngdir - ein per breytu
+            wv = {v: model["weights"][v][bs].get(m, 0.0) for v in WEIGHT_VARS}
+            b  = model["bias"][m][bs]
 
             def g(key):
                 if i is None: return None
@@ -861,22 +1109,22 @@ def make_forecast(fc, extras, model):
             ct  = round(rt + b["hiti"], 1)                if rt is not None else None
             cw  = round(max(0, rw + b["vindur"]), 1)      if rw is not None else None
             cp  = round(max(0, rp * b["urkoma_scale"]), 2) if rp is not None else None
-            cc  = round(min(100, max(0, rc + b["sky"])))   if rc is not None else None
+            cc  = correct_cloud(rc, model, m, bs)
 
             J["hourly"]["model_temperatures"][m].append(ct)
             J["hourly"]["model_windspeeds"][m].append(cw)
             J["hourly"]["model_precipitations"][m].append(cp)
             J["hourly"]["model_clouds"][m].append(cc)
 
-            if w > 0:
-                if ct is not None: T.append((ct, w))
-                if cw is not None: W.append((cw, w))
-                if rd is not None: D.append((rd, w))
-                if cc is not None: C.append((cc, w))
-                if cp is not None: P.append((cp, w))
+            if ct is not None and wv["hiti"]   > 0: T.append((ct, wv["hiti"]))
+            if cw is not None and wv["vindur"] > 0: W.append((cw, wv["vindur"]))
+            # Vindatt fylgir vindthyngdinni - sama likan, sami vindur
+            if rd is not None and wv["vindur"] > 0: D.append((rd, wv["vindur"]))
+            if cc is not None and wv["sky"]    > 0: C.append((cc, wv["sky"]))
+            if cp is not None and wv["urkoma"] > 0: P.append((cp, wv["urkoma"]))
 
         for k, src in extras.items():
-            xw = model["weights"][bs].get(k, 0.0)
+            xv = {v: model["weights"][v][bs].get(k, 0.0) for v in WEIGHT_VARS}
             xb = model["bias"][k][bs]
             j  = et[k].index(t) if (src and t in et[k]) else None
             def ge(key, _src=src, _j=j):
@@ -888,17 +1136,16 @@ def make_forecast(fc, extras, model):
             ct = round(xT + xb["hiti"], 1)                 if xT is not None else None
             cw = round(max(0, xW + xb["vindur"]), 1)       if xW is not None else None
             cp = round(max(0, xP * xb["urkoma_scale"]), 2) if xP is not None else None
-            cc = round(min(100, max(0, xC + xb["sky"])))   if xC is not None else None
+            cc = correct_cloud(xC, model, k, bs)
             J["hourly"]["model_temperatures"][k].append(ct)
             J["hourly"]["model_windspeeds"][k].append(cw)
             J["hourly"]["model_precipitations"][k].append(cp)
             J["hourly"]["model_clouds"][k].append(cc)
-            if xw > 0:
-                if ct is not None: T.append((ct, xw))
-                if cw is not None: W.append((cw, xw))
-                if xD is not None: D.append((xD, xw))
-                if cc is not None: C.append((cc, xw))
-                if cp is not None: P.append((cp, xw))
+            if ct is not None and xv["hiti"]   > 0: T.append((ct, xv["hiti"]))
+            if cw is not None and xv["vindur"] > 0: W.append((cw, xv["vindur"]))
+            if xD is not None and xv["vindur"] > 0: D.append((xD, xv["vindur"]))
+            if cc is not None and xv["sky"]    > 0: C.append((cc, xv["sky"]))
+            if cp is not None and xv["urkoma"] > 0: P.append((cp, xv["urkoma"]))
 
         def wa(p):
             if not p: return None
@@ -995,14 +1242,14 @@ def save(model, fcast):
                 "runs": model.get("runs", 0),
                 "verified_pairs": model.get("verified_pairs", 0),
                 "status": "ok" if fcast else "partial",
-                "version": "2.1"})
+                "version": "2.3"})
     save_json(DATA_DIR / "run_log.json", log[-168:])
     print("VISTAD")
 
 # --- MAIN ------------------------------------------------------------------
 def main():
     print("=" * 64)
-    print(f"JOLLY v2.1  {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
+    print(f"JOLLY v2.3  {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
     print("Eiginleg spastadfesting eftir spalengd | 9 gjafar | stod 571 + BIEG")
     print("=" * 64)
 
@@ -1018,15 +1265,31 @@ def main():
     arch  = archive_forecast(fc, extras)
     model = verify_and_train(arch, obs, model)
     fcast = make_forecast(fc, extras, model)
+    arch  = archive_jolly(arch, fcast)      # eftir spa - Jolly er nidurstadan
     save(model, fcast)
 
     print("=" * 64)
-    w6 = model["weights"].get("6", {})
-    top = sorted(((m, v) for m, v in w6.items() if v > 0), key=lambda x: -x[1])[:4]
-    if top:
-        print("Thyngdir 6 klst: " + " | ".join(f"{m} {v:.0%}" for m, v in top))
+    for var in WEIGHT_VARS:
+        w6 = model["weights"].get(var, {}).get("6", {})
+        top = sorted(((m, v) for m, v in w6.items() if v > 0),
+                     key=lambda x: -x[1])[:4]
+        if top:
+            print(f"Thyngdir {var:7s} @6klst: "
+                  + " | ".join(f"{m} {v:.0%}" for m, v in top))
     print(f"Keyrslur {model.get('runs',0)} | "
           f"stadfest por {model.get('verified_pairs',0)}")
+    sk = model.get("skill", {})
+    shown = False
+    for var in WEIGHT_VARS:
+        rows = sk.get(var, {})
+        if not rows: continue
+        parts = [f"{b}kl {rows[str(b)]['skill']:+.0%}"
+                 for b in LEAD_BUCKETS if str(b) in rows]
+        if parts:
+            print(f"Jolly {var:7s} a moti besta likani: " + " | ".join(parts))
+            shown = True
+    if not shown:
+        print("Jolly ekki stadfest enn - kemur eftir naestu klukkustund")
     print("=" * 64)
 
 if __name__ == "__main__":
