@@ -88,7 +88,16 @@ METNO_URL = ("https://api.met.no/weatherapi/locationforecast/2.0/complete"
              f"?lat={LAT:.4f}&lon={LON:.4f}&altitude=23")   # BIEG er i 23 m
 
 # HARMONIE-kerfid er a 2 km yfir Island, hnattlikonin a 9-25 km
-MODEL_BONUS = {"harmonie": 1.20, "dmi": 1.15, "knmi": 1.10}
+# Bonus SER FYRIR HVERJA BREYTU. Uppl0usnarforskotid a 2 km gildir fyrir
+# hita og vind - en HARMONIE-skyjahulan er ekki maeling heldur thydd ur
+# islenskum vedurtexta ("skyjad" -> 70%), svo hun faer engan bonus.
+# Sama gildir um vindatt sem kemur sem bokstafir (22.5 grada upplausn).
+MODEL_BONUS = {
+    "hiti":   {"harmonie": 1.20, "dmi": 1.15, "knmi": 1.10},
+    "vindur": {"harmonie": 1.15, "dmi": 1.15, "knmi": 1.10},
+    "urkoma": {"harmonie": 1.10, "dmi": 1.15, "knmi": 1.10},
+    "sky":    {"dmi": 1.15, "knmi": 1.10},     # harmonie: texti, enginn bonus
+}
 
 HOURLY_VARS = ",".join([
     "temperature_2m", "dew_point_2m", "relative_humidity_2m",
@@ -570,8 +579,10 @@ def fetch_harmonie():
             w  = (fc.get("W", "") or fc.findtext("W", "") or "").lower().strip()
             cc = next((v for k, v in WEATHER_TO_CLOUD.items() if k in w), None)
             h["hourly"]["cloud_cover"].append(cc)
-        if not h["hourly"]["time"]: raise ValueError("engir timapunktar")
-        print(f"  OK {len(h['hourly']['time'])} timapunktar")
+            if not h["hourly"]["time"]: raise ValueError("engir timapunktar")
+        nc = len([x for x in h["hourly"]["cloud_cover"] if x is not None])
+        print(f"  OK {len(h['hourly']['time'])} timapunktar "
+              f"({nc} med skyjahulu ur vedurtexta - grof)")
         return h
     except Exception as e:
         print(f"  VILLA: {e}")
@@ -673,7 +684,7 @@ def empty_bias():
 
 def init_model():
     return {
-        "version": "2.3",
+        "version": "2.4",
         "created": datetime.now(timezone.utc).isoformat(),
         "runs": 0,
         "verified_pairs": 0,
@@ -729,7 +740,7 @@ def load_model():
     path = DATA_DIR / "jolly_model.json"
     raw  = load_json(path, None)
     if raw is None:
-        print("  Nytt likan v2.3")
+        print("  Nytt likan v2.4")
         return init_model()
     if raw.get("version", "").startswith("2."):
         for m in ALL_KEYS:
@@ -937,7 +948,7 @@ def verify_and_train(arch, obs_history, model):
             if not usable:
                 continue
             inv = {m: 1.0 / (v + eps) for m, v in usable.items()}
-            for m, bonus in MODEL_BONUS.items():
+            for m, bonus in MODEL_BONUS.get(var, {}).items():
                 if m in inv: inv[m] *= bonus
             tot = sum(inv.values())
             for m in ALL_KEYS:
@@ -1057,7 +1068,7 @@ def make_forecast(fc, extras, model):
     J = {"generated": datetime.now(timezone.utc).isoformat(),
          "station": {"lat": LAT, "lon": LON, "id": STATION_ID,
                      "name": "Egilsstaðir", "icao": ICAO},
-         "model_name": "Jolly v2.3",
+         "model_name": "Jolly v2.4",
          "runs": model.get("runs", 0),
          "verified_pairs": model.get("verified_pairs", 0),
          "lead_buckets": LEAD_BUCKETS,
@@ -1232,6 +1243,63 @@ def make_forecast(fc, extras, model):
     print(f"  OK {len(H['time'])} klst | {len(J['daily']['date'])} dagar")
     return J
 
+def print_coverage(model, fc, extras):
+    """
+    Yfirlit yfir hvada gjafi skilar hverri breytu og hvada thyngd hann
+    hefur fengid. Thetta svarar spurningunni "virkar thetta a oll likonin"
+    empiriskt i hverri keyrslu i stad thess ad giska.
+    """
+    print("YFIRLIT (@6 klst):")
+    print("  gjafi      hiti          vindur        urkoma        sky")
+
+    RAW = {"hiti": "temperature_2m", "vindur": "windspeed_10m",
+           "urkoma": "precipitation", "sky": "cloud_cover"}
+    bs = "6"
+    lm = model.get("lead_mae", {}).get(bs, {})
+
+    def has_raw(m):
+        """Skilar hvada breytur gjafinn skilar i HRAU spanni."""
+        out = {}
+        if m in MODELS and fc:
+            api = MODELS[m]
+            for v, key in RAW.items():
+                arr = fc["hourly"].get(f"{key}_{api}", [])
+                out[v] = any(x is not None for x in arr)
+        elif m in extras and extras.get(m):
+            src = extras[m]["hourly"]
+            keymap = {"hiti": "temperature", "vindur": "windspeed",
+                      "urkoma": "precipitation", "sky": "cloud_cover"}
+            for v, key in keymap.items():
+                out[v] = any(x is not None for x in src.get(key, []))
+        else:
+            out = {v: False for v in WEIGHT_VARS}
+        return out
+
+    dead = []
+    for m in ALL_KEYS:
+        raw  = has_raw(m)
+        cells = []
+        for v in WEIGHT_VARS:
+            w  = model["weights"].get(v, {}).get(bs, {}).get(m, 0.0)
+            st = lm.get(m, {})
+            n  = (st.get("n_var") or {}).get(v, 0)
+            e  = st.get(v)
+            if not raw.get(v):
+                cells.append("   --gogn   ")
+            elif e is None or n < MIN_N_BY_VAR[v]:
+                cells.append(f" biđ n={n:<3}   ")
+            else:
+                cells.append(f"{e:5.2f} {w:4.0%}   ")
+        if not any(raw.values()):
+            dead.append(m)
+        print(f"  {m:9s} " + "".join(cells))
+
+    if dead:
+        print(f"  ENGIN GOGN: {', '.join(dead)} -> thyngd 0 a ollum breytum")
+    print("  ('--gogn' = gjafinn skilar ekki breytunni | "
+          "'bid' = of fair samanburdir enn)")
+
+
 # --- 7. VISTA --------------------------------------------------------------
 def save(model, fcast):
     save_json(DATA_DIR / "jolly_model.json", model)
@@ -1242,14 +1310,14 @@ def save(model, fcast):
                 "runs": model.get("runs", 0),
                 "verified_pairs": model.get("verified_pairs", 0),
                 "status": "ok" if fcast else "partial",
-                "version": "2.3"})
+                "version": "2.4"})
     save_json(DATA_DIR / "run_log.json", log[-168:])
     print("VISTAD")
 
 # --- MAIN ------------------------------------------------------------------
 def main():
     print("=" * 64)
-    print(f"JOLLY v2.3  {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
+    print(f"JOLLY v2.4  {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
     print("Eiginleg spastadfesting eftir spalengd | 9 gjafar | stod 571 + BIEG")
     print("=" * 64)
 
@@ -1266,6 +1334,7 @@ def main():
     model = verify_and_train(arch, obs, model)
     fcast = make_forecast(fc, extras, model)
     arch  = archive_jolly(arch, fcast)      # eftir spa - Jolly er nidurstadan
+    print_coverage(model, fc, extras)
     save(model, fcast)
 
     print("=" * 64)
