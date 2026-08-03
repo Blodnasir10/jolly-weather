@@ -1052,6 +1052,50 @@ function renderModelGrid(){
 
 
 // ── SKILL: er Jolly nakvaemari en besta einstaka likanid? ──────────────────
+// Skilyrt bias: hvernig leidrettingin breytist eftir vindatt og degi/nott
+const SECTORS=['N','A','S','V'];
+const SEC_LABEL={N:'Norðan',A:'Austan',S:'Sunnan',V:'Vestan'};
+function condBiasBlock(){
+  const cb=MODEL.cond_bias;
+  if(!cb || activeMetric==='urkoma') return '';
+  // Safna öllum líkönum sem hafa reiti fyrir þessa breytu+spálengd
+  const rows=[];
+  Object.keys(MC).forEach(m=>{
+    const cells=(cb[m]||{})[leadSel];
+    if(!cells) return;
+    ['dagur','nott'].forEach(dn=>{
+      SECTORS.forEach(sec=>{
+        const cell=`${sec}-${dn}`;
+        const e=(cells[cell]||{})[activeMetric];
+        if(e && e.n>=3){
+          rows.push({m,sec,dn,bias:-(e.sum/e.n),n:e.n});
+        }
+      });
+    });
+  });
+  if(!rows.length) return '';
+  // Sýna bara efstu 8 eftir |bias| - mest afgerandi
+  rows.sort((a,b)=>Math.abs(b.bias)-Math.abs(a.bias));
+  const top=rows.slice(0,8);
+  const u=UNIT_OF[activeMetric]||'';
+  const body=top.map(r=>{
+    const cls=r.bias>=0?'pos':'neg';
+    return `<div class="n-skill-row" style="grid-template-columns:76px 1fr 54px 48px">
+      <div class="n-skill-lead">${SEC_LABEL[r.sec]}</div>
+      <div class="n-skill-lead" style="color:var(--dim)">${r.dn} · ${MN[r.m]}</div>
+      <div class="n-skill-val ${cls}">${r.bias>=0?'+':''}${r.bias.toFixed(1)}${u}</div>
+      <div class="n-skill-vs">n=${r.n}</div>
+    </div>`;
+  }).join('');
+  return `<div class="n-skill" style="margin-top:12px">
+    <div class="n-skill-hd">Skilyrt leiðrétting · ${activeMetric} · ${leadSel} klst</div>
+    ${body}
+    <div class="n-skill-note">Sama líkan, ólík leiðrétting eftir vindátt og
+    tíma dags. Í Egilsstaðadal er vestanátt oft föhn (hlýrra en spáð) og
+    kyrrar nætur kaldari (kaldaloftspollun). Reitir með færri en 3 mælingar
+    nota almenna leiðréttingu.</div></div>`;
+}
+
 function renderSkill(){
   const el=document.getElementById('nSkill');
   if(!el) return;
@@ -1086,6 +1130,7 @@ function renderSkill(){
     <div class="n-skill-hd">Jolly á móti besta líkani · ${activeMetric}</div>
     ${body}
     ${jollyResidual()}
+    ${condBiasBlock()}
     <div class="n-skill-note">Grænt = Jolly nákvæmari en besta einstaka líkanið.
     Talan við hlið er MAE (${unit}) þess líkans. «—» þýðir að skekkjan er
     undir mælinákvæmni og hlutfallið því ekki marktækt.</div></div>`;
