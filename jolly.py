@@ -326,6 +326,29 @@ def describe(cloud, precip, temp, vis, wind, cape=None):
     if c >= 10: return "Léttskýjað"
     return "Heiðskírt"
 
+def cond_bias_value(model, m, bs, cell, var, general):
+    """
+    Skilyrt bias fyrir reit 'cell' og breytu 'var', blandad vid almenna
+    bias-id 'general' med shrinkage:
+        b = (n/(n+K))*b_reitur + (K/(n+K))*b_almennt
+    Ef reiturinn er tomur eda naest ekki i hann er almenna bias-id notad
+    obreytt. Thetta tryggir ad skilyrt bias verdi ALDREI verra en oskilyrt
+    thegar reitir eru thunnir.
+    """
+    if cell is None:
+        return general
+    c = (model.get("cond_bias", {}).get(m, {}).get(bs, {}) or {}).get(cell)
+    if not c:
+        return general
+    e = c.get(var)
+    if not e or e["n"] < COND_MIN_N:
+        return general
+    # b_reitur er MEDALSKEKKJA (spa-maeling); leidrettingin er neikvaed
+    measured = -(e["sum"] / e["n"])
+    n = e["n"]
+    w = n / (n + COND_SHRINK_K)
+    return w * measured + (1 - w) * general
+
 def correct_cloud(raw, model, m, bs):
     """
     Leidrettir skyjahulu med flokkabundnu viki. Fellur aftur a flata
@@ -709,7 +732,16 @@ def archive_forecast(fc, extras):
                 models[k] = rec
 
         if models:
-            arch.setdefault(vt, {})[str(lead)] = {"issue": issue, "models": models}
+            slot = arch.setdefault(vt, {}).setdefault(str(lead),
+                                    {"issue": issue, "models": {}})
+            slot["issue"] = issue
+            slot["models"] = models
+            # is_day fyrir thennan gildistima (ur fyrsta likani sem hefur hann)
+            if fc and vt in ft:
+                idx = ft.index(vt)
+                a = fc["hourly"].get("is_day", [])
+                if idx < len(a) and a[idx] is not None:
+                    slot["is_day"] = a[idx]
             n_new += 1
 
     # Hreinsa gamalt - stadfest eda utrunnid
@@ -742,6 +774,9 @@ def archive_jolly(arch, fcast):
         rec = {"t": H["temperature"][i], "w": H["windspeed"][i],
                "d": H["winddirection"][i],
                "p": H["precipitation"][i], "c": H["cloud_cover"][i]}
+        # is_day er skilyrding - geymt a gildistima svo stadfesting viti thad
+        arch.setdefault(t, {}).setdefault(str(lead), {}) \
+            ["is_day"] = H["is_day"][i]
         if not any(v is not None for v in rec.values()): continue
         slot = arch.setdefault(t, {}).setdefault(str(lead),
                                                 {"issue": issue, "models": {}})
@@ -757,9 +792,13 @@ def empty_bias():
     return {"hiti": 0.0, "vindur": 0.0, "att": 0.0,
             "sky": 0.0, "urkoma_scale": 1.0}
 
+def empty_cond():
+    """Skilyrt bias-safn: {reitur: {breyta: {sum, n}}}."""
+    return {}
+
 def init_model():
     return {
-        "version": "2.7",
+        "version": "2.8",
         "created": datetime.now(timezone.utc).isoformat(),
         "runs": 0,
         "verified_pairs": 0,
@@ -775,6 +814,8 @@ def init_model():
         "skill": {v: {} for v in WEIGHT_VARS},
         # Restleidretting a Jolly sjalfri - jolly_bias[spalengd]
         "jolly_bias": {str(b): empty_bias() for b in LEAD_BUCKETS},
+        # Skilyrt bias: cond_bias[likan][spalengd][reitur][breyta]={sum,n}
+        "cond_bias": {},
         # cloud_map[likan][spalengd][flokkur] = {n, fc_sum, obs_sum}
         "cloud_map": {},
         "cloud_confusion": {},
@@ -817,7 +858,7 @@ def load_model():
     path = DATA_DIR / "jolly_model.json"
     raw  = load_json(path, None)
     if raw is None:
-        print("  Nytt likan v2.7")
+        print("  Nytt likan v2.8")
         return init_model()
     if raw.get("version", "").startswith("2."):
         for m in ALL_KEYS:
@@ -829,6 +870,7 @@ def load_model():
         for b in LEAD_BUCKETS:
             raw.setdefault("jolly_bias", {}).setdefault(str(b), empty_bias())
             raw["jolly_bias"][str(b)].setdefault("att", 0.0)
+        raw.setdefault("cond_bias", {})
 
         # Uppfaersla ur v2.0-2.2: thyngdir voru weights[spalengd][likan],
         # reiknadar EINGONGU ur hitaskekkju og notadar a allar breytur.
@@ -872,6 +914,32 @@ VAR_MAP = [("hiti", "t", "temperature"),
 
 # Breytur sem eru horn - tharfnast hringlaga reiknings
 ANGLE_VARS = {"att"}
+
+# --- SKILYRT BIAS --------------------------------------------------------
+# Bias er ekki fast - i Egilsstadadal er hitaskekkjan hád vindatt (fohn af
+# vestri gefur hlyrra, nordanatt kaldara) og degi/nott (kaldaloftspollun).
+# Ein tala finnur medaltalid, sem er rangt fyrir baðar adstaedur.
+#
+# Vid skiptum i reiti: 4 vindattarfjordungar x 2 (dagur/nott). Hver reitur
+# laerir sitt bias EN fellur aftur a almenna bias-id thegar hann er thunnur,
+# annars verdur skilyrt bias onakvaemara en oskilyrt. Thetta er "shrinkage":
+#   b_reitur = (n/(n+K)) * b_maelt + (K/(n+K)) * b_almennt
+# K er hversu morg por tharf adur en reiturinn er treyst ad fullu.
+COND_SHRINK_K = 10          # helmingstraust vid 10 por
+COND_MIN_N    = 3           # undir thessu: nota adeins almenna bias
+
+def wind_sector(deg):
+    """Vindattarfjordungur: 0=N, 1=A, 2=S, 3=V. None ef vantar."""
+    if deg is None: return None
+    return int(((deg + 45.0) % 360.0) // 90.0)
+
+SECTOR_NAME = {0: "N", 1: "A", 2: "S", 3: "V"}
+
+def cond_key(wd_ob, is_day):
+    """Reitlykill: t.d. 'V-dagur'. None ef vindatt vantar."""
+    sec = wind_sector(wd_ob)
+    if sec is None: return None
+    return f"{SECTOR_NAME[sec]}-{'dagur' if is_day else 'nott'}"
 
 def append_verify_rows(rows):
     """
@@ -951,6 +1019,8 @@ def verify_and_train(arch, obs_history, model):
     n_pairs = 0
     verified_times = set()
     csv_rows = []          # fer i langtimasafnid
+    # cond_pairs[likan] = [(vars_list, cell), ...] fyrir skilyrt bias
+    cond_pairs = {}
 
     for vt, leads in arch.items():
         o = obs_by_t.get(vt)
@@ -966,15 +1036,27 @@ def verify_and_train(arch, obs_history, model):
                 done = list(entry.get("models", {}).keys())
             elif not isinstance(done, list):
                 done = []
+            # Reitur thessa gildistima: vindatt (maeld) x dagur/nott
+            entry_is_day = entry.get("is_day")
+            if entry_is_day is None:
+                entry_is_day = 1   # sjalfgefid dagur ef vantar
+            cell = cond_key(o.get("winddirection"), entry_is_day >= 0.5)
+
             for m, fcv in entry.get("models", {}).items():
                 if m not in VERIFY_KEYS or m in done: continue
                 used = False
+                var_pairs = []
                 for var, fkey, okey in VAR_MAP:
                     ov, fv = o.get(okey), fcv.get(fkey)
                     if ov is not None and fv is not None:
                         pairs[lead_s][m][var].append((ov, fv))
+                        var_pairs.append((var, ov, fv))
                         n_pairs += 1
                         used = True
+                # Skilyrt bias adeins fyrir medlimi (ekki Jolly)
+                if var_pairs and m != JOLLY_KEY and cell is not None:
+                    cond_pairs.setdefault(m, []).append((
+                        [(v, ov, fv) for v, ov, fv in var_pairs], cell))
                 if used:
                     done.append(m)
                     verified_times.add(vt)
@@ -1089,6 +1171,23 @@ def verify_and_train(arch, obs_history, model):
                 nb = circ_bias(pv["att"]) or 0.0
                 bias_rec.setdefault("att", 0.0)
                 bias_rec["att"] = (1 - LR) * bias_rec["att"] + LR * (-nb)
+
+            # --- SKILYRT BIAS: safna per reit (vindatt x dagur/nott) ---
+            # Uppsafnad summa+n per reit, ekki veldisjofnun - vid tharfnumst
+            # fjoldans til ad meta hvort reiturinn se treystandi (shrinkage).
+            cond = model.setdefault("cond_bias", {}) \
+                        .setdefault(m, {}).setdefault(bs, {})
+            for (var_list, cell) in cond_pairs.get(m, []):
+                if cell is None: continue
+                c = cond.setdefault(cell, {})
+                for var, val_o, val_f in var_list:
+                    if val_o is None or val_f is None: continue
+                    e = c.setdefault(var, {"sum": 0.0, "n": 0})
+                    if var == "att":
+                        e["sum"] += ang_diff(val_f, val_o)   # spa - maeling
+                    else:
+                        e["sum"] += (val_f - val_o)
+                    e["n"] += 1
             if pv["urkoma"]:
                 om = mean([o for o, _ in pv["urkoma"]])
                 fm = mean([f for _, f in pv["urkoma"]])
@@ -1288,7 +1387,7 @@ def make_forecast(fc, extras, model):
     J = {"generated": datetime.now(timezone.utc).isoformat(),
          "station": {"lat": LAT, "lon": LON, "id": STATION_ID,
                      "name": "Egilsstaðir", "icao": ICAO},
-         "model_name": "Jolly v2.7",
+         "model_name": "Jolly v2.8",
          "runs": model.get("runs", 0),
          "verified_pairs": model.get("verified_pairs", 0),
          "lead_buckets": LEAD_BUCKETS,
@@ -1296,6 +1395,7 @@ def make_forecast(fc, extras, model):
          "lead_mae": model.get("lead_mae", {}),
          "skill": model.get("skill", {}),
          "jolly_bias": model.get("jolly_bias", {}),
+         "cond_bias": model.get("cond_bias", {}),
          "cloud_confusion": model.get("cloud_confusion", {}),
          "models_used": ALL_KEYS,
          "attribution": ["Vedurstofa Islands (apis.is, xmlweather)",
@@ -1326,10 +1426,35 @@ def make_forecast(fc, extras, model):
 
         T, W, P, D, C = [], [], [], [], []
 
+        # Reitur thessarar klukkustundar fyrir skilyrt bias.
+        # Vindatt framtidar er ekki maeld, svo vid notum GROFA attarspa
+        # (medaltal hravrar attar likananna) + is_day til ad velja reit.
+        raw_dirs = []
+        for _m, _api in MODELS.items():
+            if i is not None:
+                _a = fc["hourly"].get(f"winddirection_10m_{_api}", [])
+                if i < len(_a) and _a[i] is not None:
+                    raw_dirs.append(_a[i])
+        if raw_dirs:
+            _ss = sum(math.sin(math.radians(d)) for d in raw_dirs)
+            _cs = sum(math.cos(math.radians(d)) for d in raw_dirs)
+            grov_att = math.degrees(math.atan2(_ss, _cs)) % 360
+        else:
+            grov_att = None
+        _isd = None
+        if i is not None:
+            _a = fc["hourly"].get("is_day", [])
+            if i < len(_a): _isd = _a[i]
+        cur_cell = cond_key(grov_att, (_isd is None) or (_isd >= 0.5))
+
         for m, api in MODELS.items():
             # Fjorar thyngdir - ein per breytu
             wv = {v: model["weights"][v][bs].get(m, 0.0) for v in WEIGHT_VARS}
             b  = model["bias"][m][bs]
+            # Skilyrt bias - fellur a almenna bias-id ef reiturinn er thunnur
+            cb_hiti   = cond_bias_value(model, m, bs, cur_cell, "hiti",   b["hiti"])
+            cb_vindur = cond_bias_value(model, m, bs, cur_cell, "vindur", b["vindur"])
+            cb_att    = cond_bias_value(model, m, bs, cur_cell, "att",    b.get("att",0.0))
 
             def g(key):
                 if i is None: return None
@@ -1339,12 +1464,12 @@ def make_forecast(fc, extras, model):
             rt, rw, rp = g("temperature_2m"), g("windspeed_10m"), g("precipitation")
             rd, rc     = g("winddirection_10m"), g("cloud_cover")
 
-            ct  = round(rt + b["hiti"], 1)                if rt is not None else None
-            cw  = round(max(0, rw + b["vindur"]), 1)      if rw is not None else None
+            ct  = round(rt + cb_hiti, 1)                  if rt is not None else None
+            cw  = round(max(0, rw + cb_vindur), 1)        if rw is not None else None
             cp  = round(max(0, rp * b["urkoma_scale"]), 2) if rp is not None else None
             cc  = correct_cloud(rc, model, m, bs)
 
-            cd_ = round(wrap360(rd + b.get("att", 0.0)), 1) \
+            cd_ = round(wrap360(rd + cb_att), 1) \
                   if rd is not None else None
             J["hourly"]["model_temperatures"][m].append(ct)
             J["hourly"]["model_windspeeds"][m].append(cw)
@@ -1363,6 +1488,9 @@ def make_forecast(fc, extras, model):
         for k, src in extras.items():
             xv = {v: model["weights"][v][bs].get(k, 0.0) for v in WEIGHT_VARS}
             xb = model["bias"][k][bs]
+            xcb_hiti   = cond_bias_value(model, k, bs, cur_cell, "hiti",   xb["hiti"])
+            xcb_vindur = cond_bias_value(model, k, bs, cur_cell, "vindur", xb["vindur"])
+            xcb_att    = cond_bias_value(model, k, bs, cur_cell, "att",    xb.get("att",0.0))
             j  = et[k].index(t) if (src and t in et[k]) else None
             def ge(key, _src=src, _j=j):
                 if _j is None or not _src: return None
@@ -1370,11 +1498,11 @@ def make_forecast(fc, extras, model):
                 return a[_j] if _j < len(a) else None
             xT, xW, xP = ge("temperature"), ge("windspeed"), ge("precipitation")
             xD, xC     = ge("winddirection"), ge("cloud_cover")
-            ct = round(xT + xb["hiti"], 1)                 if xT is not None else None
-            cw = round(max(0, xW + xb["vindur"]), 1)       if xW is not None else None
+            ct = round(xT + xcb_hiti, 1)                   if xT is not None else None
+            cw = round(max(0, xW + xcb_vindur), 1)         if xW is not None else None
             cp = round(max(0, xP * xb["urkoma_scale"]), 2) if xP is not None else None
             cc = correct_cloud(xC, model, k, bs)
-            cd_ = round(wrap360(xD + xb.get("att", 0.0)), 1) \
+            cd_ = round(wrap360(xD + xcb_att), 1) \
                   if xD is not None else None
             J["hourly"]["model_temperatures"][k].append(ct)
             J["hourly"]["model_windspeeds"][k].append(cw)
@@ -1556,6 +1684,26 @@ def print_coverage(model, fc, extras):
 
     if dead:
         print(f"  ENGIN GOGN: {', '.join(dead)} -> thyngd 0 a ollum breytum")
+
+    # Skilyrt bias yfirlit - synir hvort reitir eru farnir ad greina sig
+    cb = model.get("cond_bias", {})
+    if cb:
+        print("  SKILYRT HITABIAS (@6 klst, reitir med >= "
+              f"{COND_MIN_N} por):")
+        shown = False
+        for m in ALL_KEYS:
+            cells = (cb.get(m, {}) or {}).get("6", {})
+            parts = []
+            for cell in ["N-dagur","A-dagur","S-dagur","V-dagur",
+                         "N-nott","A-nott","S-nott","V-nott"]:
+                e = (cells.get(cell) or {}).get("hiti")
+                if e and e["n"] >= COND_MIN_N:
+                    parts.append(f"{cell} {-(e['sum']/e['n']):+.1f}(n{e['n']})")
+            if parts:
+                print(f"    {m:9s} " + "  ".join(parts))
+                shown = True
+        if not shown:
+            print("    (reitir enn ad byggjast upp - tharf fleiri stadfestingar)")
     print("  ('--gogn' = gjafinn skilar ekki breytunni | "
           "'bid' = of fair samanburdir enn)")
 
@@ -1579,7 +1727,7 @@ def save(model, fcast):
                 "runs": model.get("runs", 0),
                 "verified_pairs": model.get("verified_pairs", 0),
                 "status": "ok" if fcast else "partial",
-                "version": "2.7"})
+                "version": "2.8"})
     save_json(DATA_DIR / "run_log.json", log[-168:])
     print("VISTAD")
 
@@ -1596,7 +1744,7 @@ def main():
 
 def _run():
     print("=" * 64)
-    print(f"JOLLY v2.7  {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
+    print(f"JOLLY v2.8  {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
     print("Eiginleg spastadfesting eftir spalengd | 9 gjafar | stod 571 + BIEG")
     print("=" * 64)
 
