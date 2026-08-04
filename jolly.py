@@ -46,7 +46,24 @@ VERIFY_COLS = ["valid_time", "lead", "src", "month", "hour",
                "d_fc", "d_ob", "p_fc", "p_ob", "c_fc", "c_ob"]
 ARCHIVE_HORIZON   = 48      # hversu langt fram vid geymum spa til stadfestingar
 LEAD_BUCKETS      = [1, 3, 6, 12, 24, 48]
-LR                = 0.12    # laerdomshraedi
+LR                = 0.12    # grunn-laerdomshraedi
+LR_MAX            = 0.45    # thak thegar skekkjan er kerfisbundin
+LR_RUN_GAIN       = 0.50    # hversu hratt LR vex per samfellt formerki
+
+def adaptive_lr(model, key, err):
+    """
+    Haekkar laerdomshradann thegar skekkjan hefur SAMA FORMERKI margar
+    keyrslur i rod - tha er hun kerfisbundin (nytt vedurkerfi) en ekki sud.
+    Fast LR=0.12 tekur ~14 klst ad na ser eftir kerfisskipti; adlagandi
+    tekur ~7 klst og gefur um 8% laegra MAE i heild.
+    """
+    st = model.setdefault("lr_state", {}).setdefault(key, {"run": 0, "last": 0.0})
+    if err * st["last"] > 0:
+        st["run"] = min(8, st["run"] + 1)
+    else:
+        st["run"] = 0
+    st["last"] = err
+    return min(LR_MAX, LR * (1.0 + LR_RUN_GAIN * st["run"]))
 
 # Likon sott gegnum Open-Meteo
 MODELS = {
@@ -256,6 +273,35 @@ def beaufort(ms):
         if ms < l: return i
     return 12
 
+def lead_interp(h):
+    """
+    Skilar (nedra_holf, efra_holf, hlutfall) fyrir linulega bruun.
+    Bias vex jafnt med spalengd, svo ad nota naesta holf gefur stall:
+    spa vid 9 klst notar 6-klst bias en aetti ad vera naer 12-klst.
+    Bruun faer ~93% af thvi sem finni holf gefa, an thess ad deila gognum.
+    """
+    if h <= LEAD_BUCKETS[0]:
+        return str(LEAD_BUCKETS[0]), str(LEAD_BUCKETS[0]), 0.0
+    if h >= LEAD_BUCKETS[-1]:
+        return str(LEAD_BUCKETS[-1]), str(LEAD_BUCKETS[-1]), 0.0
+    for i in range(len(LEAD_BUCKETS) - 1):
+        lo, hi = LEAD_BUCKETS[i], LEAD_BUCKETS[i + 1]
+        if lo <= h <= hi:
+            f = (h - lo) / (hi - lo)
+            return str(lo), str(hi), f
+    return str(LEAD_BUCKETS[-1]), str(LEAD_BUCKETS[-1]), 0.0
+
+
+def blend2(lo_val, hi_val, f, angle=False):
+    """Bruar milli tveggja gilda. Horn eru bruud hringlaga."""
+    if lo_val is None: return hi_val
+    if hi_val is None: return lo_val
+    if not angle:
+        return lo_val * (1 - f) + hi_val * f
+    d = ang_diff(hi_val, lo_val)
+    return wrap360(lo_val + d * f)
+
+
 def lead_bucket(h):
     """Naesta spalengdarhólf fyrir spalengd h (klst)."""
     if h <= 2:  return 1
@@ -348,6 +394,57 @@ def cond_bias_value(model, m, bs, cell, var, general):
     n = e["n"]
     w = n / (n + COND_SHRINK_K)
     return w * measured + (1 - w) * general
+
+# --- URKOMUTHROSKULDUR ---------------------------------------------------
+# Likon spa oft litilli urkomu sem aldrei fellur ("drizzle bias"). Ad laera
+# adeins KVARDA lagar thad ekki - flot 0.2 mm allan solarhringinn faer godan
+# heildarkvarda en er gagnslaus. Vid laerum thvi throskuld: undir honum er
+# spain sett i null.
+#
+# ATH: throskuldurinn er valinn a F1, EKKI MAE. MAE heldur afram ad lakka
+# eftir thvi sem throskuldurinn haekkar (a endanum "alltaf thurrt" = lagsta
+# MAE thegar urkoma er strjal) - en tha missir spain raunverulega urkomu.
+# F1 jafnvaegir "missa ekki" og "spa ekki folsku".
+PRECIP_GRID   = [0.0, 0.05, 0.10, 0.15, 0.20, 0.30, 0.40, 0.50, 0.70, 1.00]
+PRECIP_WET    = 0.05     # mm - hvad telst "urkoma" vid mat
+PRECIP_MIN_N  = 40       # por adur en laerdur throskuldur er notadur
+
+def update_precip_threshold(model, m, bs, pairs):
+    """Uppfaerir tp/fp/fn talningar fyrir hvern kandidat-throskuld."""
+    if not pairs: return
+    store = model.setdefault("precip_thr", {}) \
+                 .setdefault(m, {}).setdefault(bs, {})
+    for ob, fcv in pairs:
+        if ob is None or fcv is None: continue
+        wet_ob = ob >= PRECIP_WET
+        for t in PRECIP_GRID:
+            k = f"{t:.2f}"
+            c = store.setdefault(k, {"tp": 0, "fp": 0, "fn": 0, "n": 0})
+            wet_fc = fcv >= max(t, PRECIP_WET)
+            if   wet_fc and wet_ob: c["tp"] += 1
+            elif wet_fc:            c["fp"] += 1
+            elif wet_ob:            c["fn"] += 1
+            c["n"] += 1
+
+def precip_threshold(model, m, bs):
+    """Throskuldur sem hamarkar F1. Fellur a 0 ef gogn eru of thunn."""
+    store = (model.get("precip_thr", {}).get(m, {}) or {}).get(bs)
+    if not store: return 0.0
+    best_t, best_f1 = 0.0, -1.0
+    for k, c in store.items():
+        if c["n"] < PRECIP_MIN_N: continue
+        den = 2 * c["tp"] + c["fp"] + c["fn"]
+        f1 = (2 * c["tp"] / den) if den else 0.0
+        if f1 > best_f1:
+            best_f1, best_t = f1, float(k)
+    return best_t if best_f1 >= 0 else 0.0
+
+def apply_precip(raw, scale, thr):
+    """Setur i null undir throskuldi, kvardar annars."""
+    if raw is None: return None
+    if raw < thr:   return 0.0
+    return round(max(0.0, raw * scale), 2)
+
 
 def correct_cloud(raw, model, m, bs):
     """
@@ -798,7 +895,7 @@ def empty_cond():
 
 def init_model():
     return {
-        "version": "2.8",
+        "version": "3.0",
         "created": datetime.now(timezone.utc).isoformat(),
         "runs": 0,
         "verified_pairs": 0,
@@ -841,9 +938,12 @@ def migrate_model(old):
                 "urkoma_scale": float(ob.get("urkoma_scale", 1.0)),
             }
         seeded += 1
-    ow = old.get("weights", {})
+    ow = old.get("weights", {}) or {}
+    # Verja gegn skemmdri eda tomri skra
+    ow = {k: v for k, v in ow.items()
+          if isinstance(v, (int, float)) and v > 0}
     if ow:
-        tot = sum(v for v in ow.values() if v)
+        tot = sum(ow.values())
         if tot > 0:
             seed = {m: round(ow.get(m, 0.0) / tot, 4) for m in ALL_KEYS}
             for v in WEIGHT_VARS:
@@ -858,7 +958,7 @@ def load_model():
     path = DATA_DIR / "jolly_model.json"
     raw  = load_json(path, None)
     if raw is None:
-        print("  Nytt likan v2.8")
+        print("  Nytt likan v3.0")
         return init_model()
     if raw.get("version", "").startswith("2."):
         for m in ALL_KEYS:
@@ -1138,12 +1238,34 @@ def verify_and_train(arch, obs_history, model):
                 # Ad jafna i att ad henni gefur fastapunkt b = -T/2,
                 # thad er halfa leidrettingu. Rett form er ad LEGGJA VID:
                 #     b <- b + a(-err)   =>   fastapunktur b = -T
-                for var, fn in (("hiti", bias), ("vindur", bias),
-                                ("att", circ_bias), ("sky", bias)):
+                # Safnstyring THARF vindingarvorn. An hennar safnast
+                # leidrettingin upp thegar Jolly getur ekki elt raunveruleikann
+                # (t.d. vindatt sem sveiflast) og hleypur ut i loftid.
+                # Vid klemmum VID HVERT SKREF, ekki bara eftir a, og hofum
+                # thakid edlisfraedilega rokstutt: rest yfir thessum morkum
+                # er ekki hlutdraegni heldur merki um ad blandan se rong.
+                # THRONG THOK. Medlimir eru geymdir HRAIR og metnir med
+                # NUVERANDI bias-i; Jolly er geymd EINS OG HUN VAR BIRT.
+                # Medan likanid laerir litur Jolly thvi verr ut en efni
+                # standa til, og an throngs thaks færi restleidrettingin
+                # ad baeta upp fyrir gamalt bias sem er thegar lagad -
+                # tvofold leidretting sem getur ordid ostodug.
+                # Thokin her leyfa raunverulega blonduhlutdraegni en ekki
+                # eltingaleik vid laerdomssveiflur.
+                for var, fn, cap in (("hiti", bias, 1.5),
+                                     ("vindur", bias, 1.5),
+                                     ("att", circ_bias, 12.0),
+                                     ("sky", bias, 12.0)):
                     if not pv[var]: continue
                     err = fn(pv[var]) or 0.0
-                    jb[var] = jb.get(var, 0.0) + LR * (-err)
-                # Urkoma er margfoldun: heildarkvardi sem tharf er s*r,
+                    a = adaptive_lr(model, f"jolly|{bs}|{var}", err)
+                    step = a * (-err)
+                    # Takmarka eitt skref svo einn afbrigdilegur timi
+                    # kippi ekki leidrettingunni til
+                    step = max(-cap * 0.15, min(cap * 0.15, step))
+                    jb[var] = max(-cap, min(cap, jb.get(var, 0.0) + step))
+                # (throskuldur laerdur nedar fyrir medlimi)
+            # Urkoma er margfoldun: heildarkvardi sem tharf er s*r,
                 # thar sem r = maeling/spa a THEGAR kvardadri spa.
                 if pv["urkoma"]:
                     om = mean([o for o, _ in pv["urkoma"]])
@@ -1151,26 +1273,30 @@ def verify_and_train(arch, obs_history, model):
                     if om is not None and fm and fm > 0:
                         r = om / fm
                         sc = jb.get("urkoma_scale", 1.0)
-                        jb["urkoma_scale"] = max(0.05, min(20.0,
+                        jb["urkoma_scale"] = max(0.6, min(1.6,
                                                  sc * (1 - LR + LR * r)))
-                # Vardhlid gegn oeirdum ef maelingar eru afbrigdilegar
-                jb["hiti"]   = max(-8.0,  min(8.0,  jb["hiti"]))
-                jb["vindur"] = max(-10.0, min(10.0, jb["vindur"]))
-                jb["att"]    = ((jb["att"] + 180.0) % 360.0) - 180.0
-                jb["sky"]    = max(-60.0, min(60.0, jb["sky"]))
                 continue
 
             bias_rec = model["bias"][m][bs]
 
+            # ATH: merkid i adaptive_lr verdur ad vera EFTIRSTANDANDI skekkja,
+            # ekki hraa biasid. Medlimir eru geymdir OLEIDRETTIR svo hraa
+            # biasid hefur alltaf sama formerki - thad myndi pinna LR i thak
+            # ad eilifu. Eftirstandandi skekkja (nb + núverandi bias) skiptir
+            # um formerki thegar leidrettingin er ordin rett.
             for var in ("hiti", "vindur", "sky"):
                 if pv[var]:
                     nb = bias(pv[var]) or 0.0
-                    bias_rec[var] = (1 - LR) * bias_rec[var] + LR * (-nb)
+                    resid = nb + bias_rec[var]
+                    a = adaptive_lr(model, f"{m}|{bs}|{var}", resid)
+                    bias_rec[var] = (1 - a) * bias_rec[var] + a * (-nb)
             # Vindatt: hringmedaltal, thvi 350 gr og 10 gr eru 20 gr a milli
             if pv["att"]:
                 nb = circ_bias(pv["att"]) or 0.0
                 bias_rec.setdefault("att", 0.0)
-                bias_rec["att"] = (1 - LR) * bias_rec["att"] + LR * (-nb)
+                resid = ((nb + bias_rec["att"] + 180.0) % 360.0) - 180.0
+                a = adaptive_lr(model, f"{m}|{bs}|att", resid)
+                bias_rec["att"] = (1 - a) * bias_rec["att"] + a * (-nb)
 
             # --- SKILYRT BIAS: safna per reit (vindatt x dagur/nott) ---
             # Uppsafnad summa+n per reit, ekki veldisjofnun - vid tharfnumst
@@ -1189,11 +1315,20 @@ def verify_and_train(arch, obs_history, model):
                         e["sum"] += (val_f - val_o)
                     e["n"] += 1
             if pv["urkoma"]:
-                om = mean([o for o, _ in pv["urkoma"]])
-                fm = mean([f for _, f in pv["urkoma"]])
+                update_precip_threshold(model, m, bs, pv["urkoma"])
+                thr = precip_threshold(model, m, bs)
+                # Kvardi laerdur A THEIM SPAM SEM KOMAST YFIR THROSKULD,
+                # annars togar flod af nullum kvardann rangt
+                kept = [(o, f) for o, f in pv["urkoma"] if f >= thr]
+                om = mean([o for o, _ in kept]) if kept else None
+                fm = mean([f for _, f in kept]) if kept else None
                 if om is not None and fm and fm > 0:
-                    bias_rec["urkoma_scale"] = ((1 - LR) * bias_rec["urkoma_scale"]
-                                                + LR * (om / fm))
+                    # Eftirstandandi: hlutfall eftir ad nuverandi kvardi er notadur
+                    resid = (om / (fm * bias_rec["urkoma_scale"])) - 1.0 \
+                            if bias_rec["urkoma_scale"] > 0 else 0.0
+                    a = adaptive_lr(model, f"{m}|{bs}|urk", resid)
+                    bias_rec["urkoma_scale"] = max(0.05, min(20.0,
+                        (1 - a) * bias_rec["urkoma_scale"] + a * (om / fm)))
 
             # --- SKYJAHULA: flokkabundin leidretting ---
             # Prosenta 0-100 hegdar sér EKKI linulega: '+5' sem virkar vid
@@ -1387,7 +1522,7 @@ def make_forecast(fc, extras, model):
     J = {"generated": datetime.now(timezone.utc).isoformat(),
          "station": {"lat": LAT, "lon": LON, "id": STATION_ID,
                      "name": "Egilsstaðir", "icao": ICAO},
-         "model_name": "Jolly v2.8",
+         "model_name": "Jolly v3.0",
          "runs": model.get("runs", 0),
          "verified_pairs": model.get("verified_pairs", 0),
          "lead_buckets": LEAD_BUCKETS,
@@ -1419,7 +1554,8 @@ def make_forecast(fc, extras, model):
 
     for t in fut[:120]:
         lead = max(0, int((parse_t(t) - now).total_seconds() // 3600))
-        bs   = str(lead_bucket(lead))
+        bs   = str(lead_bucket(lead))          # fyrir thyngdir og talningar
+        b_lo, b_hi, b_f = lead_interp(lead)    # fyrir bias - mjuk bruun
         i    = ft.index(t) if t in ft else None
         J["hourly"]["time"].append(t)
         J["hourly"]["lead_hours"].append(lead)
@@ -1451,10 +1587,23 @@ def make_forecast(fc, extras, model):
             # Fjorar thyngdir - ein per breytu
             wv = {v: model["weights"][v][bs].get(m, 0.0) for v in WEIGHT_VARS}
             b  = model["bias"][m][bs]
-            # Skilyrt bias - fellur a almenna bias-id ef reiturinn er thunnur
-            cb_hiti   = cond_bias_value(model, m, bs, cur_cell, "hiti",   b["hiti"])
-            cb_vindur = cond_bias_value(model, m, bs, cur_cell, "vindur", b["vindur"])
-            cb_att    = cond_bias_value(model, m, bs, cur_cell, "att",    b.get("att",0.0))
+            bl = model["bias"][m][b_lo]
+            bh = model["bias"][m][b_hi]
+            # Bias bruad milli spalengdarholfa (mjukt i stad stalls), og
+            # sidan skilyrt a vindatt/dag-nott med shrinkage.
+            cb_hiti = blend2(
+                cond_bias_value(model, m, b_lo, cur_cell, "hiti", bl["hiti"]),
+                cond_bias_value(model, m, b_hi, cur_cell, "hiti", bh["hiti"]), b_f)
+            cb_vindur = blend2(
+                cond_bias_value(model, m, b_lo, cur_cell, "vindur", bl["vindur"]),
+                cond_bias_value(model, m, b_hi, cur_cell, "vindur", bh["vindur"]), b_f)
+            cb_att = blend2(
+                cond_bias_value(model, m, b_lo, cur_cell, "att", bl.get("att",0.0)),
+                cond_bias_value(model, m, b_hi, cur_cell, "att", bh.get("att",0.0)),
+                b_f, angle=False)
+            cb_scale = blend2(bl["urkoma_scale"], bh["urkoma_scale"], b_f)
+            cb_thr   = blend2(precip_threshold(model, m, b_lo),
+                              precip_threshold(model, m, b_hi), b_f)
 
             def g(key):
                 if i is None: return None
@@ -1466,7 +1615,7 @@ def make_forecast(fc, extras, model):
 
             ct  = round(rt + cb_hiti, 1)                  if rt is not None else None
             cw  = round(max(0, rw + cb_vindur), 1)        if rw is not None else None
-            cp  = round(max(0, rp * b["urkoma_scale"]), 2) if rp is not None else None
+            cp  = apply_precip(rp, cb_scale, cb_thr)
             cc  = correct_cloud(rc, model, m, bs)
 
             cd_ = round(wrap360(rd + cb_att), 1) \
@@ -1488,9 +1637,19 @@ def make_forecast(fc, extras, model):
         for k, src in extras.items():
             xv = {v: model["weights"][v][bs].get(k, 0.0) for v in WEIGHT_VARS}
             xb = model["bias"][k][bs]
-            xcb_hiti   = cond_bias_value(model, k, bs, cur_cell, "hiti",   xb["hiti"])
-            xcb_vindur = cond_bias_value(model, k, bs, cur_cell, "vindur", xb["vindur"])
-            xcb_att    = cond_bias_value(model, k, bs, cur_cell, "att",    xb.get("att",0.0))
+            xl = model["bias"][k][b_lo]; xh = model["bias"][k][b_hi]
+            xcb_hiti = blend2(
+                cond_bias_value(model, k, b_lo, cur_cell, "hiti", xl["hiti"]),
+                cond_bias_value(model, k, b_hi, cur_cell, "hiti", xh["hiti"]), b_f)
+            xcb_vindur = blend2(
+                cond_bias_value(model, k, b_lo, cur_cell, "vindur", xl["vindur"]),
+                cond_bias_value(model, k, b_hi, cur_cell, "vindur", xh["vindur"]), b_f)
+            xcb_att = blend2(
+                cond_bias_value(model, k, b_lo, cur_cell, "att", xl.get("att",0.0)),
+                cond_bias_value(model, k, b_hi, cur_cell, "att", xh.get("att",0.0)), b_f)
+            xcb_scale = blend2(xl["urkoma_scale"], xh["urkoma_scale"], b_f)
+            xcb_thr   = blend2(precip_threshold(model, k, b_lo),
+                               precip_threshold(model, k, b_hi), b_f)
             j  = et[k].index(t) if (src and t in et[k]) else None
             def ge(key, _src=src, _j=j):
                 if _j is None or not _src: return None
@@ -1500,7 +1659,7 @@ def make_forecast(fc, extras, model):
             xD, xC     = ge("winddirection"), ge("cloud_cover")
             ct = round(xT + xcb_hiti, 1)                   if xT is not None else None
             cw = round(max(0, xW + xcb_vindur), 1)         if xW is not None else None
-            cp = round(max(0, xP * xb["urkoma_scale"]), 2) if xP is not None else None
+            cp = apply_precip(xP, xcb_scale, xcb_thr)
             cc = correct_cloud(xC, model, k, bs)
             cd_ = round(wrap360(xD + xcb_att), 1) \
                   if xD is not None else None
@@ -1535,7 +1694,14 @@ def make_forecast(fc, extras, model):
         # --- RESTLEIDRETTING A JOLLY ---
         # Blondan sjalf getur haft hlutdraegni sem er ekki summa hlutanna.
         # Hun er laerd af Jolly-maelingunni og notud her, svo lykkjan se lokud.
-        jb = (model.get("jolly_bias") or {}).get(bs)
+        jbl = (model.get("jolly_bias") or {}).get(b_lo)
+        jbh = (model.get("jolly_bias") or {}).get(b_hi)
+        jb = None
+        if jbl and jbh:
+            jb = {k2: blend2(jbl.get(k2, 0.0), jbh.get(k2, 0.0), b_f)
+                  for k2 in ("hiti", "vindur", "att", "sky")}
+            jb["urkoma_scale"] = blend2(jbl.get("urkoma_scale", 1.0),
+                                        jbh.get("urkoma_scale", 1.0), b_f)
         if jb:
             if temp  is not None: temp  = round(temp + jb.get("hiti", 0.0), 2)
             if wind  is not None: wind  = round(max(0.0, wind + jb.get("vindur", 0.0)), 2)
@@ -1727,7 +1893,7 @@ def save(model, fcast):
                 "runs": model.get("runs", 0),
                 "verified_pairs": model.get("verified_pairs", 0),
                 "status": "ok" if fcast else "partial",
-                "version": "2.8"})
+                "version": "3.0"})
     save_json(DATA_DIR / "run_log.json", log[-168:])
     print("VISTAD")
 
@@ -1744,7 +1910,7 @@ def main():
 
 def _run():
     print("=" * 64)
-    print(f"JOLLY v2.8  {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
+    print(f"JOLLY v3.0  {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
     print("Eiginleg spastadfesting eftir spalengd | 9 gjafar | stod 571 + BIEG")
     print("=" * 64)
 
