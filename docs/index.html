@@ -997,6 +997,23 @@ function setLead(L){
 }
 
 // Bias-lina fylgir valinni breytu
+// Laerdur urkomuthroskuldur fyrir valid likan/spalengd
+let _thrModel=null;
+function thrLabel(){
+  if(!_thrModel) return '';
+  const st=(MODEL.precip_thr?.[_thrModel]||{})[leadSel];
+  if(!st) return '';
+  let bt=0, bf=-1;
+  Object.entries(st).forEach(([k,c])=>{
+    if(c.n<40) return;
+    const den=2*c.tp+c.fp+c.fn;
+    const f1=den?2*c.tp/den:0;
+    if(f1>bf){bf=f1;bt=parseFloat(k);}
+  });
+  if(bf<0) return '';
+  return ` <span style="color:var(--dim);font-size:.55rem">þrösk ${bt.toFixed(2)}mm</span>`;
+}
+
 function biasLine(b){
   const f=(v,u,d)=> v===undefined||v===null ? '—'
     : (v>=0?'+':'')+v.toFixed(d)+u;
@@ -1004,7 +1021,7 @@ function biasLine(b){
   if(activeMetric==='att')    return `Átt: <b>${f(b.att,'°',1)}</b>`;
   if(activeMetric==='sky')    return `Ský: <b>${f(b.sky,'%',1)}</b>`;
   if(activeMetric==='urkoma') return `Úrk: <b>${b.urkoma_scale!=null
-      ?'×'+b.urkoma_scale.toFixed(2):'—'}</b>`;
+      ?'×'+b.urkoma_scale.toFixed(2):'—'}</b>${thrLabel()}`;
   return `Hiti: <b>${f(b.hiti,'°',2)}</b>`;
 }
 
@@ -1037,6 +1054,7 @@ function renderModelGrid(){
   }
   const mg=document.getElementById('nModelGrid');
   mg.innerHTML=Object.keys(MC).map(m=>{
+    _thrModel=m;
     const {b,w,mae,n}=modelStats(m);
     const wp = (w===undefined||w===null) ? null : w*100;
     const dead = wp!==null && wp<0.5;
