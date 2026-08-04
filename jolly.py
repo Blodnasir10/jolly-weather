@@ -1015,6 +1015,12 @@ VAR_MAP = [("hiti", "t", "temperature"),
 # Breytur sem eru horn - tharfnast hringlaga reiknings
 ANGLE_VARS = {"att"}
 
+# --- DAGLEGAR TIMARAUFIR -------------------------------------------------
+# Somu timasetningar og Vedurstofan notar i sinni dagaspa. 00:00 tilheyrir
+# nottinni SEM LYKUR deginum, thad er midnaetti naesta dags - thess vegna
+# synir hun tungl thegar hinar thrjar syna dagsbirtu.
+DAY_SLOTS = ["06", "12", "18", "00"]
+
 # --- SKILYRT BIAS --------------------------------------------------------
 # Bias er ekki fast - i Egilsstadadal er hitaskekkjan hád vindatt (fohn af
 # vestri gefur hlyrra, nordanatt kaldara) og degi/nott (kaldaloftspollun).
@@ -1547,6 +1553,9 @@ def make_forecast(fc, extras, model):
                     "model_winddirections": {m: [] for m in ALL_KEYS},
                     "model_precipitations": {m: [] for m in ALL_KEYS},
                     "model_clouds":         {m: [] for m in ALL_KEYS}},
+         # slots[i] = {"06": {icon, condition, temp}, "12":..., "18":..., "00":...}
+         "daily_slots": [],
+         "slot_hours": DAY_SLOTS,
          "daily": {"date": [], "temp_max": [], "temp_min": [],
                    "precipitation_total": [], "wind_avg": [],
                    "wind_dir_dominant": [], "wind_dir_dominant_deg": [],
@@ -1752,6 +1761,30 @@ def make_forecast(fc, extras, model):
             days[d]["icons"].append(H["icon"][i])
             days[d]["conds"].append(H["condition"][i])
 
+    # Uppflettitafla: gildistimi -> vísitala, til ad finna raufirnar
+    idx_of = {t: i for i, t in enumerate(H["time"])}
+
+    def slot_data(day_str, slot):
+        """
+        Saekir tákn/lysingu/hita fyrir eina tímaraut.
+        '00' er midnaetti NAESTA dags - thad lykur deginum.
+        """
+        if slot == "00":
+            dt = datetime.strptime(day_str, "%Y-%m-%d") + timedelta(days=1)
+            key = dt.strftime("%Y-%m-%d") + "T00:00"
+        else:
+            key = f"{day_str}T{slot}:00"
+        i = idx_of.get(key)
+        if i is None:
+            return None
+        return {
+            "icon":      H["icon"][i],
+            "condition": H["condition"][i],
+            "temp":      H["temperature"][i],
+            "precip":    H["precipitation"][i],
+            "cloud":     H["cloud_cover"][i],
+        }
+
     for d, v in days.items():
         dom_dir = dom_deg = None
         if v["D"]:
@@ -1774,8 +1807,12 @@ def make_forecast(fc, extras, model):
             Counter(v["icons"]).most_common(1)[0][0] if v["icons"] else "overcast")
         J["daily"]["condition"].append(
             Counter(v["conds"]).most_common(1)[0][0] if v["conds"] else "")
+        J["daily_slots"].append({sl: slot_data(d, sl) for sl in DAY_SLOTS})
 
-    print(f"  OK {len(H['time'])} klst | {len(J['daily']['date'])} dagar")
+    filled = sum(1 for sd in J["daily_slots"]
+                 for sl in DAY_SLOTS if sd.get(sl))
+    print(f"  OK {len(H['time'])} klst | {len(J['daily']['date'])} dagar | "
+          f"{filled} timaraufir fylltar")
     return J
 
 def print_coverage(model, fc, extras):
