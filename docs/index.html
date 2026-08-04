@@ -344,13 +344,19 @@ tr:hover td{background:rgba(255,255,255,0.025)}
 /* ── DAGASPÁ: tímaraufir 06/12/18/00 ───────────────────────────────── */
 .dt-head,.dt-row{
   display:grid;
-  grid-template-columns:100px repeat(4,1fr) 74px 104px 60px;
+  grid-template-columns:106px repeat(4,minmax(34px,1fr)) 68px 96px 56px;
   align-items:center;gap:2px;
+  min-width:0;
 }
+.dt-head>*,.dt-row>*{min-width:0;overflow:hidden}
 .dt-head{
-  padding:0 4px 8px;font-size:.6rem;letter-spacing:.05em;
+  padding:0 4px 9px;font-size:.58rem;letter-spacing:.04em;
   color:var(--dim);border-bottom:1px solid rgba(255,255,255,0.07);
-  margin-bottom:2px;
+  margin-bottom:2px;white-space:nowrap;
+}
+.dt-head .dt-slot{
+  font-variant-numeric:tabular-nums;font-size:.58rem;
+  justify-content:center;
 }
 .dt-head .dt-day{text-align:left}
 .dt-head .dt-slot,.dt-head .dt-temp,
@@ -367,9 +373,10 @@ tr:hover td{background:rgba(255,255,255,0.025)}
 }
 .dt-slot{display:flex;justify-content:center;align-items:center}
 .dt-slot .wx{width:34px;height:34px}
-.dt-empty{color:var(--dim);font-size:.8rem}
+.dt-empty{color:rgba(255,255,255,0.18);font-size:.75rem}
 .dt-temp{
   display:flex;align-items:baseline;justify-content:center;gap:2px;
+  white-space:nowrap;
   font-size:.78rem;font-variant-numeric:tabular-nums;
 }
 .dt-temp .lo{color:#7dd3fc;font-weight:500}
@@ -377,6 +384,7 @@ tr:hover td{background:rgba(255,255,255,0.025)}
 .dt-temp .sep{color:var(--dim);font-size:.65rem;margin:0 1px}
 .dt-wind{
   display:flex;align-items:center;justify-content:center;gap:4px;
+  white-space:nowrap;
   font-size:.76rem;font-variant-numeric:tabular-nums;color:var(--text);
 }
 .dt-arr{
@@ -385,13 +393,14 @@ tr:hover td{background:rgba(255,255,255,0.025)}
 }
 .dt-rain{
   display:flex;align-items:baseline;justify-content:center;gap:2px;
+  white-space:nowrap;
   font-size:.76rem;font-variant-numeric:tabular-nums;
 }
 .dt-rain b{color:var(--text)}
 .dt-wind .u,.dt-rain .u{font-size:.56rem;color:var(--dim)}
 
 @media(max-width:520px){
-  .dt-head,.dt-row{grid-template-columns:64px repeat(4,1fr) 58px 84px 46px;gap:1px}
+  .dt-head,.dt-row{grid-template-columns:68px repeat(4,minmax(28px,1fr)) 54px 78px 44px;gap:1px}
   .dt-day{font-size:.62rem}
   .dt-slot .wx{width:27px;height:27px}
   .dt-temp{font-size:.68rem}
@@ -399,7 +408,7 @@ tr:hover td{background:rgba(255,255,255,0.025)}
   .dt-head{font-size:.52rem}
 }
 @media(max-width:390px){
-  .dt-head,.dt-row{grid-template-columns:54px repeat(4,1fr) 50px 74px 40px}
+  .dt-head,.dt-row{grid-template-columns:58px repeat(4,minmax(24px,1fr)) 46px 68px 38px}
   .dt-slot .wx{width:23px;height:23px}
 }
 
@@ -970,15 +979,43 @@ function renderForsida(){
   hdr.className='dt-head';
   hdr.innerHTML =
     `<div class="dt-day">Dagsetning</div>`
-    + SLOTS.map(s=>`<div class="dt-slot">${s}:00</div>`).join('')
+    + SLOTS.map(s=>`<div class="dt-slot">${s}</div>`).join('')
     + `<div class="dt-temp">Hiti</div>`
     + `<div class="dt-wind">Vindur</div>`
     + `<div class="dt-rain">Úrkoma</div>`;
   dc.appendChild(hdr);
 
   const dd = FC.daily || {};
-  const slots = FC.daily_slots || [];
   const dates = dd.date || [];
+
+  // Raufir koma fra jolly.py (daily_slots). Ef thaer vantar - t.d. eldri
+  // utgafa af Python-skranni - reiknum vid thaer sjalf ur klukkustundunum
+  // svo taknin birtist alltaf.
+  let slots = FC.daily_slots;
+  if(!slots || !slots.length){
+    const idx = {};
+    (FC.hourly.time||[]).forEach((t,k)=>{ idx[t]=k; });
+    slots = dates.map(d=>{
+      const out={};
+      SLOTS.forEach(s=>{
+        let key;
+        if(s==='00'){
+          const nd=new Date(d+'T00:00:00Z');
+          nd.setUTCDate(nd.getUTCDate()+1);
+          key=nd.toISOString().slice(0,10)+'T00:00';
+        } else {
+          key=`${d}T${s}:00`;
+        }
+        const k=idx[key];
+        out[s] = (k===undefined) ? null : {
+          icon:      FC.hourly.icon?.[k],
+          condition: FC.hourly.condition?.[k],
+          temp:      FC.hourly.temperature?.[k],
+        };
+      });
+      return out;
+    });
+  }
 
   dates.slice(0,7).forEach((d,i)=>{
     const mn=dd.temp_min?.[i], mx=dd.temp_max?.[i];
