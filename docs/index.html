@@ -150,7 +150,7 @@ body{
 .hourly-dot.active{background:rgba(255,255,255,0.55)}
 
 /* Daily */
-.daily-card{padding:4px 0;overflow:hidden}
+.daily-card{padding:8px 6px;overflow:hidden}
 .day-row{
   display:grid;grid-template-columns:72px 26px 44px 1fr 36px 40px;
   align-items:center;gap:8px;
@@ -340,6 +340,75 @@ tr:hover td{background:rgba(255,255,255,0.025)}
 .n-skill-vs{color:var(--dim);font-size:.62rem;text-align:right}
 .n-skill-empty{font-size:.66rem;color:#fbbf24;line-height:1.6}
 .n-skill-note{font-size:.58rem;color:var(--dim);margin-top:8px;line-height:1.5}
+
+/* ── DAGASPÁ: tímaraufir 06/12/18/00 ───────────────────────────────── */
+.dt-head,.dt-row{
+  display:grid;
+  grid-template-columns:100px repeat(4,1fr) 74px 104px 60px;
+  align-items:center;gap:2px;
+}
+.dt-head{
+  padding:0 4px 8px;font-size:.6rem;letter-spacing:.05em;
+  color:var(--dim);border-bottom:1px solid rgba(255,255,255,0.07);
+  margin-bottom:2px;
+}
+.dt-head .dt-day{text-align:left}
+.dt-head .dt-slot,.dt-head .dt-temp,
+.dt-head .dt-wind,.dt-head .dt-rain{text-align:center}
+.dt-row{
+  padding:9px 4px;border-bottom:1px solid rgba(255,255,255,0.045);
+  transition:background .15s;border-radius:10px;
+}
+.dt-row:last-child{border-bottom:none}
+.dt-row:hover{background:rgba(255,255,255,0.035)}
+.dt-day{
+  font-size:.72rem;font-weight:500;color:var(--text);
+  line-height:1.25;padding-left:2px;
+}
+.dt-slot{display:flex;justify-content:center;align-items:center}
+.dt-slot .wx{width:34px;height:34px}
+.dt-empty{color:var(--dim);font-size:.8rem}
+.dt-temp{
+  display:flex;align-items:baseline;justify-content:center;gap:2px;
+  font-size:.78rem;font-variant-numeric:tabular-nums;
+}
+.dt-temp .lo{color:#7dd3fc;font-weight:500}
+.dt-temp .hi{color:#fca5a5;font-weight:600}
+.dt-temp .sep{color:var(--dim);font-size:.65rem;margin:0 1px}
+.dt-wind{
+  display:flex;align-items:center;justify-content:center;gap:4px;
+  font-size:.76rem;font-variant-numeric:tabular-nums;color:var(--text);
+}
+.dt-arr{
+  display:inline-block;font-size:.85rem;line-height:1;
+  color:rgba(255,255,255,0.62);
+}
+.dt-rain{
+  display:flex;align-items:baseline;justify-content:center;gap:2px;
+  font-size:.76rem;font-variant-numeric:tabular-nums;
+}
+.dt-rain b{color:var(--text)}
+.dt-wind .u,.dt-rain .u{font-size:.56rem;color:var(--dim)}
+
+@media(max-width:520px){
+  .dt-head,.dt-row{grid-template-columns:64px repeat(4,1fr) 58px 84px 46px;gap:1px}
+  .dt-day{font-size:.62rem}
+  .dt-slot .wx{width:27px;height:27px}
+  .dt-temp{font-size:.68rem}
+  .dt-wind,.dt-rain{font-size:.66rem}
+  .dt-head{font-size:.52rem}
+}
+@media(max-width:390px){
+  .dt-head,.dt-row{grid-template-columns:54px repeat(4,1fr) 50px 74px 40px}
+  .dt-slot .wx{width:23px;height:23px}
+}
+
+.dt-wlbl{
+  font-size:.6rem;font-weight:600;letter-spacing:.02em;
+  color:var(--sub);min-width:22px;text-align:left;
+}
+@media(max-width:520px){ .dt-wlbl{font-size:.54rem;min-width:19px} }
+@media(max-width:390px){ .dt-wlbl{font-size:.5rem;min-width:17px} }
 </style>
 </head>
 <body>
@@ -491,6 +560,7 @@ tr:hover td{background:rgba(255,255,255,0.025)}
 <script>
 const FC_URL   ='https://raw.githubusercontent.com/Blodnasir10/jolly-weather/main/docs/data/jolly_forecast.json';
 const MODEL_URL='https://raw.githubusercontent.com/Blodnasir10/jolly-weather/main/docs/data/jolly_model.json';
+const MANUDIR=['janúar','febrúar','mars','apríl','maí','júní','júlí','ágúst','september','október','nóvember','desember'];
 const DAGAR=['Sun','Mán','Þri','Mið','Fim','Fös','Lau'];
 const MC={harmonie:'#22d3ee',dmi:'#facc15',knmi:'#fb7185',
           ecmwf:'#f472b6',icon:'#fb923c',ukmo:'#818cf8',
@@ -890,74 +960,63 @@ function renderForsida(){
   // Hourly — 24 klst skipt í 4 síður af 6
   buildHourlyPages(T, idx);
 
-  // Daily
+  // Daily - tímaraufir 06/12/18/00 eins og Veðurstofan
   const dc=document.getElementById('dailyCard');
   dc.innerHTML='';
-  const days={};
-  T.forEach((t,i)=>{
-    const d=t.slice(0,10);
-    if(!days[d])days[d]={temps:[],rains:[]};
-    if(FC.hourly.temperature[i]!==null)days[d].temps.push(FC.hourly.temperature[i]);
-    if(FC.hourly.precipitation[i]!==null)days[d].rains.push(FC.hourly.precipitation[i]);
-  });
-  const allT=Object.values(days).flatMap(d=>d.temps);
-  const gMin=Math.min(...allT),gMax=Math.max(...allT),range=gMax-gMin||1;
+  const SLOTS = FC.slot_hours || ['06','12','18','00'];
 
-  // Nota daily gögn frá Jolly ef til
-  const useDailyFC = FC.daily && FC.daily.date && FC.daily.date.length > 0;
+  // Haus
+  const hdr=document.createElement('div');
+  hdr.className='dt-head';
+  hdr.innerHTML =
+    `<div class="dt-day">Dagsetning</div>`
+    + SLOTS.map(s=>`<div class="dt-slot">${s}:00</div>`).join('')
+    + `<div class="dt-temp">Hiti</div>`
+    + `<div class="dt-wind">Vindur</div>`
+    + `<div class="dt-rain">Úrkoma</div>`;
+  dc.appendChild(hdr);
 
-  if(useDailyFC){
-    const dd=FC.daily;
-    const allMx=dd.temp_max.filter(v=>v!==null);
-    const allMn=dd.temp_min.filter(v=>v!==null);
-    const gMax2=Math.max(...allMx), gMin2=Math.min(...allMn), range2=(gMax2-gMin2)||1;
-    dd.date.forEach((d,i)=>{
-      const mn=dd.temp_min[i]; const mx=dd.temp_max[i];
-      const rain=dd.precipitation_total[i]||0;
-      const wdir=dd.wind_dir_dominant[i]||'';
-      const dt=new Date(d+'T12:00:00Z');
-      const dayName=DAGAR[dt.getUTCDay()]+' '+dt.getUTCDate()+'/'+(dt.getUTCMonth()+1);
-      const bl=mn!==null?(((mn-gMin2)/range2)*100).toFixed(1):'0';
-      const bw=(mn!==null&&mx!==null)?(((mx-mn)/range2)*100).toFixed(1):'100';
-      const ri=mcIcon(dd.icon?dd.icon[i]:null,28);
-      const el=document.createElement('div');
-      el.className='day-row';
-      el.innerHTML=`
-        <div class="d-name">${dayName}</div>
-        <div class="d-icon">${ri}</div>
-        <div class="d-rain">${rain>0?rain.toFixed(1)+' mm':''}</div>
-        <div class="d-bar-wrap"><div class="d-bar" style="left:${bl}%;width:${bw}%"></div></div>
-        <div class="d-min">${mn!==null?Math.round(mn)+'°':'—'}</div>
-        <div class="d-max">${mx!==null?Math.round(mx)+'°':'—'}</div>
-        <div class="d-wdir">${wdir}</div>
-      `;
-      dc.appendChild(el);
-    });
-  } else {
-  Object.entries(days).slice(0,6).forEach(([d,v])=>{
-    if(!v.temps.length)return;
-    const mn=Math.round(Math.min(...v.temps));
-    const mx=Math.round(Math.max(...v.temps));
-    const totalRain=v.rains.reduce((a,b)=>a+b,0);
+  const dd = FC.daily || {};
+  const slots = FC.daily_slots || [];
+  const dates = dd.date || [];
+
+  dates.slice(0,7).forEach((d,i)=>{
+    const mn=dd.temp_min?.[i], mx=dd.temp_max?.[i];
+    const rain=dd.precipitation_total?.[i]||0;
+    const wdeg=dd.wind_dir_dominant_deg?.[i];
+    const wspd=dd.wind_avg?.[i];
     const dt=new Date(d+'T12:00:00Z');
-    const dayName=DAGAR[dt.getUTCDay()]+' '+dt.getUTCDate()+'/'+(dt.getUTCMonth()+1);
-    const bl=((mn-gMin)/range*100).toFixed(1);
-    const bw=((mx-mn)/range*100).toFixed(1);
-    const ri=mcIcon(null,28);
+    const dayName=DAGAR[dt.getUTCDay()]+'. '+dt.getUTCDate()+'. '+MANUDIR[dt.getUTCMonth()];
+
+    const cells = SLOTS.map(s=>{
+      const sd = slots[i]?.[s];
+      return `<div class="dt-slot">${sd
+        ? `<span title="${sd.condition||''}">${mcIcon(sd.icon,34)}</span>`
+        : '<span class="dt-empty">–</span>'}</div>`;
+    }).join('');
+
+    // Vindör snýr í ÞÁ ÁTT SEM VINDURINN BLÆS.
+    // Taknid er ↑ (upp vid 0°), svo nordanatt (0°) snyst um 180° og
+    // visar NIDUR - vindurinn kemur ad nordan og blaes til sudurs.
+    const wlbl = dd.wind_dir_dominant?.[i] || '';
+    const arrow = wdeg!=null
+      ? `<span class="dt-arr" style="transform:rotate(${(wdeg+180)%360}deg)">↑</span>`
+      : '';
+
     const el=document.createElement('div');
-    el.className='day-row';
-    el.innerHTML=`
-      <div class="d-name">${dayName}</div>
-      <div class="d-icon">${ri}</div>
-      <div class="d-rain">${totalRain>0?totalRain.toFixed(1)+' mm':''}</div>
-      <div class="d-bar-wrap"><div class="d-bar" style="left:${bl}%;width:${bw}%"></div></div>
-      <div class="d-min">${mn}°</div>
-      <div class="d-max">${mx}°</div>
-      <div class="d-wdir"></div>
-    `;
+    el.className='dt-row';
+    el.innerHTML=
+      `<div class="dt-day">${dayName}</div>`
+      + cells
+      + `<div class="dt-temp"><b class="lo">${mn!=null?Math.round(mn):'–'}°</b>`
+      + `<span class="sep">/</span><b class="hi">${mx!=null?Math.round(mx):'–'}°</b></div>`
+      + `<div class="dt-wind">${arrow}`
+      + `<span class="dt-wlbl">${wlbl}</span>`
+      + `<b>${wspd!=null?Math.round(wspd):'–'}</b>`
+      + `<span class="u">m/s</span></div>`
+      + `<div class="dt-rain"><b>${rain>0?rain.toFixed(1):'0'}</b><span class="u">mm</span></div>`;
     dc.appendChild(el);
   });
-  }
 }
 
 // Valin spálengd fyrir bias/þyngdartöfluna
