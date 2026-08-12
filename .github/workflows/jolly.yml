@@ -31,10 +31,31 @@ jobs:
       - name: 🌦️ Keyra Jolly
         run: python jolly.py
 
+      # Yfirlit í samantekt keyrslunnar - læsilegt án þess að opna log
+      - name: 📋 Yfirlit
+        if: always()
+        run: |
+          if [ -f docs/data/last_run.log ]; then
+            {
+              echo '## Jolly keyrsla'
+              echo '```'
+              tail -60 docs/data/last_run.log
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: 💾 Vista gögn í GitHub
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "🌦️ Jolly ${{ github.run_id }}"
-          file_pattern: "docs/data/*.json"
+          # ATH: verður að taka .log og .csv líka, ekki bara .json.
+          # Áður var þetta "docs/data/*.json" sem þýddi að last_run.log
+          # var skrifuð en aldrei vistuð - og VERRA: langtímasafnið í
+          # docs/data/verify/*.csv hvarf í hverri keyrslu. Þau gögn eiga
+          # að lifa í 2+ ár fyrir árstíðaskilyrðingu.
+          file_pattern: >-
+            docs/data/*.json
+            docs/data/*.log
+            docs/data/verify/*.csv
           commit_user_name: "Jolly Bot"
           commit_user_email: "jolly@weather.bot"
