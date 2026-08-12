@@ -1,15 +1,25 @@
 """
-Jolly v2.0 - Stadbundid vedurspalikan fyrir Egilsstadi (stod 571 / BIEG)
+Jolly v3.0 - Stadbundid vedurspalikan fyrir Egilsstadi (stod 571 / BIEG)
 
-NYTT I v2.0: EIGINLEG SPASTADFESTING
-  Jolly geymir nu sina eigin spa vid utgafu i forecast_archive.json og
-  stadfestir hana sidar gegn raunverulegum maelingum. Thad fjarlaegir
-  framsynisskekkjuna sem var i v1.x, thar sem borid var saman vid nyjustu
-  likanutgafu fyrir lidna tima - likan sem hafdi thegar innbyrt maelingarnar.
+Skraarnafn hja Claude er "jolly_v19" en thad er BARA vinnuheiti. Raunveruleg
+utgafa er JOLLY_VERSION her ad nedan (3.0). Hun er prentud efst i hverri
+keyrslu svo audvelt se ad sja hvada utgafa er i gangi.
 
-  Bias og thyngdir eru nu laerd SER FYRIR HVERJA SPALENGD (1/3/6/12/24/48 klst),
-  thvi skekkja i 48 klst spa er allt onnur en i 1 klst spa.
+SAGA I STUTTU MALI:
+  v2.0  eiginleg spastadfesting (Jolly geymd og staðfest gegn maelingum)
+  v2.3  thyngdir ser fyrir hverja breytu (hiti/vindur/att/urkoma/sky)
+  v2.5  langtimasafn i manadarskiptar CSV (arstidaskilyrding)
+  v2.6  vindatt fimmta breytan, hringlaga reikningur
+  v2.7  restleidretting a Jolly sjalfri (safnstyring)
+  v2.8  skilyrt bias (vindatt x dagur/nott) med shrinkage
+  v3.0  urkomuthroskuldur (F1), adlagandi LR, bruun milli spalengdarholfa
 """
+
+# ═══════════════════════════════════════════════════════════════════════
+#  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
+#  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
+# ═══════════════════════════════════════════════════════════════════════
+JOLLY_VERSION = "3.0"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -895,7 +905,7 @@ def empty_cond():
 
 def init_model():
     return {
-        "version": "3.0",
+        "version": JOLLY_VERSION,
         "created": datetime.now(timezone.utc).isoformat(),
         "runs": 0,
         "verified_pairs": 0,
@@ -1564,7 +1574,7 @@ def make_forecast(fc, extras, model):
     J = {"generated": datetime.now(timezone.utc).isoformat(),
          "station": {"lat": LAT, "lon": LON, "id": STATION_ID,
                      "name": "Egilsstaðir", "icao": ICAO},
-         "model_name": "Jolly v3.0",
+         "model_name": f"Jolly v{JOLLY_VERSION}",
          "runs": model.get("runs", 0),
          "verified_pairs": model.get("verified_pairs", 0),
          "lead_buckets": LEAD_BUCKETS,
@@ -1966,7 +1976,7 @@ def save(model, fcast):
                 "runs": model.get("runs", 0),
                 "verified_pairs": model.get("verified_pairs", 0),
                 "status": "ok" if fcast else "partial",
-                "version": "3.0"})
+                "version": JOLLY_VERSION})
     save_json(DATA_DIR / "run_log.json", log[-168:])
     print("VISTAD")
 
@@ -1983,7 +1993,8 @@ def main():
 
 def _run():
     print("=" * 64)
-    print(f"JOLLY v3.0  {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
+    print(f"JOLLY v{JOLLY_VERSION}  "
+          f"{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
     print("Eiginleg spastadfesting eftir spalengd | 9 gjafar | stod 571 + BIEG")
     print("=" * 64)
 
