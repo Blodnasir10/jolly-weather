@@ -1194,6 +1194,42 @@ def verify_and_train(arch, obs_history, model):
     print(f"  {n_pairs} NY stadfest por a {len(verified_times)} gildistimum")
     save_json(DATA_DIR / "forecast_archive.json", arch)   # varðveita "done"
 
+    # --- SJALFGREINING: Jolly a moti medlimum a SOMU nyju porunum ---
+    # Ef Jolly tapar her (a ferskum porum) er vandinn raunverulegur.
+    # Ef hun vinnur her en tapar i skill (uppsofnu) er vandinn arfleifd
+    # fra gomlum gognum sem hverfur med tima.
+    for b in [6, 24]:
+        bs = str(b)
+        jp = pairs[bs].get(JOLLY_KEY, {})
+        if not jp.get("hiti"): continue
+        jmae = mae(jp["hiti"])
+        mem = {}
+        for m in ALL_KEYS:
+            mp = pairs[bs].get(m, {})
+            if mp.get("hiti"):
+                mem[m] = mae(mp["hiti"])
+        if not mem or jmae is None: continue
+        bestm = min(mem, key=mem.get)
+        print(f"  [GREINING @{b}klst hiti] Jolly {jmae:.2f} vs "
+              f"besti {bestm} {mem[bestm]:.2f} vs "
+              f"medaltal-medlima {sum(mem.values())/len(mem):.2f}  "
+              f"(n={len(jp['hiti'])})")
+        # Er Jolly nalaegt vegnu medaltali medlimanna? (sannreynir blondun)
+        import statistics as _st
+        jvals = [f for _, f in jp["hiti"]]
+        ovals = [o for o, _ in jp["hiti"]]
+        print(f"           Jolly-spa bil: {min(jvals):.1f} - {max(jvals):.1f}, "
+              f"medaltal {_st.mean(jvals):.1f} | maeling medaltal {_st.mean(ovals):.1f}")
+        # Merki-greining: er Jolly kerfisbundid of ha/lag?
+        jbias = _st.mean(f - o for o, f in jp["hiti"])
+        print(f"           Jolly bias: {jbias:+.2f}  (0 = engin kerfisbundin skekkja)")
+        # Bera vid HRAA medlimi - eru their lika svona skakkir?
+        for mm in list(mem)[:2]:
+            mp = pairs[bs].get(mm, {})
+            if mp.get("hiti"):
+                mbias = _st.mean(f - o for o, f in mp["hiti"])
+                print(f"           {mm} hra-bias: {mbias:+.2f}")
+
     n_csv = append_verify_rows(csv_rows)
     ds = verify_dataset_stats()
     span = f"{ds['first']} - {ds['last']}" if ds["first"] else "tomt"
