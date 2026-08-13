@@ -1,8 +1,8 @@
 """
-Jolly v3.0 - Stadbundid vedurspalikan fyrir Egilsstadi (stod 571 / BIEG)
+Jolly v3.1 - Stadbundid vedurspalikan fyrir Egilsstadi (stod 571 / BIEG)
 
 Skraarnafn hja Claude er "jolly_v19" en thad er BARA vinnuheiti. Raunveruleg
-utgafa er JOLLY_VERSION her ad nedan (3.0). Hun er prentud efst i hverri
+utgafa er JOLLY_VERSION her ad nedan. Hun er prentud efst i hverri
 keyrslu svo audvelt se ad sja hvada utgafa er i gangi.
 
 SAGA I STUTTU MALI:
@@ -13,13 +13,15 @@ SAGA I STUTTU MALI:
   v2.7  restleidretting a Jolly sjalfri (safnstyring)
   v2.8  skilyrt bias (vindatt x dagur/nott) med shrinkage
   v3.0  urkomuthroskuldur (F1), adlagandi LR, bruun milli spalengdarholfa
+  v3.1  skilyrt bias veikist med spalengd (attarspa ovissari langt fram),
+        SSL-varaleid fyrir apis.is, einskiptis-hreinsun a mengadri sogu
 """
 
 # ═══════════════════════════════════════════════════════════════════════
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "3.0"
+JOLLY_VERSION = "3.1"
 
 import json, math, re, sys, ssl
 import urllib.request, urllib.error
@@ -382,14 +384,23 @@ def describe(cloud, precip, temp, vis, wind, cape=None):
     if c >= 10: return "Léttskýjað"
     return "Heiðskírt"
 
+# Traust a SPADA vindatt eftir spalengd. Skilyrt bias velur reit eftir
+# spadri att - en su spa er ovissari eftir thvi sem lengra er spad. A 48
+# klst getur attin verid ollu skokk og tha veljum vid RANGAN reit og
+# beitum rangri leidrettingu. Thess vegna veikjum vid skilyrt bias med
+# spalengd: full ahrif <= 6 klst (attin thekkist vel), fjarandi eftir thad.
+COND_LEAD_TRUST = {"1": 1.00, "3": 1.00, "6": 0.90,
+                   "12": 0.65, "24": 0.40, "48": 0.20}
+
 def cond_bias_value(model, m, bs, cell, var, general):
     """
     Skilyrt bias fyrir reit 'cell' og breytu 'var', blandad vid almenna
-    bias-id 'general' med shrinkage:
-        b = (n/(n+K))*b_reitur + (K/(n+K))*b_almennt
-    Ef reiturinn er tomur eda naest ekki i hann er almenna bias-id notad
-    obreytt. Thetta tryggir ad skilyrt bias verdi ALDREI verra en oskilyrt
-    thegar reitir eru thunnir.
+    bias-id 'general' med tvennskonar shrinkage:
+      1) gagna-shrinkage: w_n = n/(n+K) - thynnri reitur, minna traust
+      2) spalengdar-shrinkage: w_lead - lengri spalengd, minna traust a
+         SPADA att sem valdi reitinn
+    Ef reiturinn er tomur eda naest ekki i hann er almenna bias-id notad.
+    Tryggir ad skilyrt bias verdi ALDREI verra en oskilyrt.
     """
     if cell is None:
         return general
@@ -402,7 +413,9 @@ def cond_bias_value(model, m, bs, cell, var, general):
     # b_reitur er MEDALSKEKKJA (spa-maeling); leidrettingin er neikvaed
     measured = -(e["sum"] / e["n"])
     n = e["n"]
-    w = n / (n + COND_SHRINK_K)
+    w_n    = n / (n + COND_SHRINK_K)
+    w_lead = COND_LEAD_TRUST.get(bs, 0.5)
+    w = w_n * w_lead
     return w * measured + (1 - w) * general
 
 # --- URKOMUTHROSKULDUR ---------------------------------------------------
@@ -582,7 +595,7 @@ def fetch_and_store_observations(metar_obs):
                 ctx.check_hostname = False
                 ctx.verify_mode = ssl.CERT_NONE
                 req2 = urllib.request.Request(
-                    u, headers={"User-Agent": "Jolly-Weather/3.0"})
+                    u, headers={"User-Agent": f"Jolly-Weather/{JOLLY_VERSION}"})
                 with urllib.request.urlopen(req2, timeout=30, context=ctx) as r:
                     return json.loads(r.read().decode("utf-8", errors="replace"))
             raise
@@ -986,7 +999,7 @@ def load_model():
     path = DATA_DIR / "jolly_model.json"
     raw  = load_json(path, None)
     if raw is None:
-        print("  Nytt likan v3.0")
+        print(f"  Nytt likan v{JOLLY_VERSION}")
         return init_model()
     if raw.get("version", "").startswith("2.") or \
        raw.get("version", "").startswith("3."):
@@ -1004,7 +1017,7 @@ def load_model():
             raw["skill"] = {v: {} for v in WEIGHT_VARS}
             raw["jolly_bias"] = {str(b): empty_bias() for b in LEAD_BUCKETS}
             raw["v30_reset_done"] = True
-            print("  EINSKIPTIS-HREINSUN v3.0: Jolly-MAE og skill nullstillt")
+            print("  EINSKIPTIS-HREINSUN: Jolly-MAE og skill nullstillt")
             print("  (byggist upp hreint - fyrstu skill-tolur eftir ~2 daga)")
 
         for m in ALL_KEYS:
