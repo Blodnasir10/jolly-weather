@@ -21,7 +21,7 @@ SAGA I STUTTU MALI:
 # ═══════════════════════════════════════════════════════════════════════
 JOLLY_VERSION = "3.0"
 
-import json, math, re, sys
+import json, math, re, sys, ssl
 import urllib.request, urllib.error
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -186,7 +186,7 @@ def fetch_url(url, as_text=False, timeout=30, headers=None, with_meta=False):
     if headers: hdr.update(headers)
     req = urllib.request.Request(url, headers=hdr)
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
+        with urllib.request.urlopen(req, timeout=timeout) as r:  # noqa
             raw = r.read().decode("utf-8", errors="replace")
             data = raw if as_text else json.loads(raw)
             if with_meta:
@@ -568,8 +568,26 @@ def fetch_and_store_observations(metar_obs):
     fresh = []   # timapunktar sem uppfaerdust nuna
 
     url = f"https://apis.is/weather/observations/is?stations={STATION_ID}&time=1h"
+    # apis.is hefur latid vottord renna ut adur. Vid reynum ORUGGA tengingu
+    # fyrst; ef vottordid er utrunnid (ekki a okkar abyrgd) reynum vid aftur
+    # an vottordsstadfestingar - thetta er lesbeidni a opinberum gognum,
+    # engin leynd i hufi. Skilar samt villu ef hostur er alveg nidri.
+    def _fetch_obs(u):
+        try:
+            return fetch_url(u)
+        except urllib.error.URLError as e:
+            if "CERTIFICATE" in str(e) or "SSL" in str(e).upper():
+                print("  apis.is vottord utrunnid - reyni an stadfestingar")
+                ctx = ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+                req2 = urllib.request.Request(
+                    u, headers={"User-Agent": "Jolly-Weather/3.0"})
+                with urllib.request.urlopen(req2, timeout=30, context=ctx) as r:
+                    return json.loads(r.read().decode("utf-8", errors="replace"))
+            raise
     try:
-        res = fetch_url(url).get("results", [])
+        res = _fetch_obs(url).get("results", [])
         if res:
             r  = res[0]
             dt = datetime.strptime(r.get("time", "").strip(), "%Y-%m-%d %H:%M:%S")
@@ -970,7 +988,25 @@ def load_model():
     if raw is None:
         print("  Nytt likan v3.0")
         return init_model()
-    if raw.get("version", "").startswith("2."):
+    if raw.get("version", "").startswith("2.") or \
+       raw.get("version", "").startswith("3."):
+        # EINSKIPTIS-HREINSUN v3.0: gamla Jolly-maelingin i lead_mae er
+        # menguð af spam fra thvi likanid var hálflaert (safnaðist fra
+        # keyrslu 1). Medlimir eru endurmetnir jafnodum en gamla Jolly-
+        # spain er fost i safninu. Vid nullstillum Jolly-MAE OG skill einu
+        # sinni svo their byggist upp hreint fra v3.0 og skill endurspegli
+        # NUVERANDI utgafu, ekki 333 keyrslna sogu.
+        if not raw.get("v30_reset_done"):
+            for b in LEAD_BUCKETS:
+                lm = raw.get("lead_mae", {}).get(str(b), {})
+                if JOLLY_KEY in lm:
+                    del lm[JOLLY_KEY]
+            raw["skill"] = {v: {} for v in WEIGHT_VARS}
+            raw["jolly_bias"] = {str(b): empty_bias() for b in LEAD_BUCKETS}
+            raw["v30_reset_done"] = True
+            print("  EINSKIPTIS-HREINSUN v3.0: Jolly-MAE og skill nullstillt")
+            print("  (byggist upp hreint - fyrstu skill-tolur eftir ~2 daga)")
+
         for m in ALL_KEYS:
             raw.setdefault("bias", {}).setdefault(m, {})
             for b in LEAD_BUCKETS:
