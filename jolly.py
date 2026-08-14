@@ -15,15 +15,17 @@ SAGA I STUTTU MALI:
   v3.0  urkomuthroskuldur (F1), adlagandi LR, bruun milli spalengdarholfa
   v3.1  skilyrt bias veikist med spalengd (attarspa ovissari langt fram),
         SSL-varaleid fyrir apis.is, einskiptis-hreinsun a mengadri sogu
+  v3.2  OPINBERT api.vedur.is i stad apis.is (stod 4271) - raunhiti aftur,
+        engin vottordsvandamal, raki+thrystingur+haest/laegst hiti fylgja
 """
 
 # ═══════════════════════════════════════════════════════════════════════
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "3.1"
+JOLLY_VERSION = "3.2"
 
-import json, math, re, sys, ssl
+import json, math, re, sys
 import urllib.request, urllib.error
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -574,57 +576,72 @@ def fetch_metar():
 
 # --- 2. MAELINGAR ----------------------------------------------------------
 def fetch_and_store_observations(metar_obs):
-    print("MAELING stod 571:")
+    print("MAELING stod 4271 (Egilsstadaflugvollur):")
     path = DATA_DIR / "obs_history.json"
     hist = load_json(path, [])
     by_t = {h["time"]: h for h in hist}
     fresh = []   # timapunktar sem uppfaerdust nuna
 
-    url = f"https://apis.is/weather/observations/is?stations={STATION_ID}&time=1h"
-    # apis.is hefur latid vottord renna ut adur. Vid reynum ORUGGA tengingu
-    # fyrst; ef vottordid er utrunnid (ekki a okkar abyrgd) reynum vid aftur
-    # an vottordsstadfestingar - thetta er lesbeidni a opinberum gognum,
-    # engin leynd i hufi. Skilar samt villu ef hostur er alveg nidri.
-    def _fetch_obs(u):
+    # OPINBERT API Vedurstofunnar (api.vedur.is). Kom i stad apis.is sem
+    # var thridja-adila millilidur med utrunnid vottord og 502-villur.
+    # Stodin heitir 4271 i thessu API (sjalfvirk flugvallarstod) en 571 i
+    # eldri kerfum - sami stadur, Egilsstadaflugvollur.
+    # Reitir: t=hiti, f=vindur, fg=hvida, d=vindatt(gradur), d_txt=att(texti),
+    #         r=urkoma, rh=raki, p=thrystingur, tx/tn=haest/laegst hiti.
+    AWS_ID = 4271
+    url = (f"https://api.vedur.is/weather/observations/aws/hour/latest"
+           f"?station_id={AWS_ID}")
+
+    def _num(r, k):
+        v = r.get(k)
+        if v is None:
+            return None
         try:
-            return fetch_url(u)
-        except urllib.error.URLError as e:
-            if "CERTIFICATE" in str(e) or "SSL" in str(e).upper():
-                print("  apis.is vottord utrunnid - reyni an stadfestingar")
-                ctx = ssl.create_default_context()
-                ctx.check_hostname = False
-                ctx.verify_mode = ssl.CERT_NONE
-                req2 = urllib.request.Request(
-                    u, headers={"User-Agent": f"Jolly-Weather/{JOLLY_VERSION}"})
-                with urllib.request.urlopen(req2, timeout=30, context=ctx) as r:
-                    return json.loads(r.read().decode("utf-8", errors="replace"))
-            raise
+            return float(v)
+        except (TypeError, ValueError):
+            return None
+
+    got_aws = False
     try:
-        res = _fetch_obs(url).get("results", [])
-        if res:
-            r  = res[0]
-            dt = datetime.strptime(r.get("time", "").strip(), "%Y-%m-%d %H:%M:%S")
+        data = fetch_url(url)
+        # Svar er fylki af stodvum (her bara ein). Finna 4271.
+        rows = data if isinstance(data, list) else data.get("results", [])
+        row = next((x for x in rows if x.get("station") == AWS_ID), None)
+        if row is None and rows:
+            row = rows[0]
+        if row:
+            # Timi kemur t.d. "2026-08-14T07:00:00" (UTC)
+            raw_t = str(row.get("time", "")).strip().replace(" ", "T")
+            dt = datetime.fromisoformat(raw_t)
             t  = fmt_t(dt.replace(tzinfo=timezone.utc))
-            def gv(k):
-                try:
-                    v = r.get(k, "")
-                    return float(v) if v and str(v).strip() not in ("", "-") else None
-                except Exception:
-                    return None
+            # Vindatt: nota gradur (d) beint ef til, annars texta (d_txt)
+            wd = _num(row, "d")
+            if wd is None:
+                wd = dir_to_deg(row.get("d_txt", ""))
             rec = by_t.get(t, {"time": t})
-            rec.update({"temperature": gv("T"), "windspeed": gv("F"),
-                        "windgust": gv("FG"),
-                        "winddirection": dir_to_deg(r.get("D", "")),
-                        "precipitation": gv("R"), "humidity": gv("RH"),
-                        "pressure": gv("P"), "weather_desc": r.get("W", ""),
-                        "source": "apis.is-571"})
+            rec.update({"temperature": _num(row, "t"),
+                        "windspeed": _num(row, "f"),
+                        "windgust": _num(row, "fg"),
+                        "winddirection": wd,
+                        "precipitation": _num(row, "r"),
+                        "humidity": _num(row, "rh"),
+                        "pressure": _num(row, "p"),
+                        "temp_max": _num(row, "tx"),
+                        "temp_min": _num(row, "tn"),
+                        "dewpoint": _num(row, "td"),
+                        "source": "vedur.is-4271"})
             by_t[t] = rec
             fresh.append(t)
-            print(f"  OK {t} | T={rec['temperature']} F={rec['windspeed']}")
+            got_aws = True
+            print(f"  OK {t} | hiti={rec['temperature']}"
+                  f" vindur={rec['windspeed']} att={rec['winddirection']}")
         else:
-            print("  Engar nidurstodur")
+            print("  Engar nidurstodur fra api.vedur.is")
     except Exception as e:
-        print(f"  VILLA apis.is: {e}")
+        print(f"  VILLA api.vedur.is: {e}")
+
+    if not got_aws:
+        print("  (nota METAR skyjagogn eingongu thennan hringinn)")
 
     n_metar = 0
     for m in metar_obs:
@@ -1634,7 +1651,7 @@ def make_forecast(fc, extras, model):
          "cond_bias": model.get("cond_bias", {}),
          "cloud_confusion": model.get("cloud_confusion", {}),
          "models_used": ALL_KEYS,
-         "attribution": ["Vedurstofa Islands (apis.is, xmlweather)",
+         "attribution": ["Vedurstofa Islands (api.vedur.is, xmlweather)",
                          "MET Norway (api.met.no) CC BY 4.0",
                          "Open-Meteo CC BY 4.0",
                          "NOAA aviationweather.gov METAR"],
