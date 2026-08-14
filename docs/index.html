@@ -96,6 +96,20 @@
   .foot{text-align:center;font-size:11px;color:rgba(255,255,255,0.22);
     margin-top:26px;line-height:1.7}
   .foot span{color:var(--faint)}
+
+  .nanar-link{
+    display:flex;align-items:center;justify-content:center;gap:7px;
+    margin:18px auto 0;padding:13px 22px;
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.09);
+    border-radius:18px;
+    color:var(--sub);font-size:13px;font-weight:400;
+    text-decoration:none;width:fit-content;
+    backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+    transition:all .2s;
+  }
+  .nanar-link:hover{background:rgba(255,255,255,0.08);color:var(--ink)}
+  .nanar-link svg{opacity:.6}
 </style></head>
 <body>
   <div class="sky" id="sky"></div><div class="glow" id="glow"></div>
@@ -142,6 +156,12 @@
     <div class="card days" id="days"></div>
 
     <div class="foot" id="foot"></div>
+
+    <a class="nanar-link" href="nanar.html">
+      <span>Nánari upplýsingar</span>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+    </a>
   </div>
 <script>
 const FC_URL='https://raw.githubusercontent.com/Blodnasir10/jolly-weather/main/docs/data/jolly_forecast.json';
