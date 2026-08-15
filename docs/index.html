@@ -189,10 +189,8 @@ function wxKind(cloud, precip, temp){
     if(temp<3)   return 'sleet';
     return 'rain';
   }
-  if(cloud==null) return 'cloudy';
-  if(cloud<12) return 'clear';
-  if(cloud<55) return 'partly';
-  return 'cloudy';
+  // Thurrt: skila 'dry' - wxIcon notar tha skyjahulu-threpin beint.
+  return 'dry';
 }
 
 // Raðar n dropum/kornum undir skýið á fallegan hátt (1-6)
@@ -204,7 +202,81 @@ function fallLayout(n){
 }
 
 let _iconSeq=0;
-function wxIcon(size, kind, mm, isNight){
+// ── SKÝJAHULA í 10 þrepum (þegar þurrt) ──────────────────────
+function cloudCoverIcon(size, cover, isNight){
+  const s=size, id=`cc${++_iconSeq}`;
+  const defs=`<defs>
+    <radialGradient id="${id}sun" cx="0.38" cy="0.34" r="0.72">
+      <stop offset="0" stop-color="#ffd98a"/>
+      <stop offset="0.55" stop-color="#fbc45e"/>
+      <stop offset="1" stop-color="#f0a848"/></radialGradient>
+    <radialGradient id="${id}moon" cx="0.38" cy="0.34" r="0.72">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.6" stop-color="#f4f6fa"/>
+      <stop offset="1" stop-color="#dfe4ec"/></radialGradient>
+    <linearGradient id="${id}cl" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f0f4fb"/><stop offset="0.5" stop-color="#d4dcea"/>
+      <stop offset="1" stop-color="#aeb9cd"/></linearGradient>
+    <radialGradient id="${id}hl" cx="0.35" cy="0.3" r="0.6">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <filter id="${id}ds" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="2.5" stdDeviation="3" flood-color="#000" flood-opacity="0.20"/></filter>
+  </defs>`;
+  const cx=60, cy=52;
+  const bodyVisible = cover < 85;
+  const bodyOpacity = cover<=10 ? 1 : cover<40 ? 0.95 : cover<60 ? 0.7 : cover<75 ? 0.4 : 0.15;
+  let body='';
+  if(bodyVisible){
+    if(isNight){
+      body=`<g opacity="${bodyOpacity}">
+        <circle cx="${cx+7}" cy="${cy-10}" r="15" fill="url(#${id}moon)"/>
+        <circle cx="${cx+13}" cy="${cy-14}" r="12.5" fill="#0e1220" opacity="0.92"/></g>`;
+    } else {
+      body=`<g opacity="${bodyOpacity}">
+        <circle cx="${cx+6}" cy="${cy-10}" r="15" fill="url(#${id}sun)"/></g>`;
+    }
+  }
+  function puff(px, py, r){
+    return `<g filter="url(#${id}ds)">
+      <ellipse cx="${px}" cy="${py}" rx="${r*1.15}" ry="${r}" fill="url(#${id}cl)"/>
+      <ellipse cx="${px}" cy="${py}" rx="${r*1.15}" ry="${r}" fill="url(#${id}hl)"/></g>`;
+  }
+  function fullCloud(){
+    return `<g filter="url(#${id}ds)">
+      <path d="M32 74 Q16 74 14 58 Q12 40 34 39 Q38 24 60 25 Q82 26 85 42
+        Q104 40 105 60 Q106 74 88 74Z" fill="url(#${id}cl)"/>
+      <path d="M32 74 Q16 74 14 58 Q12 40 34 39 Q38 24 60 25 Q82 26 85 42
+        Q104 40 105 60 Q106 74 88 74Z" fill="url(#${id}hl)"/></g>`;
+  }
+  let clouds='';
+  if(cover<10){
+    clouds='';
+  } else if(cover<80){
+    let n, baseR, spread, yBase;
+    if(cover<20){      n=1; baseR=11; spread=0;  yBase=68; }
+    else if(cover<30){ n=2; baseR=12; spread=26; yBase=68; }
+    else if(cover<40){ n=2; baseR=14; spread=20; yBase=70; }
+    else if(cover<50){ n=3; baseR=14; spread=22; yBase=70; }
+    else if(cover<60){ n=3; baseR=16; spread=18; yBase=71; }
+    else if(cover<70){ n=4; baseR=16; spread=17; yBase=72; }
+    else             { n=4; baseR=18; spread=14; yBase=72; }
+    const startX = cx - spread*(n-1)/2;
+    let puffs=[];
+    for(let i=0;i<n;i++){
+      const yj = (i%2===0)? 0 : -3;
+      puffs.push(puff(startX + i*spread, yBase+yj, baseR + (i===Math.floor(n/2)?2:0)));
+    }
+    clouds=puffs.join('');
+  } else {
+    clouds=fullCloud();
+    if(cover>=90){
+      clouds += `<ellipse cx="46" cy="60" rx="30" ry="16" fill="url(#${id}cl)" opacity="0.5"/>`;
+    }
+  }
+  return `<svg width="${s}" height="${s}" viewBox="0 0 120 100">${defs}${body}${clouds}</svg>`;
+}
+
+function wxIcon(size, kind, mm, isNight, cover){
   const s=size, vb=66;
   const cid=`c${++_iconSeq}`;
   const defs=`<defs>
@@ -225,27 +297,9 @@ function wxIcon(size, kind, mm, isNight){
       <stop offset="0" stop-color="#c2d8f2"/><stop offset="1" stop-color="#8fb4e2"/></linearGradient>
   </defs>`;
 
-  // Heiðskírt / léttskýjað - sól eða tungl
-  if(kind==='clear'){
-    if(isNight){
-      return `<svg width="${s}" height="${s}" viewBox="0 0 ${vb} ${vb}">${defs}
-        <circle cx="33" cy="30" r="15" fill="url(#${cid}m)"/>
-        <circle cx="39" cy="25" r="13" fill="#0e1220"/></svg>`;
-    }
-    return `<svg width="${s}" height="${s}" viewBox="0 0 ${vb} ${vb}">${defs}
-      <circle cx="33" cy="30" r="14" fill="url(#${cid}s)"/>
-      <g stroke="#f4c869" stroke-width="2.4" stroke-linecap="round" opacity="0.8">
-      ${[0,45,90,135,180,225,270,315].map(a=>{const r=a*Math.PI/180;
-        return `<line x1="${33+Math.cos(r)*20}" y1="${30+Math.sin(r)*20}"
-          x2="${33+Math.cos(r)*25}" y2="${30+Math.sin(r)*25}"/>`;}).join('')}</g></svg>`;
-  }
-
-  // Ský (með eða án sólar/tungls fyrir 'partly')
-  let sun='';
-  if(kind==='partly'){
-    sun = isNight
-      ? `<circle cx="44" cy="22" r="10" fill="url(#${cid}m)"/><circle cx="49" cy="18" r="8.5" fill="#0e1220"/>`
-      : `<circle cx="44" cy="22" r="11" fill="url(#${cid}s)"/>`;
+  // ÞURRT: nota 10-þrepa skýjahulu-táknið (sól/tungl + hnoðrar eftir hulu)
+  if(kind==='dry'){
+    return cloudCoverIcon(size, (cover==null?0:cover), isNight);
   }
   const cloud=`<g filter="url(#${cid}ds)">
     <path d="M18 40 Q9 40 8 30 Q7 19 20 18 Q23 8 34 9 Q46 10 47 21
@@ -286,7 +340,7 @@ function wxIcon(size, kind, mm, isNight){
     });
     fall=items.join('');
   }
-  return `<svg width="${s}" height="${s}" viewBox="0 0 ${vb} ${vb}">${defs}${sun}${cloud}${fall}</svg>`;
+  return `<svg width="${s}" height="${s}" viewBox="0 0 ${vb} ${vb}">${defs}${cloud}${fall}</svg>`;
 }
 
 // ══ VINDTÁKN eftir styrk ══
@@ -377,7 +431,7 @@ function render(FC){
   const t0=Math.round(T[0]??0);
   const c0=C[0], p0=P[0]||0, w0=W[0]||0, d0=D[0]??0;
   const kind0=wxKind(c0,p0,t0);
-  document.getElementById('heroIcon').innerHTML=wxIcon(120,kind0,p0,isNightHour(nowH));
+  document.getElementById('heroIcon').innerHTML=wxIcon(120,kind0,p0,isNightHour(nowH),c0);
   document.getElementById('heroTemp').textContent=t0;
   const descMap={clear:'Heiðskírt',partly:'Léttskýjað',cloudy:'Skýjað',
     rain:'Rigning',sleet:'Slydda',snow:'Snjókoma'};
@@ -396,7 +450,7 @@ function render(FC){
 
   // ── ÚRKOMA ──
   document.getElementById('precipIcon').innerHTML=
-    p0>0 ? wxIcon(50,kind0,p0,isNightHour(nowH)) : wxIcon(50,'cloudy',0,isNightHour(nowH));
+    p0>0 ? wxIcon(50,kind0,p0,isNightHour(nowH),c0) : wxIcon(50,'dry',0,isNightHour(nowH),c0);
   document.getElementById('precipVal').innerHTML=`${p0.toFixed(1)}<span class="u">mm</span>`;
 
   // ── KLUKKUSTUNDASPÁ (24 klst) ──
@@ -407,7 +461,7 @@ function render(FC){
     const night=isNightHour(new Date(times[i]).getHours());
     hh+=`<div class="hcell${i===0?' now':''}">
       <div class="h">${i===0?'núna':hr}</div>
-      <div class="ic">${wxIcon(36,kind,P[i]||0,night)}</div>
+      <div class="ic">${wxIcon(36,kind,P[i]||0,night,C[i])}</div>
       <div class="t">${Math.round(T[i]??0)}°</div>
       <div class="wa">${windArrow(D[i]??0,11)}</div>
       <div class="p">${(P[i]||0)>0?(P[i]).toFixed(1):''}</div>
@@ -464,9 +518,9 @@ function renderDays(FC){
     function slotKind(hh){
       const key=`${d}T${String(hh).padStart(2,'0')}:00`;
       const i=(H.time||[]).indexOf(key);
-      if(i<0) return {kind:'cloudy',mm:0,night:hh<6||hh>=21};
+      if(i<0) return {kind:'dry',mm:0,cover:0,night:hh<6||hh>=21};
       return {kind:wxKind(H.cloud_cover[i],H.precipitation[i]||0,Math.round(H.temperature[i]??0)),
-        mm:H.precipitation[i]||0, night:hh<6||hh>=21};
+        mm:H.precipitation[i]||0, cover:H.cloud_cover[i]||0, night:hh<6||hh>=21};
     }
     const evo=[slotKind(9),slotKind(15),slotKind(21)];
 
@@ -478,9 +532,9 @@ function renderDays(FC){
         <div><div class="dname">${dname}</div>
           <div class="dp">${rain>0?rain.toFixed(1)+' mm':''}</div></div>
         <div class="dicons">
-          ${wxIcon(28,evo[0].kind,evo[0].mm,evo[0].night)}
-          ${wxIcon(28,evo[1].kind,evo[1].mm,evo[1].night)}
-          ${wxIcon(28,evo[2].kind,evo[2].mm,evo[2].night)}
+          ${wxIcon(28,evo[0].kind,evo[0].mm,evo[0].night,evo[0].cover)}
+          ${wxIcon(28,evo[1].kind,evo[1].mm,evo[1].night,evo[1].cover)}
+          ${wxIcon(28,evo[2].kind,evo[2].mm,evo[2].night,evo[2].cover)}
         </div>
         <div class="dwind">${windArrow(dirDeg,13)}</div>
         <div class="dtemp"><b>${hi!=null?Math.round(hi):'–'}°</b>
