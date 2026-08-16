@@ -1,7 +1,7 @@
 {
   "version": "2.0",
   "created": "2026-06-24T00:32:50.944399+00:00",
-  "runs": 411,
+  "runs": 412,
   "verified_pairs": 62514,
   "lead_buckets": [
     1,
@@ -869,20 +869,6 @@
           "att": 249
         },
         "att": 40.442
-      },
-      "jolly": {
-        "hiti": 0.641,
-        "vindur": 1.219,
-        "att": 49.632,
-        "urkoma": null,
-        "sky": 26.966,
-        "n": 59,
-        "n_var": {
-          "hiti": 59,
-          "vindur": 59,
-          "att": 56,
-          "sky": 56
-        }
       }
     },
     "3": {
@@ -1002,20 +988,6 @@
           "att": 245
         },
         "att": 36.297
-      },
-      "jolly": {
-        "hiti": 1.205,
-        "vindur": 1.477,
-        "att": 48.923,
-        "urkoma": null,
-        "sky": 30.222,
-        "n": 58,
-        "n_var": {
-          "hiti": 58,
-          "vindur": 58,
-          "att": 54,
-          "sky": 57
-        }
       }
     },
     "6": {
@@ -1135,20 +1107,6 @@
           "att": 244
         },
         "att": 42.299
-      },
-      "jolly": {
-        "hiti": 1.538,
-        "vindur": 1.835,
-        "att": 40.326,
-        "urkoma": null,
-        "sky": 34.029,
-        "n": 56,
-        "n_var": {
-          "hiti": 56,
-          "vindur": 56,
-          "att": 51,
-          "sky": 53
-        }
       }
     },
     "12": {
@@ -1277,20 +1235,6 @@
           "att": 235
         },
         "att": 58.892
-      },
-      "jolly": {
-        "hiti": 2.278,
-        "vindur": 2.23,
-        "att": 51.601,
-        "urkoma": null,
-        "sky": 42.847,
-        "n": 57,
-        "n_var": {
-          "hiti": 57,
-          "vindur": 57,
-          "att": 54,
-          "sky": 54
-        }
       }
     },
     "24": {
@@ -1419,20 +1363,6 @@
           "sky": 262,
           "att": 233
         }
-      },
-      "jolly": {
-        "hiti": 1.588,
-        "vindur": 1.157,
-        "att": 61.955,
-        "urkoma": null,
-        "sky": 48.433,
-        "n": 52,
-        "n_var": {
-          "hiti": 52,
-          "vindur": 52,
-          "att": 49,
-          "sky": 49
-        }
       }
     },
     "48": {
@@ -1560,20 +1490,6 @@
           "vindur": 245,
           "sky": 243,
           "att": 213
-        }
-      },
-      "jolly": {
-        "hiti": 1.17,
-        "vindur": 1.703,
-        "att": 67.983,
-        "urkoma": null,
-        "sky": 34.827,
-        "n": 46,
-        "n_var": {
-          "hiti": 46,
-          "vindur": 46,
-          "att": 43,
-          "sky": 44
         }
       }
     }
@@ -18998,234 +18914,14 @@
       }
     }
   ],
-  "last_updated": "2026-08-16T09:41:47.530025+00:00",
+  "last_updated": "2026-08-16T09:48:16.991732+00:00",
   "migrated_from": "1.0",
   "skill": {
-    "hiti": {
-      "1": {
-        "jolly_mae": 0.641,
-        "best_model": "ecmwf",
-        "best_mae": 0.475,
-        "skill": -0.3495,
-        "meaningful": true,
-        "mean_member": 0.664,
-        "n": 59
-      },
-      "3": {
-        "jolly_mae": 1.205,
-        "best_model": "metno",
-        "best_mae": 0.474,
-        "skill": -1.0,
-        "meaningful": true,
-        "mean_member": 0.687,
-        "n": 58
-      },
-      "12": {
-        "jolly_mae": 2.278,
-        "best_model": "metno",
-        "best_mae": 0.389,
-        "skill": -1.0,
-        "meaningful": true,
-        "mean_member": 0.65,
-        "n": 57
-      },
-      "48": {
-        "jolly_mae": 1.17,
-        "best_model": "ecmwf",
-        "best_mae": 0.414,
-        "skill": -1.0,
-        "meaningful": true,
-        "mean_member": 0.851,
-        "n": 46
-      },
-      "6": {
-        "jolly_mae": 1.538,
-        "best_model": "metno",
-        "best_mae": 0.493,
-        "skill": -1.0,
-        "meaningful": true,
-        "mean_member": 0.763,
-        "n": 56
-      },
-      "24": {
-        "jolly_mae": 1.588,
-        "best_model": "metno",
-        "best_mae": 0.389,
-        "skill": -1.0,
-        "meaningful": true,
-        "mean_member": 0.656,
-        "n": 52
-      }
-    },
-    "vindur": {
-      "1": {
-        "jolly_mae": 1.219,
-        "best_model": "ukmo",
-        "best_mae": 0.498,
-        "skill": -1.0,
-        "meaningful": true,
-        "mean_member": 0.661,
-        "n": 59
-      },
-      "3": {
-        "jolly_mae": 1.477,
-        "best_model": "dmi",
-        "best_mae": 0.563,
-        "skill": -1.0,
-        "meaningful": true,
-        "mean_member": 0.692,
-        "n": 58
-      },
-      "12": {
-        "jolly_mae": 2.23,
-        "best_model": "icon",
-        "best_mae": 0.47,
-        "skill": -1.0,
-        "meaningful": true,
-        "mean_member": 0.634,
-        "n": 57
-      },
-      "48": {
-        "jolly_mae": 1.703,
-        "best_model": "metno",
-        "best_mae": 0.708,
-        "skill": -1.0,
-        "meaningful": true,
-        "mean_member": 0.826,
-        "n": 46
-      },
-      "6": {
-        "jolly_mae": 1.835,
-        "best_model": "metno",
-        "best_mae": 0.507,
-        "skill": -1.0,
-        "meaningful": true,
-        "mean_member": 0.704,
-        "n": 56
-      },
-      "24": {
-        "jolly_mae": 1.157,
-        "best_model": "metno",
-        "best_mae": 0.508,
-        "skill": -1.0,
-        "meaningful": true,
-        "mean_member": 0.681,
-        "n": 52
-      }
-    },
-    "att": {
-      "1": {
-        "jolly_mae": 49.632,
-        "best_model": "ecmwf",
-        "best_mae": 31.56,
-        "skill": -0.5726,
-        "meaningful": true,
-        "mean_member": 45.635,
-        "n": 56
-      },
-      "3": {
-        "jolly_mae": 48.923,
-        "best_model": "knmi",
-        "best_mae": 34.229,
-        "skill": -0.4293,
-        "meaningful": true,
-        "mean_member": 43.752,
-        "n": 54
-      },
-      "12": {
-        "jolly_mae": 51.601,
-        "best_model": "icon",
-        "best_mae": 33.75,
-        "skill": -0.5289,
-        "meaningful": true,
-        "mean_member": 48.743,
-        "n": 54
-      },
-      "48": {
-        "jolly_mae": 67.983,
-        "best_model": "harmonie",
-        "best_mae": 25.01,
-        "skill": -1.0,
-        "meaningful": true,
-        "mean_member": 45.924,
-        "n": 43
-      },
-      "6": {
-        "jolly_mae": 40.326,
-        "best_model": "mfr",
-        "best_mae": 26.728,
-        "skill": -0.5088,
-        "meaningful": true,
-        "mean_member": 42.443,
-        "n": 51
-      },
-      "24": {
-        "jolly_mae": 61.955,
-        "best_model": "icon",
-        "best_mae": 31.672,
-        "skill": -0.9561,
-        "meaningful": true,
-        "mean_member": 52.557,
-        "n": 49
-      }
-    },
+    "hiti": {},
+    "vindur": {},
+    "att": {},
     "urkoma": {},
-    "sky": {
-      "1": {
-        "jolly_mae": 26.966,
-        "best_model": "ecmwf",
-        "best_mae": 5.925,
-        "skill": -1.0,
-        "meaningful": true,
-        "mean_member": 16.697,
-        "n": 56
-      },
-      "3": {
-        "jolly_mae": 30.222,
-        "best_model": "ecmwf",
-        "best_mae": 6.991,
-        "skill": -1.0,
-        "meaningful": true,
-        "mean_member": 16.45,
-        "n": 57
-      },
-      "12": {
-        "jolly_mae": 42.847,
-        "best_model": "harmonie",
-        "best_mae": 5.856,
-        "skill": -1.0,
-        "meaningful": true,
-        "mean_member": 14.672,
-        "n": 54
-      },
-      "48": {
-        "jolly_mae": 34.827,
-        "best_model": "harmonie",
-        "best_mae": 9.036,
-        "skill": -1.0,
-        "meaningful": true,
-        "mean_member": 21.449,
-        "n": 44
-      },
-      "6": {
-        "jolly_mae": 34.029,
-        "best_model": "ecmwf",
-        "best_mae": 5.817,
-        "skill": -1.0,
-        "meaningful": true,
-        "mean_member": 15.764,
-        "n": 53
-      },
-      "24": {
-        "jolly_mae": 48.433,
-        "best_model": "harmonie",
-        "best_mae": 6.952,
-        "skill": -1.0,
-        "meaningful": true,
-        "mean_member": 15.437,
-        "n": 49
-      }
-    }
+    "sky": {}
   },
   "cloud_map": {
     "dmi": {
@@ -21294,45 +20990,45 @@
   },
   "jolly_bias": {
     "1": {
-      "hiti": 1.0661999999999994,
-      "vindur": -1.5,
-      "att": 2.9099999999999984,
-      "sky": 12.0,
+      "hiti": 0.0,
+      "vindur": 0.0,
+      "att": 0.0,
+      "sky": 0.0,
       "urkoma_scale": 1.0
     },
     "3": {
-      "hiti": 1.2582000000000004,
-      "vindur": -1.5,
-      "att": 6.930000000000002,
-      "sky": 12.0,
+      "hiti": 0.0,
+      "vindur": 0.0,
+      "att": 0.0,
+      "sky": 0.0,
       "urkoma_scale": 1.0
     },
     "6": {
-      "hiti": 0.7208000000000004,
-      "vindur": -1.4655999999999998,
-      "att": 9.987000000000005,
-      "sky": 9.479999999999999,
+      "hiti": 0.0,
+      "vindur": 0.0,
+      "att": 0.0,
+      "sky": 0.0,
       "urkoma_scale": 1.0
     },
     "12": {
-      "hiti": 0.8525999999999997,
-      "vindur": -0.5189999999999998,
-      "att": 6.992999999999999,
-      "sky": 12.0,
+      "hiti": 0.0,
+      "vindur": 0.0,
+      "att": 0.0,
+      "sky": 0.0,
       "urkoma_scale": 1.0
     },
     "24": {
-      "hiti": -0.0534,
-      "vindur": 0.41220000000000023,
-      "att": -11.303999999999998,
-      "sky": 11.999999999999996,
+      "hiti": 0.0,
+      "vindur": 0.0,
+      "att": 0.0,
+      "sky": 0.0,
       "urkoma_scale": 1.0
     },
     "48": {
-      "hiti": -0.8180999999999999,
-      "vindur": -1.5,
-      "att": 1.6769999999999967,
-      "sky": 12.0,
+      "hiti": 0.0,
+      "vindur": 0.0,
+      "att": 0.0,
+      "sky": 0.0,
       "urkoma_scale": 1.0
     }
   },
@@ -29230,5 +28926,6 @@
       "last": -32.0
     }
   },
-  "v30_reset_done": true
+  "v30_reset_done": true,
+  "v35_jolly_bias_reset": true
 }
