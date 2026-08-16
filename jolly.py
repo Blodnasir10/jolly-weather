@@ -25,13 +25,17 @@ SAGA I STUTTU MALI:
         fullleidrett en var medhondlud eins og hrair medlimir). Thad var
         jakvaed afturvirkni sem let restbias vaxa og eydilagdi spana.
         Lagfaert + einskiptis-hreinsun a menguðu jolly_bias.
+  v3.6  FALL-EINKUNN: likan sem er oreglulega skakkt (> FAIL_RATIO x besta)
+        faer 0 vaegi en er AFRAM MAELT og kemst inn aftur eftir 3 godar
+        spar i rod. Maelt a leidrettu MAE svo stodug hlutdraegni - sem
+        bias lagar - se ekki refsad.
 """
 
 # ═══════════════════════════════════════════════════════════════════════
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "3.5"
+JOLLY_VERSION = "3.6"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -128,6 +132,23 @@ EPS_BY_VAR = {"hiti": 0.05, "vindur": 0.05, "att": 3.0,
 # Urkoma er strjal (mest nullur) svo hun tharf fleiri samanburdi
 # adur en rodun er marktaek.
 MIN_N_BY_VAR = {"hiti": 4, "vindur": 4, "att": 6, "urkoma": 12, "sky": 6}
+
+# --- FALL-EINKUNN: likan sem er OREGLULEGA skakkt faer 0 vaegi ------------
+# [MIKILVAEGT] Vid maelum a MAE EFTIR bias-leidrettingu, ekki hrau MAE.
+# Likan sem er STODUGT skakkt i somu att (t.d. alltaf +20% sky) er
+# VERDMAETT - bias lagar thad fullkomlega. Thad sem vid viljum fella ut er
+# likan sem er OREGLULEGT: haavadi sem enginn bias getur lagad.
+#
+# Fallid er AFTURKRAEFT: likanid er maelt afram og kemst sjalfkrafa inn
+# aftur eftir RECOVER_N samfelldar godar spar. Vid geymum ALDREI ut gogn.
+# Throskuldar stilltir a RAUNGOGNUM (16.ag): 2.8x a skyi fellir 3 verstu
+# (dmi/ukmo/knmi) en heldur 6 likonum - nog fjolbreytni. Haerri throskuldur
+# a hita/vindi thvi thar eru likonin thett saman og fall vaeri of hart.
+FAIL_RATIO   = {"hiti": 3.5, "vindur": 3.5, "att": 3.0,
+                "urkoma": 4.0, "sky": 2.8}   # x MAE besta likans
+FAIL_MIN_N   = 10      # ekki fella ut fyrr en nogu morg por
+RECOVER_N    = 3       # samfelldar godar spar til ad koma aftur inn
+RECOVER_TOL  = 1.5     # "god spa" = innan 1.5x af besta thann tima
 
 # Undir thessu er MAE svo lag ad hlutfallsbati er merkingarlaus
 # (samsvarar um thad bil maelinakvaemni stodvarinnar)
@@ -1555,7 +1576,44 @@ def verify_and_train(arch, obs_history, model):
                     usable[m] = v
             if not usable:
                 continue
-            inv = {m: 1.0 / (v + eps) for m, v in usable.items()}
+
+            # --- FALL-EINKUNN ------------------------------------------
+            # Likan sem er meira en FAIL_RATIO x besta likanid faer 0
+            # vaegi - EN vid haldum afram ad maela thad. Thad kemst inn
+            # aftur eftir RECOVER_N samfelldar godar spar.
+            fail = model.setdefault("failed", {}).setdefault(var, {}) \
+                        .setdefault(bs, {})
+            best_mae = min(usable.values())
+            ratio_lim = FAIL_RATIO.get(var, 3.0)
+            for m, v in list(usable.items()):
+                nv = (model["lead_mae"][bs][m].get("n_var") or {}) \
+                        .get(var, model["lead_mae"][bs][m].get("n", 0))
+                rec = fail.get(m) or {"out": False, "streak": 0}
+                ratio = v / best_mae if best_mae > 0 else 1.0
+
+                if rec["out"]:
+                    # Er thad ad na ser? Telja samfelldar godar spar.
+                    if ratio <= RECOVER_TOL:
+                        rec["streak"] = rec.get("streak", 0) + 1
+                        if rec["streak"] >= RECOVER_N:
+                            rec = {"out": False, "streak": 0}
+                            print(f"    {m} kemur AFTUR INN i {var} @{bs}klst "
+                                  f"({RECOVER_N} godar spar i rod)")
+                    else:
+                        rec["streak"] = 0
+                elif nv >= FAIL_MIN_N and ratio > ratio_lim:
+                    rec = {"out": True, "streak": 0}
+                    print(f"    {m} FELLUR UT ur {var} @{bs}klst "
+                          f"(MAE {v:.1f} = {ratio:.1f}x besta {best_mae:.1f})")
+                fail[m] = rec
+
+            # Fjarlaegja fallin likon UR THYNGDUM (en their eru afram maeld)
+            active = {m: v for m, v in usable.items()
+                      if not (fail.get(m) or {}).get("out")}
+            if not active:          # oryggisventill: aldrei tomt
+                active = dict(usable)
+
+            inv = {m: 1.0 / (v + eps) for m, v in active.items()}
             for m, bonus in MODEL_BONUS.get(var, {}).items():
                 if m in inv: inv[m] *= bonus
             tot = sum(inv.values())
@@ -2082,6 +2140,18 @@ def print_coverage(model, fc, extras):
             print("    (reitir enn ad byggjast upp - tharf fleiri stadfestingar)")
     print("  ('--gogn' = gjafinn skilar ekki breytunni | "
           "'bid' = of fair samanburdir enn)")
+    # Fallin likon - their eru AFRAM maeld og geta komid aftur inn
+    _f = model.get("failed", {})
+    _lines = []
+    for _v in WEIGHT_VARS:
+        _o = sorted(m for m, r in (_f.get(_v, {}).get("6", {}) or {}).items()
+                    if r.get("out"))
+        if _o:
+            _lines.append(f"    {_v}: {', '.join(_o)}")
+    if _lines:
+        print("  FALLIN LIKON @6klst (0 vaegi, enn maeld, geta komid aftur):")
+        for _l in _lines:
+            print(_l)
 
 
 # --- 7. VISTA --------------------------------------------------------------
