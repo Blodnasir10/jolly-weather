@@ -4,11 +4,16 @@ on:
   schedule:
     # Keyrir 5 mínútum eftir hvern heilan tíma - 24x á dag
     - cron: '5 * * * *'
-  # Keyrir líka þegar breytingar eru gerðar
   push:
     branches: [main]
-  # Leyfir handvirka keyrslu
   workflow_dispatch:
+
+# Aðeins EIN keyrsla í einu. Ef ný keyrsla byrjar meðan önnur er í gangi
+# bíður hún í stað þess að keyra samhliða - tvær samhliða keyrslur skrifa
+# báðar í sömu skrár og önnur tapast.
+concurrency:
+  group: jolly-run
+  cancel-in-progress: false
 
 jobs:
   update-jolly:
@@ -19,6 +24,9 @@ jobs:
     steps:
       - name: 📥 Sækja kóða
         uses: actions/checkout@v4
+        with:
+          # Sækja alla söguna svo rebase virki
+          fetch-depth: 0
 
       - name: 🐍 Setja upp Python
         uses: actions/setup-python@v5
@@ -31,7 +39,6 @@ jobs:
       - name: 🌦️ Keyra Jolly
         run: python jolly.py
 
-      # Yfirlit í samantekt keyrslunnar - læsilegt án þess að opna log
       - name: 📋 Yfirlit
         if: always()
         run: |
@@ -44,18 +51,42 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
           fi
 
+      # Vistun með ENDURTILRAUN. Ef einhver (t.d. þú í vafranum) hefur
+      # breytt skrám meðan keyrslan stóð yfir, hafnar git venjulegu push
+      # með "non-fast-forward" og ÖLL keyrslan tapast. Hér sækjum við
+      # nýjustu útgáfu, setjum okkar gögn ofan á, og reynum aftur.
       - name: 💾 Vista gögn í GitHub
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "🌦️ Jolly ${{ github.run_id }}"
-          # ATH: verður að taka .log og .csv líka, ekki bara .json.
-          # Áður var þetta "docs/data/*.json" sem þýddi að last_run.log
-          # var skrifuð en aldrei vistuð - og VERRA: langtímasafnið í
-          # docs/data/verify/*.csv hvarf í hverri keyrslu. Þau gögn eiga
-          # að lifa í 2+ ár fyrir árstíðaskilyrðingu.
-          file_pattern: >-
-            docs/data/*.json
-            docs/data/*.log
-            docs/data/verify/*.csv
-          commit_user_name: "Jolly Bot"
-          commit_user_email: "jolly@weather.bot"
+        run: |
+          set -e
+          git config user.name  "Jolly Bot"
+          git config user.email "jolly@weather.bot"
+
+          git add -A docs/data/*.json docs/data/*.log docs/data/verify/*.csv 2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "Engar breytingar til að vista."
+            exit 0
+          fi
+
+          git commit -m "🌦️ Jolly ${{ github.run_id }}"
+
+          # Allt að 5 tilraunir: sækja nýjustu sögu, endurspila okkar
+          # commit ofan á hana, ýta. Gagnaskrárnar eru okkar eigin
+          # afurð svo við höldum OKKAR útgáfu ef árekstur verður.
+          for i in 1 2 3 4 5; do
+            if git push origin HEAD:main; then
+              echo "Vistað (tilraun $i)."
+              exit 0
+            fi
+            echo "Push hafnað - sæki nýjustu útgáfu og reyni aftur ($i/5)..."
+            git fetch origin main
+            git rebase -X ours origin/main || {
+              echo "Rebase mistókst - nota merge í staðinn."
+              git rebase --abort || true
+              git merge -X ours origin/main -m "Sameina Jolly-gögn"
+            }
+            sleep $((i * 3))
+          done
+
+          echo "::error::Gat ekki vistað eftir 5 tilraunir."
+          exit 1
