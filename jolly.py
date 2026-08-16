@@ -29,13 +29,17 @@ SAGA I STUTTU MALI:
         faer 0 vaegi en er AFRAM MAELT og kemst inn aftur eftir 3 godar
         spar i rod. Maelt a leidrettu MAE svo stodug hlutdraegni - sem
         bias lagar - se ekki refsad.
+  v3.7  METAR-VILLA LAGFAERD: vid tokum obs[-1] sem "nyjustu" faerslu en
+        aviationweather skilar nyjustu FYRST, svo vid fengum alltaf 24 klst
+        gamla skyjahulu. Jolly laerdi skyjahulu af gaerdeginum. Nu radad
+        eftir tima + vidvorun ef gognin eru eldri en 3 klst.
 """
 
 # ═══════════════════════════════════════════════════════════════════════
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "3.6"
+JOLLY_VERSION = "3.7"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -595,9 +599,27 @@ def fetch_metar():
         raw = fetch_url(url, as_text=True, timeout=20)
         obs = [p for p in (parse_metar(l) for l in raw.strip().split("\n") if l.strip()) if p]
         if not obs: raise ValueError("engar faerslur")
+
+        # [MIKILVAEGT] aviationweather skilar faerslum i OSKILGREINDRI rod -
+        # i raun NYJUSTU FYRST. Adur tokum vid obs[-1] sem "nyjustu" og
+        # fengum tha ELSTU faersluna, nakvaemlega 24 klst gamla. Jolly laerdi
+        # thvi skyjahulu af GAERDEGINUM og pardi hana vid spar dagsins.
+        # Nu rodum vid EFTIR TIMA svo rodin i svarinu skipti engu mali.
+        obs.sort(key=lambda o: o["time"])
         l = obs[-1]
+
+        # Vidvorun ef nyjasta faerslan er ovaenta gomul (t.d. stodin nidri)
+        try:
+            age_h = (datetime.now(timezone.utc)
+                     - parse_t(l["time"])).total_seconds() / 3600.0
+        except Exception:
+            age_h = None
+        aldur = f" | aldur {age_h:.1f} klst" if age_h is not None else ""
         print(f"  OK {len(obs)} faerslur | nyjust {l['time']} "
-              f"sky={l['cloud_cover']}% botn={l['cloud_base_ft']}ft")
+              f"sky={l['cloud_cover']}% botn={l['cloud_base_ft']}ft{aldur}")
+        if age_h is not None and age_h > 3:
+            print(f"  VARUD: nyjasti METAR er {age_h:.1f} klst gamall "
+                  f"- skyjagogn gaetu verid urelt")
         return obs
     except Exception as e:
         print(f"  VILLA: {e}")
@@ -1059,6 +1081,38 @@ def load_model():
         # (sky +9.5, vind -1.47 og VAXANDI). Nullstillum thad einu sinni
         # svo thad byggist upp rett med lagfaerdu matinu. Medlima-bias og
         # thyngdir halda ser - their voru aldrei mengadir.
+        # v3.7: ALLUR skyjalaerdomur var byggdur a 24 klst gamalli METAR-
+        # maelingu. Bias, skyjakort og fall-einkunn a skyi eru thvi mengud.
+        # Nullstillum SKY-hlutann einu sinni - hiti/vindur/att halda ser
+        # thvi their laera af vedur.is sem var alltaf rett.
+        if not raw.get("v37_sky_reset"):
+            for m in ALL_KEYS:
+                b = raw.get("bias", {}).get(m)
+                if isinstance(b, dict):
+                    for bs in list(b.keys()):
+                        if isinstance(b[bs], dict) and "sky" in b[bs]:
+                            b[bs]["sky"] = 0.0
+                cb = raw.get("cond_bias", {}).get(m, {})
+                for bs, cells in (cb or {}).items():
+                    for cell, vars_ in (cells or {}).items():
+                        if isinstance(vars_, dict) and "sky" in vars_:
+                            vars_["sky"] = {"sum": 0.0, "n": 0}
+            raw["cloud_map"] = {}
+            raw["cloud_confusion"] = {}
+            raw.setdefault("failed", {})["sky"] = {}
+            for b in LEAD_BUCKETS:
+                jb = raw.get("jolly_bias", {}).get(str(b))
+                if isinstance(jb, dict):
+                    jb["sky"] = 0.0
+                lm = raw.get("lead_mae", {}).get(str(b), {})
+                for m, st in (lm or {}).items():
+                    if isinstance(st, dict) and "sky" in st:
+                        st["sky"] = None
+            raw["skill"]["sky"] = {}
+            raw["v37_sky_reset"] = True
+            print("  HREINSUN v3.7: skyjalaerdomur nullstilltur (var byggdur")
+            print("  a 24 klst gamalli METAR-maelingu). Hiti/vindur halda ser.")
+
         if not raw.get("v35_jolly_bias_reset"):
             raw["jolly_bias"] = {str(b): empty_bias() for b in LEAD_BUCKETS}
             for b in LEAD_BUCKETS:
