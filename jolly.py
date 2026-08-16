@@ -19,13 +19,15 @@ SAGA I STUTTU MALI:
         engin vottordsvandamal, raki+thrystingur+haest/laegst hiti fylgja
   v3.3  SPA-GREINING: prentar blondu vs restbias vs lokaspa fyrir eina
         klst, til ad finna hvers vegna Jolly tapar (greining, ekki lagfaering)
+  v3.4  SPA-GREINING utvikkud: allar breytur + hrair medlimir, adeins fyrir
+        LIDANDI stund svo haegt se ad bera beint saman vid maelingu
 """
 
 # ═══════════════════════════════════════════════════════════════════════
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "3.3"
+JOLLY_VERSION = "3.4"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -1832,23 +1834,29 @@ def make_forecast(fc, extras, model):
             if prec  is not None: prec  = round(max(0.0, prec * jb.get("urkoma_scale", 1.0)), 2)
             if cloud is not None: cloud = min(100.0, max(0.0, cloud + jb.get("sky", 0.0)))
 
-        # --- GREINING: fyrir stystu spalengd, syna hvar skekkja kemur inn ---
-        if lead in (1, 6) and temp is not None:
-            _pre = wa(T)   # blanda fyrir restbias (endurreikna)
-            _jb_h = jb.get("hiti", 0.0) if jb else 0.0
-            _jb_w = jb.get("vindur", 0.0) if jb else 0.0
-            print(f"  [SPA-GREINING @{lead}klst] "
-                  f"hiti: blanda={_pre} +rest({_jb_h:+.2f}) -> {temp} | "
-                  f"vindur -> {wind} | n_medlima_hiti={len(T)}")
-            if len(T) <= 2:
-                print(f"    VARUD: adeins {len(T)} medlimir i hita-blondu! "
-                      f"Vaentanlega {len(ALL_KEYS)}. Thyngdir naest ekki?")
-            # Syna hvada thyngdir eru raunverulega notadar
-            _wsum = {v: sum(model['weights'][v][bs].get(m,0.0)
-                            for m in ALL_KEYS) for v in ['hiti','vindur','sky']}
-            print(f"    thyngda-summa: hiti={_wsum['hiti']:.2f} "
-                  f"vindur={_wsum['vindur']:.2f} sky={_wsum['sky']:.2f} "
-                  f"(a ad vera ~1.0 hvor)")
+        # --- GREINING: syna blondu OG restbias fyrir ALLAR breytur ---
+        # Adeins fyrir NUVERANDI stund (lead 0-1) svo haegt se ad bera
+        # beint saman vid nyjustu maelingu - ekki framtidarspa.
+        if lead <= 1 and temp is not None:
+            _bt, _bw, _bc = wa(T), wa(W), wa(C)
+            _bd = wang(D)
+            _jh = jb.get("hiti", 0.0) if jb else 0.0
+            _jw = jb.get("vindur", 0.0) if jb else 0.0
+            _jc = jb.get("sky", 0.0) if jb else 0.0
+            _jd = jb.get("att", 0.0) if jb else 0.0
+            print(f"  [SPA-GREINING @{lead}klst - berid saman vid maelingu ofar]")
+            print(f"    hiti  : blanda {_bt} {_jh:+.2f} -> {temp}")
+            print(f"    vindur: blanda {_bw} {_jw:+.2f} -> {wind}")
+            print(f"    att   : blanda {_bd} {_jd:+.1f} -> {wdir}")
+            print(f"    sky   : blanda {_bc} {_jc:+.1f} -> "
+                  f"{round(cloud) if cloud is not None else None}")
+            print(f"    medlimir i blondu: hiti={len(T)} vindur={len(W)} "
+                  f"sky={len(C)} att={len(D)} (af {len(ALL_KEYS)})")
+            # Hrair medlimir - til ad sja hvort BIAS eda BLONDUN skemmir
+            _raw_t = [round(v,1) for v,_ in T]
+            _raw_w = [round(v,1) for v,_ in W]
+            print(f"    leidrettir medlimir hiti: {_raw_t}")
+            print(f"    leidrettir medlimir vind: {_raw_w}")
 
         def avg_raw(prefix):
             if i is None: return None
