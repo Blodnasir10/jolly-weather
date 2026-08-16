@@ -21,13 +21,17 @@ SAGA I STUTTU MALI:
         klst, til ad finna hvers vegna Jolly tapar (greining, ekki lagfaering)
   v3.4  SPA-GREINING utvikkud: allar breytur + hrair medlimir, adeins fyrir
         LIDANDI stund svo haegt se ad bera beint saman vid maelingu
+  v3.5  ROTIN FUNDIN: Jolly fekk bias lagt a TVISVAR vid mat (hun er geymd
+        fullleidrett en var medhondlud eins og hrair medlimir). Thad var
+        jakvaed afturvirkni sem let restbias vaxa og eydilagdi spana.
+        Lagfaert + einskiptis-hreinsun a menguðu jolly_bias.
 """
 
 # ═══════════════════════════════════════════════════════════════════════
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "3.4"
+JOLLY_VERSION = "3.5"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -1030,6 +1034,21 @@ def load_model():
         # spain er fost i safninu. Vid nullstillum Jolly-MAE OG skill einu
         # sinni svo their byggist upp hreint fra v3.0 og skill endurspegli
         # NUVERANDI utgafu, ekki 333 keyrslna sogu.
+        # v3.5: jolly_bias var blasid upp af tvofoldu leidrettingunni
+        # (sky +9.5, vind -1.47 og VAXANDI). Nullstillum thad einu sinni
+        # svo thad byggist upp rett med lagfaerdu matinu. Medlima-bias og
+        # thyngdir halda ser - their voru aldrei mengadir.
+        if not raw.get("v35_jolly_bias_reset"):
+            raw["jolly_bias"] = {str(b): empty_bias() for b in LEAD_BUCKETS}
+            for b in LEAD_BUCKETS:
+                lm = raw.get("lead_mae", {}).get(str(b), {})
+                if JOLLY_KEY in lm:
+                    del lm[JOLLY_KEY]
+            raw["skill"] = {v: {} for v in WEIGHT_VARS}
+            raw["v35_jolly_bias_reset"] = True
+            print("  HREINSUN v3.5: jolly_bias nullstillt (var mengad af")
+            print("  tvofaldri leidrettingu). Medlimir og thyngdir halda ser.")
+
         if not raw.get("v30_reset_done"):
             for b in LEAD_BUCKETS:
                 lm = raw.get("lead_mae", {}).get(str(b), {})
@@ -1473,12 +1492,26 @@ def verify_and_train(arch, obs_history, model):
                     cf.setdefault(fk, {})
                     cf[fk][ok] = cf[fk].get(ok, 0) + 1
 
-            # MAE thessarar keyrslu, eftir bias-leidrettingu
-            corr = lambda var: [(o, f + bias_rec[var]) for o, f in pv[var]]
-            # Urkoma: leidrett med kvarda, ekki samlagningu
-            pr_corr = [(o, f * bias_rec["urkoma_scale"]) for o, f in pv["urkoma"]]
-            att_corr = [(o, wrap360(f + bias_rec.get("att", 0.0)))
-                        for o, f in pv["att"]]
+            # MAE thessarar keyrslu, eftir bias-leidrettingu.
+            #
+            # [MIKILVAEGT] Medlimir eru geymdir HRAIR i safninu, svo their
+            # tharfnast bias vid mat. JOLLY er hins vegar geymd FULLLEIDRETT
+            # (archive_jolly geymir thad sem vid birtum, eftir thyngdir,
+            # skilyrt bias OG restbias). Ef vid leggjum bias a hana aftur
+            # her verdur TVOFOLD leidretting: maeld skekkja verdur skokk,
+            # jolly_bias laerir af thvi, og naest er enn meira lagt a.
+            # Thad er jakvaed afturvirkni sem lét restbias vaxa (sky +7.7
+            # -> +9.5, vind -1.24 -> -1.47) og eydilagdi Jolly-spana.
+            _is_jolly = (m == JOLLY_KEY)
+            if _is_jolly:
+                corr     = lambda var: list(pv[var])          # ENGIN vidbot
+                pr_corr  = list(pv["urkoma"])
+                att_corr = list(pv["att"])
+            else:
+                corr = lambda var: [(o, f + bias_rec[var]) for o, f in pv[var]]
+                pr_corr = [(o, f * bias_rec["urkoma_scale"]) for o, f in pv["urkoma"]]
+                att_corr = [(o, wrap360(f + bias_rec.get("att", 0.0)))
+                            for o, f in pv["att"]]
             run_mae = {"hiti":   mae(corr("hiti")),
                        "vindur": mae(corr("vindur")),
                        "att":    circ_mae(att_corr),
