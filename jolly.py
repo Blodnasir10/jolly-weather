@@ -33,13 +33,18 @@ SAGA I STUTTU MALI:
         aviationweather skilar nyjustu FYRST, svo vid fengum alltaf 24 klst
         gamla skyjahulu. Jolly laerdi skyjahulu af gaerdeginum. Nu radad
         eftir tima + vidvorun ef gognin eru eldri en 3 klst.
+  v3.8  TVENNT: (1) SANNLEIKSMAELIR - hlaupandi 24 klst gluggi a HRAUM
+        tolum, oblekkjanlegur, svo vid sjaum hvort skill-taflan logi.
+        (2) TILRAUN: restleidretting EKKI notud (APPLY_JOLLY_RESIDUAL=False)
+        thvi hun rann i thakid og gerdi Jolly verri en medaltal medlima.
+        Hun er laerd afram svo vid sjaum hver raunveruleg skekkja er.
 """
 
 # ═══════════════════════════════════════════════════════════════════════
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "3.7"
+JOLLY_VERSION = "3.8"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -150,6 +155,21 @@ MIN_N_BY_VAR = {"hiti": 4, "vindur": 4, "att": 6, "urkoma": 12, "sky": 6}
 # a hita/vindi thvi thar eru likonin thett saman og fall vaeri of hart.
 FAIL_RATIO   = {"hiti": 3.5, "vindur": 3.5, "att": 3.0,
                 "urkoma": 4.0, "sky": 2.8}   # x MAE besta likans
+
+# --- RESTLEIDRETTING: TILRAUN v3.8 --------------------------------------
+# Medlimir eru THEGAR bias-leidrettir adur en their blandast. Ef su
+# leidretting virkar aetti restbias ad falla i kringum null. Hun gerir thad
+# EKKI - hun rennur i thakid (sky -12.0, att -10.2) og situr thar. Thad
+# bendir til ad hun se ekki ad leidretta kerfisbundna skekkju heldur ad
+# ELTA HAVADA - hun fittar sig ad sidustu maelingum.
+#
+# Sonnun: Jolly hiti @6klst = 1.10 en MEDALTAL medlima = 0.81. Vegin
+# blanda a ALLTAF ad vera betri en medaltal hlutanna. Ad vera verri thydir
+# ad eitthvad er lagt vid EFTIR blondun sem eydileggur hana.
+#
+# Med False laerum vid restbias afram (thad segir okkur hver raunveruleg
+# eftirstandandi skekkja er) en BEITUM henni EKKI a spana.
+APPLY_JOLLY_RESIDUAL = False
 FAIL_MIN_N   = 10      # ekki fella ut fyrr en nogu morg por
 RECOVER_N    = 3       # samfelldar godar spar til ad koma aftur inn
 RECOVER_TOL  = 1.5     # "god spa" = innan 1.5x af besta thann tima
@@ -1285,6 +1305,106 @@ def verify_dataset_stats():
             "last":  files[-1].stem if files else None}
 
 
+
+# ══════════════════════════════════════════════════════════════════════
+#  SANNLEIKSMAELIR - hlaupandi 24 klst gluggi
+#
+#  Skill-taflan hefur logid thrisvar: framsyniskekkja (v1.x), mengud saga
+#  (blindu dagarnir), og tvofold leidretting (v3.4). I hvert sinn tok
+#  marga daga ad finna thad, thvi EMA-id man gamla sogu og hreinsun
+#  skekkir thad.
+#
+#  Thessi maelir er ODYR OG OBLEKKJANLEGUR:
+#    - HRAAR tolur: spa vs maeling, engin bias-leidretting i matinu
+#    - ENGIN EMA: einfalt medaltal yfir sidustu 24 klst
+#    - Gluggi hreinsast sjalfur, svo gomul saga getur ekki mengad
+#    - Sami utreikningur fyrir Jolly OG medlimi - jafn samanburdur
+#
+#  Ef thessi maelir og skill-taflan segja olika hluti, tha er skill-taflan
+#  brotin - EKKI hinn.
+# ══════════════════════════════════════════════════════════════════════
+TRUTH_WINDOW_H = 24
+TRUTH_LEAD     = "1"        # maelum stystu spalengd - thad sem notandinn ser
+
+def truth_update(pairs):
+    """
+    Vistar HRAA (maeling, spa) por i hlaupandi glugga og skilar taflu.
+    pairs[spalengd][gjafi][breyta] = [(maeling, spa), ...]
+    """
+    path = DATA_DIR / "truth.json"
+    store = load_json(path, {"rows": []})
+    now = datetime.now(timezone.utc)
+    stamp = fmt_t(now)
+
+    # Baeta vid nyjum porum fyrir stystu spalengd
+    for m, pv in (pairs.get(TRUTH_LEAD) or {}).items():
+        for var in ("hiti", "vindur", "att", "sky"):
+            for ob, fc in pv.get(var, []):
+                if ob is None or fc is None:
+                    continue
+                store["rows"].append({"t": stamp, "m": m, "v": var,
+                                      "ob": round(ob, 2), "fc": round(fc, 2)})
+
+    # Hreinsa allt eldra en glugginn
+    cutoff = now - timedelta(hours=TRUTH_WINDOW_H)
+    kept = []
+    for r in store["rows"]:
+        try:
+            if parse_t(r["t"]) >= cutoff:
+                kept.append(r)
+        except Exception:
+            pass
+    store["rows"] = kept[-20000:]          # ordugleikavorn
+    save_json(path, store)
+
+    # Reikna HRATT medaltal per gjafa og breytu
+    acc = {}
+    for r in store["rows"]:
+        key = (r["m"], r["v"])
+        d = abs(ang_diff(r["fc"], r["ob"])) if r["v"] == "att" \
+            else abs(r["fc"] - r["ob"])
+        a = acc.setdefault(key, [0.0, 0])
+        a[0] += d; a[1] += 1
+    return {k: (v[0] / v[1], v[1]) for k, v in acc.items() if v[1] > 0}
+
+def truth_print(tbl):
+    """Prentar sannleikstofluna - Jolly a moti medlimum, hratt."""
+    if not tbl:
+        return
+    print(f"SANNLEIKSMAELIR (hrar tolur, sidustu {TRUTH_WINDOW_H} klst, "
+          f"@{TRUTH_LEAD}klst):")
+    hdr = f"  {'gjafi':10}" + "".join(f"{v:>10}" for v in
+                                     ("hiti", "vindur", "att", "sky"))
+    print(hdr + f"{'n':>6}")
+    order = [m for m in ALL_KEYS] + [JOLLY_KEY]
+    for m in order:
+        cells, n_max = [], 0
+        for var in ("hiti", "vindur", "att", "sky"):
+            e = tbl.get((m, var))
+            if e:
+                cells.append(f"{e[0]:>10.2f}")
+                n_max = max(n_max, e[1])
+            else:
+                cells.append(f"{'-':>10}")
+        if n_max == 0:
+            continue
+        nafn = "JOLLY" if m == JOLLY_KEY else m
+        line = f"  {nafn:10}" + "".join(cells) + f"{n_max:>6}"
+        print(("  " + "-" * 56) if m == JOLLY_KEY else "", end="")
+        if m == JOLLY_KEY: print()
+        print(line)
+    # Dómur: Jolly a moti medaltali OG besta medlimi
+    for var in ("hiti", "vindur", "att", "sky"):
+        j = tbl.get((JOLLY_KEY, var))
+        mem = [tbl[(m, var)][0] for m in ALL_KEYS if (m, var) in tbl]
+        if not j or not mem:
+            continue
+        avg, best = sum(mem) / len(mem), min(mem)
+        d_avg = (avg - j[0]) / avg * 100 if avg else 0
+        d_best = (best - j[0]) / best * 100 if best else 0
+        print(f"    {var:7} Jolly {j[0]:.2f} | medaltal {avg:.2f} "
+              f"({d_avg:+.0f}%) | besti {best:.2f} ({d_best:+.0f}%)")
+
 def verify_and_train(arch, obs_history, model):
     """
     Ber geymdar spar saman vid raunverulegar maelingar og laerir bias
@@ -1403,6 +1523,15 @@ def verify_and_train(arch, obs_history, model):
             if mp.get("hiti"):
                 mbias = _st.mean(f - o for o, f in mp["hiti"])
                 print(f"           {mm} hra-bias: {mbias:+.2f}")
+
+    # SANNLEIKSMAELIR: hraa por, engin leidretting, hlaupandi gluggi.
+    # Kallad HER svo hann fai somu por og stadfestingin - jafn samanburdur.
+    try:
+        _truth = truth_update(pairs)
+        model["_truth"] = True
+        globals()["_TRUTH_TBL"] = _truth
+    except Exception as e:
+        print(f"  (sannleiksmaelir: {e})")
 
     n_csv = append_verify_rows(csv_rows)
     ds = verify_dataset_stats()
@@ -1972,7 +2101,7 @@ def make_forecast(fc, extras, model):
                   for k2 in ("hiti", "vindur", "att", "sky")}
             jb["urkoma_scale"] = blend2(jbl.get("urkoma_scale", 1.0),
                                         jbh.get("urkoma_scale", 1.0), b_f)
-        if jb:
+        if jb and APPLY_JOLLY_RESIDUAL:
             if temp  is not None: temp  = round(temp + jb.get("hiti", 0.0), 2)
             if wind  is not None: wind  = round(max(0.0, wind + jb.get("vindur", 0.0)), 2)
             if wdir  is not None: wdir  = round(wrap360(wdir + jb.get("att", 0.0)), 1)
@@ -2164,7 +2293,8 @@ def print_coverage(model, fc, extras):
         print(f"  {'JOLLY':9s} " + "".join(cells))
         jb = (model.get("jolly_bias") or {}).get(bs)
         if jb:
-            print(f"  restbias   hiti {jb.get('hiti',0):+.2f}  "
+            _tag = "" if APPLY_JOLLY_RESIDUAL else "  (EKKI NOTUD - tilraun)"
+            print(f"  restbias{_tag}   hiti {jb.get('hiti',0):+.2f}  "
                   f"vind {jb.get('vindur',0):+.2f}  "
                   f"att {jb.get('att',0):+.1f}  "
                   f"urk x{jb.get('urkoma_scale',1):.2f}  "
@@ -2194,6 +2324,11 @@ def print_coverage(model, fc, extras):
             print("    (reitir enn ad byggjast upp - tharf fleiri stadfestingar)")
     print("  ('--gogn' = gjafinn skilar ekki breytunni | "
           "'bid' = of fair samanburdir enn)")
+    # Sannleiksmaelirinn - obrengladur samanburdur
+    try:
+        truth_print(globals().get("_TRUTH_TBL") or {})
+    except Exception as e:
+        print(f"  (sannleikstafla: {e})")
     # Fallin likon - their eru AFRAM maeld og geta komid aftur inn
     _f = model.get("failed", {})
     _lines = []
