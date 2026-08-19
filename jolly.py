@@ -69,7 +69,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "4.4"
+JOLLY_VERSION = "4.5"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -195,6 +195,11 @@ FAIL_RATIO   = {"hiti": 3.5, "vindur": 3.5, "att": 3.0,
 # Med False laerum vid restbias afram (thad segir okkur hver raunveruleg
 # eftirstandandi skekkja er) en BEITUM henni EKKI a spana.
 APPLY_JOLLY_RESIDUAL = False
+
+# Thok a restleidrettingu. Voru adur hardkodud inni i lykkjunni svo
+# sjalfsvoktunin gat ekki vitad hver thau eru - thad olli NameError og
+# felldi keyrsluna. Nu ein uppspretta sem baedi namid og voktunin nota.
+JOLLY_BIAS_CAP = {"hiti": 1.5, "vindur": 1.5, "att": 12.0, "sky": 12.0}
 
 # --- MEDLIMA-BIAS: TILRAUN v4.0 -----------------------------------------
 # Sannleiksmaelirinn (19.ag) syndi ad ALMENNA hita-biasid gerir 8 af 9
@@ -1917,10 +1922,11 @@ def verify_and_train(arch, obs_history, model):
                 # tvofold leidretting sem getur ordid ostodug.
                 # Thokin her leyfa raunverulega blonduhlutdraegni en ekki
                 # eltingaleik vid laerdomssveiflur.
-                for var, fn, cap in (("hiti", bias, 1.5),
-                                     ("vindur", bias, 1.5),
-                                     ("att", circ_bias, 12.0),
-                                     ("sky", bias, 12.0)):
+                for var, fn, cap in (
+                        ("hiti",   bias,      JOLLY_BIAS_CAP["hiti"]),
+                        ("vindur", bias,      JOLLY_BIAS_CAP["vindur"]),
+                        ("att",    circ_bias, JOLLY_BIAS_CAP["att"]),
+                        ("sky",    bias,      JOLLY_BIAS_CAP["sky"])):
                     if not pv[var]: continue
                     err = fn(pv[var]) or 0.0
                     a = adaptive_lr(model, f"jolly|{bs}|{var}", err)
