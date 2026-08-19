@@ -42,13 +42,21 @@ SAGA I STUTTU MALI:
         (er Jolly betri en likan ur kassanum?) OG vid LEIDRETTA medlimi
         (baetir blondun einhverju vid MOS a einu likani?). Fyrri utgafa bar
         adeins hraa medlimi vid leidretta Jolly - ojafn samanburdur.
+  v4.0  NAKVAEMNI FRAM YFIR ALLT:
+        - Sannleiksmaelirinn notar NU NAKVAEMLEGA sama bias-fall og spain
+          (member_bias), svo samanburdurinn se hnitmiadadur.
+        - THRIHYRNINGSVORN: hropar sjalfkrafa ef Jolly verdur verri en
+          medaltal medlima sinna - thad er staerdfraedilega omogulegt.
+        - SUNDURLIDUN eftir vindatt x dagur/nott, thvi medaltal fela mynstur.
+        - TILRAUN: hita-bias a medlimi SLOKKT (APPLY_MEMBER_BIAS) thvi
+          maelingar syndu ad thad gerdi 8 af 9 likonum verri.
 """
 
 # ═══════════════════════════════════════════════════════════════════════
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "3.9"
+JOLLY_VERSION = "4.0"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -174,6 +182,25 @@ FAIL_RATIO   = {"hiti": 3.5, "vindur": 3.5, "att": 3.0,
 # Med False laerum vid restbias afram (thad segir okkur hver raunveruleg
 # eftirstandandi skekkja er) en BEITUM henni EKKI a spana.
 APPLY_JOLLY_RESIDUAL = False
+
+# --- MEDLIMA-BIAS: TILRAUN v4.0 -----------------------------------------
+# Sannleiksmaelirinn (19.ag) syndi ad ALMENNA hita-biasid gerir 8 af 9
+# likonum VERRI: medaltal 1.52 -> 1.72 (+13%). Adeins harmonie batnar -
+# og thad er eina likanid med naestum null skilyrt bias.
+#
+# Med False fyrir breytu er EKKERT bias lagt a medlimi i theirri breytu
+# (hvorki almennt ne skilyrt). Vid maelum svo hvort Jolly batni.
+APPLY_MEMBER_BIAS = {"hiti": False, "vindur": True, "att": True,
+                     "urkoma": True, "sky": True}
+
+def member_bias(model, m, bs, cell, var, general):
+    """
+    Bias sem er raunverulega lagt a medlim. Ein leid inn - svo
+    sannleiksmaelirinn geti notad NAKVAEMLEGA sama utreikning og spain.
+    """
+    if not APPLY_MEMBER_BIAS.get(var, True):
+        return 0.0
+    return cond_bias_value(model, m, bs, cell, var, general)
 FAIL_MIN_N   = 10      # ekki fella ut fyrr en nogu morg por
 RECOVER_N    = 3       # samfelldar godar spar til ad koma aftur inn
 RECOVER_TOL  = 1.5     # "god spa" = innan 1.5x af besta thann tima
@@ -1330,18 +1357,17 @@ def verify_dataset_stats():
 TRUTH_WINDOW_H = 24
 TRUTH_LEAD     = "1"        # maelum stystu spalengd - thad sem notandinn ser
 
-def truth_update(pairs, model=None):
+def truth_update(rows_in, model=None):
     """
-    Vistar (maeling, spa) por i hlaupandi glugga og skilar taflu.
+    Vistar por i hlaupandi glugga MED REIT (vindatt x dagur/nott).
 
-    Geymir TVENNT fyrir hvern medlim:
-      fc  = HRAA spa (eins og likanid skiladi henni)
-      fcc = LEIDRETT spa (eftir bias-leidrettingu Jolly)
-    Jolly sjalf er thegar leidrett svo bædi eru eins hja henni.
+    Leidrett gildi er reiknad med NAKVAEMLEGA sama falli og spain notar
+    (member_bias -> cond_bias_value med shrinkage). Adur var notad almennt
+    bias sem er EKKI thad sama - tha var samanburdurinn skakkur.
 
-    Thad gefur TVO samanburdi:
-      "hrair"     - er Jolly betri en likan STRAX UR KASSANUM?  (notandinn)
-      "leidrettir"- baetir BLONDUN einhverju vid MOS a einu likani? (honnun)
+    Med thvi verdur thrihyrningsojafnan gild villuvorn:
+      skekkja blondu <= vegid medaltal skekkju medlima, ALLTAF.
+    Ef hun brotnar er eitthvad ad - engin undantekning til.
     """
     path = DATA_DIR / "truth.json"
     store = load_json(path, {"rows": []})
@@ -1349,26 +1375,23 @@ def truth_update(pairs, model=None):
     stamp = fmt_t(now)
     bs = TRUTH_LEAD
 
-    def _bias(m, var):
-        """Sama leidretting sem matid notar - 0 fyrir Jolly."""
+    def _corr(m, var, fc, cell):
+        """NAKVAEMLEGA sama leidretting og spain notar."""
         if m == JOLLY_KEY or not model:
-            return 0.0
-        b = (model.get("bias", {}).get(m, {}) or {}).get(bs) or {}
-        return b.get(var, 0.0) or 0.0
+            return fc                      # Jolly er thegar leidrett
+        gen = ((model.get("bias", {}).get(m, {}) or {}).get(bs) or {})
+        b = member_bias(model, m, bs, cell, var, gen.get(var, 0.0) or 0.0)
+        return wrap360(fc + b) if var == "att" else fc + b
 
-    for m, pv in (pairs.get(bs) or {}).items():
-        for var in ("hiti", "vindur", "att", "sky"):
-            bo = _bias(m, var)
-            for ob, fc in pv.get(var, []):
-                if ob is None or fc is None:
-                    continue
-                fcc = wrap360(fc + bo) if var == "att" else fc + bo
-                store["rows"].append({"t": stamp, "m": m, "v": var,
-                                      "ob": round(ob, 2),
-                                      "fc": round(fc, 2),
-                                      "fcc": round(fcc, 2)})
+    for r in rows_in:
+        m, var, ob, fc, cell = r["m"], r["v"], r["ob"], r["fc"], r.get("cell")
+        if ob is None or fc is None:
+            continue
+        store["rows"].append({"t": stamp, "m": m, "v": var,
+                              "ob": round(ob, 2), "fc": round(fc, 2),
+                              "fcc": round(_corr(m, var, fc, cell), 2),
+                              "c": cell or "?"})
 
-    # Hreinsa allt eldra en glugginn
     cutoff = now - timedelta(hours=TRUTH_WINDOW_H)
     kept = []
     for r in store["rows"]:
@@ -1377,78 +1400,96 @@ def truth_update(pairs, model=None):
                 kept.append(r)
         except Exception:
             pass
-    store["rows"] = kept[-20000:]          # ordugleikavorn
+    store["rows"] = kept[-20000:]
     save_json(path, store)
 
-    # Reikna HRATT medaltal per gjafa og breytu - baedi hratt og leidrett
-    acc = {}
+    def _err(v, a, b):
+        return abs(ang_diff(a, b)) if v == "att" else abs(a - b)
+
+    # Heildartafla OG sundurlidun eftir reit
+    acc, by_cell = {}, {}
     for r in store["rows"]:
-        key = (r["m"], r["v"])
-        a = acc.setdefault(key, [0.0, 0.0, 0])
-        if r["v"] == "att":
-            a[0] += abs(ang_diff(r["fc"], r["ob"]))
-            a[1] += abs(ang_diff(r.get("fcc", r["fc"]), r["ob"]))
-        else:
-            a[0] += abs(r["fc"] - r["ob"])
-            a[1] += abs(r.get("fcc", r["fc"]) - r["ob"])
-        a[2] += 1
-    return {k: (v[0] / v[2], v[1] / v[2], v[2])
-            for k, v in acc.items() if v[2] > 0}
+        e_raw = _err(r["v"], r["fc"], r["ob"])
+        e_cor = _err(r["v"], r.get("fcc", r["fc"]), r["ob"])
+        a = acc.setdefault((r["m"], r["v"]), [0.0, 0.0, 0])
+        a[0] += e_raw; a[1] += e_cor; a[2] += 1
+        k = (r.get("c", "?"), r["m"], r["v"])
+        b = by_cell.setdefault(k, [0.0, 0])
+        b[0] += e_cor; b[1] += 1
+    tbl = {k: (v[0] / v[2], v[1] / v[2], v[2])
+           for k, v in acc.items() if v[2] > 0}
+    cells = {k: (v[0] / v[1], v[1]) for k, v in by_cell.items() if v[1] > 0}
+    globals()["_TRUTH_CELLS"] = cells
+    return tbl
 
 def truth_print(tbl):
     """
-    Prentar sannleikstofluna. TVEIR domar:
-      vs HRAIR medlimir     - er Jolly betri en likan strax ur kassanum?
-      vs LEIDRETTIR medlimir- baetir BLONDUN einhverju vid MOS a einu likani?
-    Seinni domurinn er hardari og segir hvort ensemble-id se thess virdi.
+    Sannleikstafla + sundurlidun eftir reit (vindatt x dagur/nott)
+    + THRIHYRNINGSVORN sem gripur omoguleg gildi sjalfkrafa.
     """
     if not tbl:
         return
     VARS = ("hiti", "vindur", "att", "sky")
-    print(f"SANNLEIKSMAELIR (hrar tolur, sidustu {TRUTH_WINDOW_H} klst, "
+    print(f"SANNLEIKSMAELIR (hraar tolur, sidustu {TRUTH_WINDOW_H} klst, "
           f"@{TRUTH_LEAD}klst)")
     print("  gjafi        " + "".join(f"{v:>9}" for v in VARS)
-          + "   (leidrett i sviga)")
+          + "   (leidrett eins og spain gerir)")
     n_show = 0
     for m in list(ALL_KEYS) + [JOLLY_KEY]:
-        cells, n_max = [], 0
+        cells, corr, n_max = [], [], 0
         for var in VARS:
             e = tbl.get((m, var))
             if e:
                 cells.append(f"{e[0]:>9.2f}")
+                corr.append(f"{e[1]:.2f}")
                 n_max = max(n_max, e[2])
             else:
-                cells.append(f"{'-':>9}")
+                cells.append(f"{'-':>9}"); corr.append("-")
         if n_max == 0:
             continue
-        corr = []
-        for var in VARS:
-            e = tbl.get((m, var))
-            corr.append(f"{e[1]:.2f}" if e else "-")
-        nafn = "JOLLY" if m == JOLLY_KEY else m
         if m == JOLLY_KEY:
             print("  " + "-" * 46)
-        print(f"  {nafn:12}" + "".join(cells)
-              + "   (" + " ".join(corr) + ")")
+        nafn = "JOLLY" if m == JOLLY_KEY else m
+        print(f"  {nafn:12}" + "".join(cells) + "   (" + " ".join(corr) + ")")
         n_show = max(n_show, n_max)
     print(f"  n = {n_show} por")
 
-    # Domar
+    # Domar + THRIHYRNINGSVORN
     for var in VARS:
         j = tbl.get((JOLLY_KEY, var))
         raw = [tbl[(m, var)][0] for m in ALL_KEYS if (m, var) in tbl]
         cor = [tbl[(m, var)][1] for m in ALL_KEYS if (m, var) in tbl]
-        if not j or not raw:
+        if not j or not cor:
             continue
-        r_avg, c_avg = sum(raw) / len(raw), sum(cor) / len(cor)
-        r_pct = (r_avg - j[0]) / r_avg * 100 if r_avg else 0
-        c_pct = (c_avg - j[0]) / c_avg * 100 if c_avg else 0
-        c_best = min(cor)
-        b_pct = (c_best - j[0]) / c_best * 100 if c_best else 0
-        print(f"    {var:7} Jolly {j[0]:6.2f} | "
-              f"hrair {r_avg:6.2f} ({r_pct:+.0f}%) | "
-              f"leidrettir {c_avg:6.2f} ({c_pct:+.0f}%) | "
-              f"besti leidr. {c_best:6.2f} ({b_pct:+.0f}%)")
+        r_avg, c_avg, c_best = sum(raw)/len(raw), sum(cor)/len(cor), min(cor)
+        f = lambda a: (a - j[0]) / a * 100 if a else 0.0
+        print(f"    {var:7} Jolly {j[0]:6.2f} | hrair {r_avg:6.2f} "
+              f"({f(r_avg):+.0f}%) | leidrettir {c_avg:6.2f} ({f(c_avg):+.0f}%) "
+              f"| besti {c_best:6.2f} ({f(c_best):+.0f}%)")
+        # Thrihyrningsojafnan: |sum w*f - o| <= sum w*|f - o|.
+        # Blandan getur ALDREI verid verri en medaltal medlima sinna.
+        if j[0] > c_avg * 1.02:      # 2% svigrum fyrir namundun/vigtir
+            print(f"      OMOGULEGT: Jolly ({j[0]:.2f}) > medaltal medlima "
+                  f"({c_avg:.2f}). Thrihyrningsojafnan brotin - eitthvad")
+            print(f"      er lagt vid EFTIR blondun eda blondun er rong.")
+
+    # Sundurlidun eftir reit - thar sem nakvaemnin raunverulega byr
+    cells = globals().get("_TRUTH_CELLS") or {}
+    if cells:
+        reitir = sorted({k[0] for k in cells if k[0] != "?"})
+        if reitir:
+            print("  EFTIR REIT (leidrett MAE, vindatt x dagur/nott):")
+            print("    reitur      " + "".join(f"{v:>9}" for v in VARS) + "     n")
+            for rt in reitir:
+                row, nmax = [], 0
+                for var in VARS:
+                    e = cells.get((rt, JOLLY_KEY, var))
+                    if e:
+                        row.append(f"{e[0]:>9.2f}"); nmax = max(nmax, e[1])
+                    else:
+                        row.append(f"{'-':>9}")
+                if nmax:
+                    print(f"    {rt:12}" + "".join(row) + f"{nmax:>6}")
 
 def verify_and_train(arch, obs_history, model):
     """
@@ -1466,6 +1507,7 @@ def verify_and_train(arch, obs_history, model):
     csv_rows = []          # fer i langtimasafnid
     # cond_pairs[likan] = [(vars_list, cell), ...] fyrir skilyrt bias
     cond_pairs = {}
+    truth_rows = []        # fyrir sannleiksmaelinn, med reit
 
     for vt, leads in arch.items():
         o = obs_by_t.get(vt)
@@ -1496,6 +1538,11 @@ def verify_and_train(arch, obs_history, model):
                     if ov is not None and fv is not None:
                         pairs[lead_s][m][var].append((ov, fv))
                         var_pairs.append((var, ov, fv))
+                        # Sannleiksmaelir: geyma MED REIT svo haegt se ad
+                        # sundurlida eftir vindatt x dagur/nott
+                        if lead_s == TRUTH_LEAD and var != "urkoma":
+                            truth_rows.append({"m": m, "v": var, "ob": ov,
+                                               "fc": fv, "cell": cell})
                         n_pairs += 1
                         used = True
                 # Skilyrt bias adeins fyrir medlimi (ekki Jolly)
@@ -1572,7 +1619,7 @@ def verify_and_train(arch, obs_history, model):
     # SANNLEIKSMAELIR: hraa por, engin leidretting, hlaupandi gluggi.
     # Kallad HER svo hann fai somu por og stadfestingin - jafn samanburdur.
     try:
-        _truth = truth_update(pairs, model)
+        _truth = truth_update(truth_rows, model)
         model["_truth"] = True
         globals()["_TRUTH_TBL"] = _truth
     except Exception as e:
@@ -2036,14 +2083,14 @@ def make_forecast(fc, extras, model):
             # Bias bruad milli spalengdarholfa (mjukt i stad stalls), og
             # sidan skilyrt a vindatt/dag-nott med shrinkage.
             cb_hiti = blend2(
-                cond_bias_value(model, m, b_lo, cur_cell, "hiti", bl["hiti"]),
-                cond_bias_value(model, m, b_hi, cur_cell, "hiti", bh["hiti"]), b_f)
+                member_bias(model, m, b_lo, cur_cell, "hiti", bl["hiti"]),
+                member_bias(model, m, b_hi, cur_cell, "hiti", bh["hiti"]), b_f)
             cb_vindur = blend2(
-                cond_bias_value(model, m, b_lo, cur_cell, "vindur", bl["vindur"]),
-                cond_bias_value(model, m, b_hi, cur_cell, "vindur", bh["vindur"]), b_f)
+                member_bias(model, m, b_lo, cur_cell, "vindur", bl["vindur"]),
+                member_bias(model, m, b_hi, cur_cell, "vindur", bh["vindur"]), b_f)
             cb_att = blend2(
-                cond_bias_value(model, m, b_lo, cur_cell, "att", bl.get("att",0.0)),
-                cond_bias_value(model, m, b_hi, cur_cell, "att", bh.get("att",0.0)),
+                member_bias(model, m, b_lo, cur_cell, "att", bl.get("att",0.0)),
+                member_bias(model, m, b_hi, cur_cell, "att", bh.get("att",0.0)),
                 b_f, angle=False)
             cb_scale = blend2(bl["urkoma_scale"], bh["urkoma_scale"], b_f)
             cb_thr   = blend2(precip_threshold(model, m, b_lo),
@@ -2083,14 +2130,14 @@ def make_forecast(fc, extras, model):
             xb = model["bias"][k][bs]
             xl = model["bias"][k][b_lo]; xh = model["bias"][k][b_hi]
             xcb_hiti = blend2(
-                cond_bias_value(model, k, b_lo, cur_cell, "hiti", xl["hiti"]),
-                cond_bias_value(model, k, b_hi, cur_cell, "hiti", xh["hiti"]), b_f)
+                member_bias(model, k, b_lo, cur_cell, "hiti", xl["hiti"]),
+                member_bias(model, k, b_hi, cur_cell, "hiti", xh["hiti"]), b_f)
             xcb_vindur = blend2(
-                cond_bias_value(model, k, b_lo, cur_cell, "vindur", xl["vindur"]),
-                cond_bias_value(model, k, b_hi, cur_cell, "vindur", xh["vindur"]), b_f)
+                member_bias(model, k, b_lo, cur_cell, "vindur", xl["vindur"]),
+                member_bias(model, k, b_hi, cur_cell, "vindur", xh["vindur"]), b_f)
             xcb_att = blend2(
-                cond_bias_value(model, k, b_lo, cur_cell, "att", xl.get("att",0.0)),
-                cond_bias_value(model, k, b_hi, cur_cell, "att", xh.get("att",0.0)), b_f)
+                member_bias(model, k, b_lo, cur_cell, "att", xl.get("att",0.0)),
+                member_bias(model, k, b_hi, cur_cell, "att", xh.get("att",0.0)), b_f)
             xcb_scale = blend2(xl["urkoma_scale"], xh["urkoma_scale"], b_f)
             xcb_thr   = blend2(precip_threshold(model, k, b_lo),
                                precip_threshold(model, k, b_hi), b_f)
