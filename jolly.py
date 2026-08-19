@@ -69,7 +69,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "4.3"
+JOLLY_VERSION = "4.4"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -283,6 +283,32 @@ def health_block():
            + (f" ({alv} ALVARLEG)" if alv else "") + ":")
     lines = [hdr] + [f"  {t} {m}" for t, m in _HEALTH]
     return "\n".join(lines) + "\n"
+
+def corrected_member(model, m, bs, cell, var, raw):
+    """
+    NAKVAEMLEGA sama leidretting og spain notar - fyrir hverja breytu.
+
+    [MIKILVAEGT] Sky fer EKKI i gegnum einfalda samlagningu heldur
+    correct_cloud() sem er flokkabundid OG klemmir i 0-100. Adur notudu
+    sannleiksmaelirinn og krufningin einfalda samlagningu og fengu tha
+    NEIKVAEDA skyjahulu (-34.8%) sem er edlisfraedilega omoguleg. Thad
+    var gervi i maelitaekinu, ekki villa i spanni - en thad let
+    thrihyrningsvornina hropa ad osekju.
+
+    Vindur er klemmdur vid 0 og att vafid i 0-360, eins og i spanni.
+    """
+    if raw is None:
+        return None
+    if var == "sky":
+        return correct_cloud(raw, model, m, bs)
+    gen = ((model.get("bias", {}).get(m, {}) or {})
+           .get(bs) or {}).get(var, 0.0) or 0.0
+    b = member_bias(model, m, bs, cell, var, gen)
+    if var == "att":
+        return wrap360(raw + b)
+    if var == "vindur":
+        return max(0.0, raw + b)
+    return raw + b
 
 def member_bias(model, m, bs, cell, var, general):
     """
@@ -1502,9 +1528,8 @@ def truth_update(rows_in, model=None):
         """NAKVAEMLEGA sama leidretting og spain notar."""
         if m == JOLLY_KEY or not model:
             return fc                      # Jolly er thegar leidrett
-        gen = ((model.get("bias", {}).get(m, {}) or {}).get(bs) or {})
-        b = member_bias(model, m, bs, cell, var, gen.get(var, 0.0) or 0.0)
-        return wrap360(fc + b) if var == "att" else fc + b
+        v = corrected_member(model, m, bs, cell, var, fc)
+        return fc if v is None else v
 
     for r in rows_in:
         m, var, ob, fc, cell = r["m"], r["v"], r["ob"], r["fc"], r.get("cell")
@@ -1794,9 +1819,8 @@ def verify_and_train(arch, obs_history, model):
                 if not _mp:
                     continue
                 _, _raw = _mp[0]
-                _gen = ((model.get("bias", {}).get(m, {}) or {})
-                        .get(_bs) or {}).get("sky", 0.0) or 0.0
-                _cor = _raw + member_bias(model, m, _bs, cell, "sky", _gen)
+                _cor = corrected_member(model, m, _bs, cell, "sky", _raw)
+                if _cor is None: _cor = _raw
                 _w = (model.get("weights", {}).get("sky", {})
                           .get(_bs, {}) or {}).get(m, 0.0)
                 _num += _w * _cor; _den += _w
@@ -2326,7 +2350,7 @@ def make_forecast(fc, extras, model):
                 _dp = (_pa[i] - _pa[i - 3]) / 3.0
         cur_cell_p = cond_key_precip(grov_att, _dp)
 
-        def W(var, m):
+        def WGT(var, m):
             """
             Thyngd likans i THESSUM adstaedum. Fellur aftur a almennu
             thyngdirnar ef reiturinn hefur ekki nog gogn.
@@ -2340,7 +2364,7 @@ def make_forecast(fc, extras, model):
 
         for m, api in MODELS.items():
             # Fjorar thyngdir - ein per breytu
-            wv = {v: W(v, m) for v in WEIGHT_VARS}
+            wv = {v: WGT(v, m) for v in WEIGHT_VARS}
             b  = model["bias"][m][bs]
             bl = model["bias"][m][b_lo]
             bh = model["bias"][m][b_hi]
@@ -2390,7 +2414,7 @@ def make_forecast(fc, extras, model):
             if cp is not None and wv["urkoma"] > 0: P.append((cp, wv["urkoma"]))
 
         for k, src in extras.items():
-            xv = {v: W(v, k) for v in WEIGHT_VARS}
+            xv = {v: WGT(v, k) for v in WEIGHT_VARS}
             xb = model["bias"][k][bs]
             xl = model["bias"][k][b_lo]; xh = model["bias"][k][b_hi]
             xcb_hiti = blend2(
