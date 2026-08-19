@@ -58,13 +58,18 @@ SAGA I STUTTU MALI:
         annarri. URKOMA faer sinn eigin reit: att x THRYSTITHROUN
         (fall/jafn/ris) thvi urkoma raest af synoptiskri thvingun, ekki
         solarhringssveiflu.
+  v4.2  THRIHYRNINGSVORNIN LAGFAERD: bar adur vegna blondu vid OVEGID
+        medaltal - ekki gild ojafna. Notar nu raunverulegar thyngdir Jolly.
+        + KRUFNING: synir EINA stadfestingu i heild (hver medlimur, thyngd,
+        reiknud blanda, geymd Jolly-spa) svo se haegt ad sja hvort geymda
+        gildid passi vid blonduna. Vornin greip a skyi og vindi 19.ag.
 """
 
 # ═══════════════════════════════════════════════════════════════════════
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "4.1"
+JOLLY_VERSION = "4.2"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -1520,12 +1525,27 @@ def truth_print(tbl):
         print(f"    {var:7} Jolly {j[0]:6.2f} | hrair {r_avg:6.2f} "
               f"({f(r_avg):+.0f}%) | leidrettir {c_avg:6.2f} ({f(c_avg):+.0f}%) "
               f"| besti {c_best:6.2f} ({f(c_best):+.0f}%)")
-        # Thrihyrningsojafnan: |sum w*f - o| <= sum w*|f - o|.
-        # Blandan getur ALDREI verid verri en medaltal medlima sinna.
-        if j[0] > c_avg * 1.02:      # 2% svigrum fyrir namundun/vigtir
-            print(f"      OMOGULEGT: Jolly ({j[0]:.2f}) > medaltal medlima "
-                  f"({c_avg:.2f}). Thrihyrningsojafnan brotin - eitthvad")
-            print(f"      er lagt vid EFTIR blondun eda blondun er rong.")
+        # THRIHYRNINGSVORN. Ojafnan |sum w*f - o| <= sum w*|f - o| gildir
+        # fyrir SOMU thyngdir - svo vid verdum ad nota RAUNVERULEGAR
+        # thyngdir Jolly, ekki ovegid medaltal. (Fyrri utgafa bar saman
+        # vegna blondu vid ovegid medaltal - ekki gild ojafna.)
+        mdl = globals().get("_TRUTH_MODEL")
+        if mdl:
+            wsum, acc_w = 0.0, 0.0
+            for m in ALL_KEYS:
+                if (m, var) not in tbl:
+                    continue
+                w = (mdl.get("weights", {}).get(var, {})
+                        .get(TRUTH_LEAD, {}) or {}).get(m, 0.0)
+                wsum += w
+                acc_w += w * tbl[(m, var)][1]
+            if wsum > 0:
+                w_avg = acc_w / wsum
+                if j[0] > w_avg * 1.02:      # 2% svigrum fyrir namundun
+                    print(f"      OMOGULEGT: Jolly ({j[0]:.2f}) > VEGID "
+                          f"medaltal medlima ({w_avg:.2f}).")
+                    print(f"      Thrihyrningsojafnan brotin - blondun eda "
+                          f"vistun er rong.")
 
     # Sundurlidun eftir reit - thar sem nakvaemnin raunverulega byr
     cells = globals().get("_TRUTH_CELLS") or {}
@@ -1687,8 +1707,43 @@ def verify_and_train(arch, obs_history, model):
         _truth = truth_update(truth_rows, model)
         model["_truth"] = True
         globals()["_TRUTH_TBL"] = _truth
+        globals()["_TRUTH_MODEL"] = model
     except Exception as e:
         print(f"  (sannleiksmaelir: {e})")
+
+    # --- KRUFNING: EIN stadfesting synd i heild --------------------------
+    # Ef geymd Jolly-spa er ekki sama og vegin blanda af geymdum medlimum,
+    # tha er eitthvad ad milli blondunar og vistunar. Thetta er eina leidin
+    # ad sja thad - allt annad er agiskun.
+    try:
+        _bs = TRUTH_LEAD
+        _j = pairs[_bs].get(JOLLY_KEY, {}).get("sky", [])
+        if _j:
+            _ob, _jf = _j[0]
+            print(f"  KRUFNING @{_bs}klst sky (maeling {_ob:.1f}):")
+            _num = _den = 0.0
+            for m in ALL_KEYS:
+                _mp = pairs[_bs].get(m, {}).get("sky", [])
+                if not _mp:
+                    continue
+                _, _raw = _mp[0]
+                _gen = ((model.get("bias", {}).get(m, {}) or {})
+                        .get(_bs) or {}).get("sky", 0.0) or 0.0
+                _cor = _raw + member_bias(model, m, _bs, cell, "sky", _gen)
+                _w = (model.get("weights", {}).get("sky", {})
+                          .get(_bs, {}) or {}).get(m, 0.0)
+                _num += _w * _cor; _den += _w
+                print(f"    {m:9} hratt {_raw:6.1f} -> leidrett {_cor:6.1f}"
+                      f"  x thyngd {_w*100:4.1f}%")
+            if _den > 0:
+                _blend = _num / _den
+                print(f"    REIKNUD BLANDA        {_blend:6.1f}")
+                print(f"    GEYMD JOLLY-SPA       {_jf:6.1f}"
+                      f"   mismunur {_jf - _blend:+.1f}")
+                if abs(_jf - _blend) > 2.0:
+                    print(f"    OSAMRAEMI: geymd spa passar EKKI vid blondu.")
+    except Exception as _e:
+        print(f"  (krufning: {_e})")
 
     # --- UPPFAERA REIT-MAE: hver er bestur i hverjum adstaedum -----------
     if cell_rows:
