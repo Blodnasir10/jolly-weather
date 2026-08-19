@@ -38,13 +38,17 @@ SAGA I STUTTU MALI:
         (2) TILRAUN: restleidretting EKKI notud (APPLY_JOLLY_RESIDUAL=False)
         thvi hun rann i thakid og gerdi Jolly verri en medaltal medlima.
         Hun er laerd afram svo vid sjaum hver raunveruleg skekkja er.
+  v3.9  SANNLEIKSMAELIR baettur: synir NU BAEDI samanburd vid HRAA medlimi
+        (er Jolly betri en likan ur kassanum?) OG vid LEIDRETTA medlimi
+        (baetir blondun einhverju vid MOS a einu likani?). Fyrri utgafa bar
+        adeins hraa medlimi vid leidretta Jolly - ojafn samanburdur.
 """
 
 # ═══════════════════════════════════════════════════════════════════════
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "3.8"
+JOLLY_VERSION = "3.9"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -1326,24 +1330,43 @@ def verify_dataset_stats():
 TRUTH_WINDOW_H = 24
 TRUTH_LEAD     = "1"        # maelum stystu spalengd - thad sem notandinn ser
 
-def truth_update(pairs):
+def truth_update(pairs, model=None):
     """
-    Vistar HRAA (maeling, spa) por i hlaupandi glugga og skilar taflu.
-    pairs[spalengd][gjafi][breyta] = [(maeling, spa), ...]
+    Vistar (maeling, spa) por i hlaupandi glugga og skilar taflu.
+
+    Geymir TVENNT fyrir hvern medlim:
+      fc  = HRAA spa (eins og likanid skiladi henni)
+      fcc = LEIDRETT spa (eftir bias-leidrettingu Jolly)
+    Jolly sjalf er thegar leidrett svo bædi eru eins hja henni.
+
+    Thad gefur TVO samanburdi:
+      "hrair"     - er Jolly betri en likan STRAX UR KASSANUM?  (notandinn)
+      "leidrettir"- baetir BLONDUN einhverju vid MOS a einu likani? (honnun)
     """
     path = DATA_DIR / "truth.json"
     store = load_json(path, {"rows": []})
     now = datetime.now(timezone.utc)
     stamp = fmt_t(now)
+    bs = TRUTH_LEAD
 
-    # Baeta vid nyjum porum fyrir stystu spalengd
-    for m, pv in (pairs.get(TRUTH_LEAD) or {}).items():
+    def _bias(m, var):
+        """Sama leidretting sem matid notar - 0 fyrir Jolly."""
+        if m == JOLLY_KEY or not model:
+            return 0.0
+        b = (model.get("bias", {}).get(m, {}) or {}).get(bs) or {}
+        return b.get(var, 0.0) or 0.0
+
+    for m, pv in (pairs.get(bs) or {}).items():
         for var in ("hiti", "vindur", "att", "sky"):
+            bo = _bias(m, var)
             for ob, fc in pv.get(var, []):
                 if ob is None or fc is None:
                     continue
+                fcc = wrap360(fc + bo) if var == "att" else fc + bo
                 store["rows"].append({"t": stamp, "m": m, "v": var,
-                                      "ob": round(ob, 2), "fc": round(fc, 2)})
+                                      "ob": round(ob, 2),
+                                      "fc": round(fc, 2),
+                                      "fcc": round(fcc, 2)})
 
     # Hreinsa allt eldra en glugginn
     cutoff = now - timedelta(hours=TRUTH_WINDOW_H)
@@ -1357,53 +1380,75 @@ def truth_update(pairs):
     store["rows"] = kept[-20000:]          # ordugleikavorn
     save_json(path, store)
 
-    # Reikna HRATT medaltal per gjafa og breytu
+    # Reikna HRATT medaltal per gjafa og breytu - baedi hratt og leidrett
     acc = {}
     for r in store["rows"]:
         key = (r["m"], r["v"])
-        d = abs(ang_diff(r["fc"], r["ob"])) if r["v"] == "att" \
-            else abs(r["fc"] - r["ob"])
-        a = acc.setdefault(key, [0.0, 0])
-        a[0] += d; a[1] += 1
-    return {k: (v[0] / v[1], v[1]) for k, v in acc.items() if v[1] > 0}
+        a = acc.setdefault(key, [0.0, 0.0, 0])
+        if r["v"] == "att":
+            a[0] += abs(ang_diff(r["fc"], r["ob"]))
+            a[1] += abs(ang_diff(r.get("fcc", r["fc"]), r["ob"]))
+        else:
+            a[0] += abs(r["fc"] - r["ob"])
+            a[1] += abs(r.get("fcc", r["fc"]) - r["ob"])
+        a[2] += 1
+    return {k: (v[0] / v[2], v[1] / v[2], v[2])
+            for k, v in acc.items() if v[2] > 0}
 
 def truth_print(tbl):
-    """Prentar sannleikstofluna - Jolly a moti medlimum, hratt."""
+    """
+    Prentar sannleikstofluna. TVEIR domar:
+      vs HRAIR medlimir     - er Jolly betri en likan strax ur kassanum?
+      vs LEIDRETTIR medlimir- baetir BLONDUN einhverju vid MOS a einu likani?
+    Seinni domurinn er hardari og segir hvort ensemble-id se thess virdi.
+    """
     if not tbl:
         return
+    VARS = ("hiti", "vindur", "att", "sky")
     print(f"SANNLEIKSMAELIR (hrar tolur, sidustu {TRUTH_WINDOW_H} klst, "
-          f"@{TRUTH_LEAD}klst):")
-    hdr = f"  {'gjafi':10}" + "".join(f"{v:>10}" for v in
-                                     ("hiti", "vindur", "att", "sky"))
-    print(hdr + f"{'n':>6}")
-    order = [m for m in ALL_KEYS] + [JOLLY_KEY]
-    for m in order:
+          f"@{TRUTH_LEAD}klst)")
+    print("  gjafi        " + "".join(f"{v:>9}" for v in VARS)
+          + "   (leidrett i sviga)")
+    n_show = 0
+    for m in list(ALL_KEYS) + [JOLLY_KEY]:
         cells, n_max = [], 0
-        for var in ("hiti", "vindur", "att", "sky"):
+        for var in VARS:
             e = tbl.get((m, var))
             if e:
-                cells.append(f"{e[0]:>10.2f}")
-                n_max = max(n_max, e[1])
+                cells.append(f"{e[0]:>9.2f}")
+                n_max = max(n_max, e[2])
             else:
-                cells.append(f"{'-':>10}")
+                cells.append(f"{'-':>9}")
         if n_max == 0:
             continue
+        corr = []
+        for var in VARS:
+            e = tbl.get((m, var))
+            corr.append(f"{e[1]:.2f}" if e else "-")
         nafn = "JOLLY" if m == JOLLY_KEY else m
-        line = f"  {nafn:10}" + "".join(cells) + f"{n_max:>6}"
-        print(("  " + "-" * 56) if m == JOLLY_KEY else "", end="")
-        if m == JOLLY_KEY: print()
-        print(line)
-    # Dómur: Jolly a moti medaltali OG besta medlimi
-    for var in ("hiti", "vindur", "att", "sky"):
+        if m == JOLLY_KEY:
+            print("  " + "-" * 46)
+        print(f"  {nafn:12}" + "".join(cells)
+              + "   (" + " ".join(corr) + ")")
+        n_show = max(n_show, n_max)
+    print(f"  n = {n_show} por")
+
+    # Domar
+    for var in VARS:
         j = tbl.get((JOLLY_KEY, var))
-        mem = [tbl[(m, var)][0] for m in ALL_KEYS if (m, var) in tbl]
-        if not j or not mem:
+        raw = [tbl[(m, var)][0] for m in ALL_KEYS if (m, var) in tbl]
+        cor = [tbl[(m, var)][1] for m in ALL_KEYS if (m, var) in tbl]
+        if not j or not raw:
             continue
-        avg, best = sum(mem) / len(mem), min(mem)
-        d_avg = (avg - j[0]) / avg * 100 if avg else 0
-        d_best = (best - j[0]) / best * 100 if best else 0
-        print(f"    {var:7} Jolly {j[0]:.2f} | medaltal {avg:.2f} "
-              f"({d_avg:+.0f}%) | besti {best:.2f} ({d_best:+.0f}%)")
+        r_avg, c_avg = sum(raw) / len(raw), sum(cor) / len(cor)
+        r_pct = (r_avg - j[0]) / r_avg * 100 if r_avg else 0
+        c_pct = (c_avg - j[0]) / c_avg * 100 if c_avg else 0
+        c_best = min(cor)
+        b_pct = (c_best - j[0]) / c_best * 100 if c_best else 0
+        print(f"    {var:7} Jolly {j[0]:6.2f} | "
+              f"hrair {r_avg:6.2f} ({r_pct:+.0f}%) | "
+              f"leidrettir {c_avg:6.2f} ({c_pct:+.0f}%) | "
+              f"besti leidr. {c_best:6.2f} ({b_pct:+.0f}%)")
 
 def verify_and_train(arch, obs_history, model):
     """
@@ -1527,7 +1572,7 @@ def verify_and_train(arch, obs_history, model):
     # SANNLEIKSMAELIR: hraa por, engin leidretting, hlaupandi gluggi.
     # Kallad HER svo hann fai somu por og stadfestingin - jafn samanburdur.
     try:
-        _truth = truth_update(pairs)
+        _truth = truth_update(pairs, model)
         model["_truth"] = True
         globals()["_TRUTH_TBL"] = _truth
     except Exception as e:
