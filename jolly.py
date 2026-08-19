@@ -69,7 +69,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "4.2"
+JOLLY_VERSION = "4.3"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -222,6 +222,67 @@ def cell_weight_blend(n):
     if n <= CELLW_MIN_N:  return 0.0
     if n >= CELLW_FULL_N: return 1.0
     return (n - CELLW_MIN_N) / float(CELLW_FULL_N - CELLW_MIN_N)
+
+# ══════════════════════════════════════════════════════════════════════
+#  SJALFSVOKTUN
+#
+#  Jolly keyrir 24x a dag en vid litum a hana stopult. Villur sem koma
+#  upp kl 3 um nott hafa adur legid odagreindar i marga daga - tvofalda
+#  leidrettingin, 24-klst gamli METAR, tapadar keyrslur.
+#
+#  Her safnar hun vidvorunum i gegnum keyrsluna og prentar STODU-blokk
+#  EFST i loggnum. Ein lina til ad lita a: "OK" eda listi af thvi sem
+#  tharf ad skoda. Hun man lika sidustu keyrslur (health.json) svo hun
+#  geti greint THROUN - t.d. restbias sem vex jafnt og thett.
+# ══════════════════════════════════════════════════════════════════════
+_HEALTH = []          # vidvaranir thessarar keyrslu
+
+def warn(msg, alvarlegt=False):
+    """Skrair vidvorun sem birtist efst i loggnum."""
+    _HEALTH.append(("!!" if alvarlegt else " *", msg))
+
+def health_history(cur):
+    """
+    Vistar lykiltolur og ber saman vid fyrri keyrslur.
+    Skilar lista af throunar-vidvorunum.
+    """
+    path = DATA_DIR / "health.json"
+    st = load_json(path, {"runs": []})
+    out = []
+    prev = st.get("runs", [])
+
+    # Restbias sem VEX jafnt og thett er merki um jakvaeda afturvirkni -
+    # nakvaemlega thad sem tvofalda leidrettingin olli. Grip thad snemma.
+    for var in ("hiti", "vindur", "att", "sky"):
+        seq = [r.get("rb", {}).get(var) for r in prev[-3:]]
+        seq = [abs(x) for x in seq if x is not None]
+        now_v = abs(cur.get("rb", {}).get(var) or 0.0)
+        if len(seq) >= 3 and now_v > 0.05:
+            if all(seq[i] < seq[i+1] for i in range(len(seq)-1)) and now_v > seq[-1]:
+                out.append(f"restbias {var} VEX jafnt og thett "
+                           f"({' -> '.join(f'{x:.2f}' for x in seq)} -> {now_v:.2f})")
+
+    # Engin ny por lengi = kerfid laerir ekki
+    no_new = 0
+    for r in reversed(prev):
+        if r.get("np", 0) > 0: break
+        no_new += 1
+    if cur.get("np", 0) == 0 and no_new >= 6:
+        out.append(f"engin ny por i {no_new+1} keyrslur - laerir ekki")
+
+    st["runs"] = (prev + [cur])[-40:]
+    save_json(path, st)
+    return out
+
+def health_block():
+    """STODU-blokkin sem fer EFST i loggnum."""
+    if not _HEALTH:
+        return "STADA  OK - ekkert athugavert\n"
+    alv = sum(1 for t, _ in _HEALTH if t == "!!")
+    hdr = (f"STADA  {len(_HEALTH)} ATRIDI"
+           + (f" ({alv} ALVARLEG)" if alv else "") + ":")
+    lines = [hdr] + [f"  {t} {m}" for t, m in _HEALTH]
+    return "\n".join(lines) + "\n"
 
 def member_bias(model, m, bs, cell, var, general):
     """
@@ -702,6 +763,8 @@ def fetch_metar():
         if age_h is not None and age_h > 3:
             print(f"  VARUD: nyjasti METAR er {age_h:.1f} klst gamall "
                   f"- skyjagogn gaetu verid urelt")
+            warn(f"METAR {age_h:.1f} klst gamall (aetti <1) - "
+                 f"skyjalaerdomur i haettu", alvarlegt=(age_h > 12))
         return obs
     except Exception as e:
         print(f"  VILLA: {e}")
@@ -775,6 +838,7 @@ def fetch_and_store_observations(metar_obs):
 
     if not got_aws:
         print("  (nota METAR skyjagogn eingongu thennan hringinn)")
+        warn("engin maeling fra stod 4271 - hiti/vindur laerast ekki")
 
     n_metar = 0
     for m in metar_obs:
@@ -1546,6 +1610,8 @@ def truth_print(tbl):
                           f"medaltal medlima ({w_avg:.2f}).")
                     print(f"      Thrihyrningsojafnan brotin - blondun eda "
                           f"vistun er rong.")
+                    warn(f"THRIHYRNINGSVORN brotin a {var}: Jolly {j[0]:.2f} "
+                         f"> vegid medaltal {w_avg:.2f}", alvarlegt=True)
 
     # Sundurlidun eftir reit - thar sem nakvaemnin raunverulega byr
     cells = globals().get("_TRUTH_CELLS") or {}
@@ -1662,6 +1728,7 @@ def verify_and_train(arch, obs_history, model):
         model["last_updated"] = datetime.now(timezone.utc).isoformat()
         return model
 
+    globals()["_N_NEW_PAIRS"] = n_pairs
     print(f"  {n_pairs} NY stadfest por a {len(verified_times)} gildistimum")
     save_json(DATA_DIR / "forecast_archive.json", arch)   # varðveita "done"
 
@@ -1742,6 +1809,8 @@ def verify_and_train(arch, obs_history, model):
                       f"   mismunur {_jf - _blend:+.1f}")
                 if abs(_jf - _blend) > 2.0:
                     print(f"    OSAMRAEMI: geymd spa passar EKKI vid blondu.")
+                    warn(f"KRUFNING: geymd Jolly-spa ({_jf:.1f}) passar ekki "
+                         f"vid blondu ({_blend:.1f})", alvarlegt=True)
     except Exception as _e:
         print(f"  (krufning: {_e})")
 
@@ -2413,6 +2482,11 @@ def make_forecast(fc, extras, model):
                   f"{round(cloud) if cloud is not None else None}")
             print(f"    medlimir i blondu: hiti={len(T)} vindur={len(W)} "
                   f"sky={len(C)} att={len(D)} (af {len(ALL_KEYS)})")
+            for _nm, _n in (("hiti", len(T)), ("vindur", len(W)),
+                            ("sky", len(C)), ("att", len(D))):
+                if _n < 4:
+                    warn(f"adeins {_n} medlimir i {_nm}-blondu (af "
+                         f"{len(ALL_KEYS)}) - fjolbreytni tapast")
             # Hrair medlimir - til ad sja hvort BIAS eda BLONDUN skemmir
             _raw_t = [round(v,1) for v,_ in T]
             _raw_w = [round(v,1) for v,_ in W]
@@ -2580,6 +2654,15 @@ def print_coverage(model, fc, extras):
         print(f"  {'JOLLY':9s} " + "".join(cells))
         jb = (model.get("jolly_bias") or {}).get(bs)
         if jb:
+            # Restbias a thakinu = leidrettingin naer ekki jafnvaegi
+            for _v, _cap in (("hiti", JOLLY_BIAS_CAP.get("hiti", 1.5)),
+                             ("vindur", JOLLY_BIAS_CAP.get("vindur", 1.5)),
+                             ("att", JOLLY_BIAS_CAP.get("att", 12.0)),
+                             ("sky", JOLLY_BIAS_CAP.get("sky", 12.0))):
+                _val = abs(jb.get(_v, 0.0) or 0.0)
+                if _cap and _val >= _cap * 0.95:
+                    warn(f"restbias {_v} a thakinu ({jb.get(_v,0):+.2f} af "
+                         f"{_cap}) - naer ekki jafnvaegi")
             _tag = "" if APPLY_JOLLY_RESIDUAL else "  (EKKI NOTUD - tilraun)"
             print(f"  restbias{_tag}   hiti {jb.get('hiti',0):+.2f}  "
                   f"vind {jb.get('vindur',0):+.2f}  "
@@ -2648,10 +2731,16 @@ def print_coverage(model, fc, extras):
 
 # --- 7. VISTA --------------------------------------------------------------
 def save_log(tee):
-    """Vistar loggann i repoid - ein slod i vafra i stad grafs i Actions."""
+    """
+    Vistar loggann i repoid, MED STODU-BLOKK EFST.
+    Blokkin er sett fremst svo eitt augnablik nagi til ad sja hvort
+    eitthvad se ad - i stad thess ad lesa 200 linur.
+    """
     if tee is None: return
     try:
-        (DATA_DIR / "last_run.log").write_text(tee.text(), encoding="utf-8")
+        body = tee.text()
+        (DATA_DIR / "last_run.log").write_text(
+            health_block() + body, encoding="utf-8")
     except Exception as e:
         sys.__stdout__.write(f"  Gat ekki vistad logg: {e}\n")
 
@@ -2711,6 +2800,21 @@ def _run():
         if top:
             print(f"Thyngdir {var:7s} @6klst: "
                   + " | ".join(f"{m} {v:.0%}" for m, v in top))
+    # Sogusamanburdur: throun milli keyrslna (t.d. restbias sem vex)
+    try:
+        _jb6 = (model.get("jolly_bias") or {}).get("6") or {}
+        for _m in health_history({
+                "t": fmt_t(datetime.now(timezone.utc)),
+                "v": JOLLY_VERSION,
+                "np": globals().get("_N_NEW_PAIRS", 0),
+                "rb": {k: _jb6.get(k) for k in ("hiti","vindur","att","sky")}}):
+            warn(_m, alvarlegt=True)
+    except Exception as _e:
+        print(f"  (heilsusaga: {_e})")
+
+    print()
+    print(health_block().rstrip())
+    print()
     print(f"Keyrslur {model.get('runs',0)} | "
           f"stadfest por {model.get('verified_pairs',0)}")
     sk = model.get("skill", {})
