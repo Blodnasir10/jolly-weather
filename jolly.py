@@ -50,13 +50,21 @@ SAGA I STUTTU MALI:
         - SUNDURLIDUN eftir vindatt x dagur/nott, thvi medaltal fela mynstur.
         - TILRAUN: hita-bias a medlimi SLOKKT (APPLY_MEMBER_BIAS) thvi
           maelingar syndu ad thad gerdi 8 af 9 likonum verri.
+  v4.1  SKILYRTAR THYNGDIR - staersta breytingin hingad til:
+        Ekki bara "hver er bestur i hita" heldur "hver er bestur i hita I
+        NORDANATT AD NOTTU". Thyngdir laerast per reit med shrinkage
+        (thunnur reitur fellur a almennu thyngdirnar). Fall-einkunn gildir
+        LIKA per reit - likan sem er onytt i einni att heldur vaegi i
+        annarri. URKOMA faer sinn eigin reit: att x THRYSTITHROUN
+        (fall/jafn/ris) thvi urkoma raest af synoptiskri thvingun, ekki
+        solarhringssveiflu.
 """
 
 # ═══════════════════════════════════════════════════════════════════════
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "4.0"
+JOLLY_VERSION = "4.1"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -193,6 +201,23 @@ APPLY_JOLLY_RESIDUAL = False
 APPLY_MEMBER_BIAS = {"hiti": False, "vindur": True, "att": True,
                      "urkoma": True, "sky": True}
 
+# --- SKILYRTAR THYNGDIR -------------------------------------------------
+# Ekki bara "hver er bestur i hita" heldur "hver er bestur i hita I
+# NORDANATT AD NOTTU". Likan sem er frabaert i sudlaegri att getur verid
+# onytt i nordanatt - medaltal fela thad.
+#
+# Shrinkage: thunnur reitur fellur aftur a almennu thyngdirnar svo vid
+# laerum ekki havada. Vid fullt traust tharf CELLW_FULL_N por.
+CELLW_MIN_N   = 12     # undir thessu: nota EINGONGU almennar thyngdir
+CELLW_FULL_N  = 60     # yfir thessu: nota EINGONGU reit-thyngdir
+CELLW_LR      = 0.10   # veldisjofnun a reit-MAE
+
+def cell_weight_blend(n):
+    """Hlutfall reit-thyngda a moti almennum. 0 = almennar, 1 = reitur."""
+    if n <= CELLW_MIN_N:  return 0.0
+    if n >= CELLW_FULL_N: return 1.0
+    return (n - CELLW_MIN_N) / float(CELLW_FULL_N - CELLW_MIN_N)
+
 def member_bias(model, m, bs, cell, var, general):
     """
     Bias sem er raunverulega lagt a medlim. Ein leid inn - svo
@@ -241,6 +266,7 @@ HOURLY_VARS = ",".join([
     "precipitation", "weathercode",
     "cloud_cover", "cloud_cover_low", "cloud_cover_mid", "cloud_cover_high",
     "visibility", "cape", "is_day",
+    "surface_pressure",          # fyrir thrystiþroun (urkomuskilyrding)
 ])
 
 # --- LOGGUN ----------------------------------------------------------------
@@ -999,6 +1025,13 @@ def archive_forecast(fc, extras):
                 a = fc["hourly"].get("is_day", [])
                 if idx < len(a) and a[idx] is not None:
                     slot["is_day"] = a[idx]
+                # Thrystithroun (hPa/klst yfir 3 klst) fyrir urkomureitinn.
+                # Geymt VID UTGAFU svo stadfestingin viti hvada adstaedur
+                # spain att vid - alveg eins og is_day.
+                pa = fc["hourly"].get("surface_pressure", [])
+                if idx - 3 >= 0 and idx < len(pa) \
+                   and pa[idx] is not None and pa[idx - 3] is not None:
+                    slot["dp_h"] = round((pa[idx] - pa[idx - 3]) / 3.0, 3)
             n_new += 1
 
     # Hreinsa gamalt - stadfest eda utrunnid
@@ -1272,6 +1305,27 @@ def cond_key(wd_ob, is_day):
     if sec is None: return None
     return f"{SECTOR_NAME[sec]}-{'dagur' if is_day else 'nott'}"
 
+# --- THRYSTITHROUN ------------------------------------------------------
+# Urkoma raest af synoptiskri thvingun, ekki af solarhringssveiflu. Fallandi
+# thrystingur = laegd ad naalgast = urkoma likleg. Haekkandi = ad letta til.
+# Thess vegna notum vid ANNAN reit fyrir urkomu: att x thrystithroun,
+# i stad att x dagur/nott. Thad er tharfara og heldur reitum faum (12).
+PRESS_FALL = -0.7      # hPa/klst - markalina fyrir "fallandi"
+PRESS_RISE =  0.7      # hPa/klst - markalina fyrir "haekkandi"
+
+def press_trend(dp_per_h):
+    """'fall', 'jafn' eda 'ris' ut fra thrystibreytingu i hPa/klst."""
+    if dp_per_h is None: return "jafn"
+    if dp_per_h <= PRESS_FALL: return "fall"
+    if dp_per_h >= PRESS_RISE: return "ris"
+    return "jafn"
+
+def cond_key_precip(wd_ob, dp_per_h):
+    """Reitlykill fyrir URKOMU: t.d. 'S-fall'. Att x thrystithroun."""
+    sec = wind_sector(wd_ob)
+    if sec is None: return None
+    return f"{SECTOR_NAME[sec]}-{press_trend(dp_per_h)}"
+
 def append_verify_rows(rows):
     """
     Skrifar stadfest por i manadarskipta CSV. Vidbotarskrif eingongu -
@@ -1508,6 +1562,7 @@ def verify_and_train(arch, obs_history, model):
     # cond_pairs[likan] = [(vars_list, cell), ...] fyrir skilyrt bias
     cond_pairs = {}
     truth_rows = []        # fyrir sannleiksmaelinn, med reit
+    cell_rows  = []        # (breyta, spalengd, reitur, likan, skekkja)
 
     for vt, leads in arch.items():
         o = obs_by_t.get(vt)
@@ -1528,6 +1583,9 @@ def verify_and_train(arch, obs_history, model):
             if entry_is_day is None:
                 entry_is_day = 1   # sjalfgefid dagur ef vantar
             cell = cond_key(o.get("winddirection"), entry_is_day >= 0.5)
+            # Urkomureitur: att x thrystithroun (annar en hinir)
+            cell_p = cond_key_precip(o.get("winddirection"),
+                                     entry.get("dp_h"))
 
             for m, fcv in entry.get("models", {}).items():
                 if m not in VERIFY_KEYS or m in done: continue
@@ -1543,6 +1601,13 @@ def verify_and_train(arch, obs_history, model):
                         if lead_s == TRUTH_LEAD and var != "urkoma":
                             truth_rows.append({"m": m, "v": var, "ob": ov,
                                                "fc": fv, "cell": cell})
+                        # REIT-MAE: hvada likan er best I THESSUM adstaedum.
+                        # Urkoma notar thrystireitinn, hinar att x dagur/nott.
+                        _c = cell_p if var == "urkoma" else cell
+                        if _c and m != JOLLY_KEY:
+                            _e = abs(ang_diff(fv, ov)) if var == "att" \
+                                 else abs(fv - ov)
+                            cell_rows.append((var, lead_s, _c, m, _e))
                         n_pairs += 1
                         used = True
                 # Skilyrt bias adeins fyrir medlimi (ekki Jolly)
@@ -1624,6 +1689,21 @@ def verify_and_train(arch, obs_history, model):
         globals()["_TRUTH_TBL"] = _truth
     except Exception as e:
         print(f"  (sannleiksmaelir: {e})")
+
+    # --- UPPFAERA REIT-MAE: hver er bestur i hverjum adstaedum -----------
+    if cell_rows:
+        cm = model.setdefault("cell_mae", {})
+        agg = {}
+        for var, ls, c, m, e in cell_rows:
+            a = agg.setdefault((var, ls, c, m), [0.0, 0])
+            a[0] += e; a[1] += 1
+        for (var, ls, c, m), (tot, n) in agg.items():
+            st = cm.setdefault(var, {}).setdefault(ls, {}) \
+                   .setdefault(c, {}).setdefault(m, {"mae": None, "n": 0})
+            run = tot / n
+            st["mae"] = round(run, 3) if st["mae"] is None else \
+                        round((1 - CELLW_LR) * st["mae"] + CELLW_LR * run, 3)
+            st["n"] = st.get("n", 0) + n
 
     n_csv = append_verify_rows(csv_rows)
     ds = verify_dataset_stats()
@@ -1892,9 +1972,48 @@ def verify_and_train(arch, obs_history, model):
             for m, bonus in MODEL_BONUS.get(var, {}).items():
                 if m in inv: inv[m] *= bonus
             tot = sum(inv.values())
+            base_w = {}
             for m in ALL_KEYS:
-                model["weights"][var][bs][m] = \
-                    round(inv[m] / tot, 4) if m in inv else 0.0
+                base_w[m] = round(inv[m] / tot, 4) if m in inv else 0.0
+                model["weights"][var][bs][m] = base_w[m]
+
+            # --- SKILYRTAR THYNGDIR ---------------------------------------
+            # Fyrir hvern reit: hver er bestur I THESSUM adstaedum?
+            # Shrinkage ad almennu thyngdunum eftir thvi hve thykkur
+            # reiturinn er, svo thunnir reitir laeri ekki havada.
+            # Fall-einkunn gildir LIKA per reit: likan sem er onytt i
+            # nordanatt ad nottu faer 0 THAR en heldur vaegi annars stadar.
+            cells_here = (model.get("cell_mae", {}).get(var, {})
+                              .get(bs, {}) or {})
+            wc = model.setdefault("weights_cell", {}).setdefault(var, {}) \
+                      .setdefault(bs, {})
+            for cname, per_m in cells_here.items():
+                usable_c = {m: st["mae"] for m, st in per_m.items()
+                            if st.get("mae") is not None
+                            and st.get("n", 0) >= CELLW_MIN_N
+                            and not (fail.get(m) or {}).get("out")}
+                if len(usable_c) < 2:
+                    continue
+                best_c = min(usable_c.values())
+                # Fall-einkunn INNAN reits
+                keep = {m: v for m, v in usable_c.items()
+                        if best_c <= 0 or v / best_c <= ratio_lim}
+                if len(keep) < 2:
+                    keep = dict(usable_c)
+                inv_c = {m: 1.0 / (v + eps) for m, v in keep.items()}
+                for m, bonus in MODEL_BONUS.get(var, {}).items():
+                    if m in inv_c: inv_c[m] *= bonus
+                tot_c = sum(inv_c.values())
+                if tot_c <= 0:
+                    continue
+                n_cell = min((per_m[m].get("n", 0) for m in keep), default=0)
+                alpha = cell_weight_blend(n_cell)
+                if alpha <= 0:
+                    continue
+                wc[cname] = {
+                    m: round((1 - alpha) * base_w.get(m, 0.0)
+                             + alpha * (inv_c[m] / tot_c if m in inv_c else 0.0), 4)
+                    for m in ALL_KEYS}
 
     # --- Malikvardinn: er Jolly betri en besta einstaka likanid? ---
     # Reiknad SER FYRIR HVERJA BREYTU. Jolly getur verid betri i hita en
@@ -2074,9 +2193,30 @@ def make_forecast(fc, extras, model):
             if i < len(_a): _isd = _a[i]
         cur_cell = cond_key(grov_att, (_isd is None) or (_isd >= 0.5))
 
+        # Urkomureitur: att x THRYSTITHROUN (spad thrystifall/ris)
+        _dp = None
+        if i is not None:
+            _pa = fc["hourly"].get("surface_pressure", [])
+            if 0 <= i - 3 and i < len(_pa) and _pa[i] is not None \
+               and _pa[i - 3] is not None:
+                _dp = (_pa[i] - _pa[i - 3]) / 3.0
+        cur_cell_p = cond_key_precip(grov_att, _dp)
+
+        def W(var, m):
+            """
+            Thyngd likans i THESSUM adstaedum. Fellur aftur a almennu
+            thyngdirnar ef reiturinn hefur ekki nog gogn.
+            """
+            c = cur_cell_p if var == "urkoma" else cur_cell
+            wc = ((model.get("weights_cell", {}).get(var, {})
+                       .get(bs, {}) or {}).get(c) or {})
+            if m in wc:
+                return wc[m]
+            return model["weights"][var][bs].get(m, 0.0)
+
         for m, api in MODELS.items():
             # Fjorar thyngdir - ein per breytu
-            wv = {v: model["weights"][v][bs].get(m, 0.0) for v in WEIGHT_VARS}
+            wv = {v: W(v, m) for v in WEIGHT_VARS}
             b  = model["bias"][m][bs]
             bl = model["bias"][m][b_lo]
             bh = model["bias"][m][b_hi]
@@ -2126,7 +2266,7 @@ def make_forecast(fc, extras, model):
             if cp is not None and wv["urkoma"] > 0: P.append((cp, wv["urkoma"]))
 
         for k, src in extras.items():
-            xv = {v: model["weights"][v][bs].get(k, 0.0) for v in WEIGHT_VARS}
+            xv = {v: W(v, k) for v in WEIGHT_VARS}
             xb = model["bias"][k][bs]
             xl = model["bias"][k][b_lo]; xh = model["bias"][k][b_hi]
             xcb_hiti = blend2(
@@ -2416,6 +2556,22 @@ def print_coverage(model, fc, extras):
             print("    (reitir enn ad byggjast upp - tharf fleiri stadfestingar)")
     print("  ('--gogn' = gjafinn skilar ekki breytunni | "
           "'bid' = of fair samanburdir enn)")
+
+    # SKILYRTAR THYNGDIR - hver er bestur i hvada adstaedum
+    wc_all = model.get("weights_cell", {})
+    if wc_all:
+        print("  SKILYRTAR THYNGDIR @6klst (hver er bestur i hvada adstaedum):")
+        for var in WEIGHT_VARS:
+            cells = (wc_all.get(var, {}).get("6", {}) or {})
+            if not cells:
+                continue
+            for cname in sorted(cells):
+                w = cells[cname]
+                top = sorted(((v, k) for k, v in w.items() if v > 0),
+                             reverse=True)[:3]
+                if top:
+                    txt = " | ".join(f"{k} {v*100:.0f}%" for v, k in top)
+                    print(f"    {var:7} {cname:10} {txt}")
     # Sannleiksmaelirinn - obrengladur samanburdur
     try:
         truth_print(globals().get("_TRUTH_TBL") or {})
