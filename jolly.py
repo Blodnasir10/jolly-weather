@@ -69,7 +69,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "4.5"
+JOLLY_VERSION = "4.6"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -698,6 +698,25 @@ def correct_cloud(raw, model, m, bs):
     return int(round(min(100.0, max(0.0, raw + shift))))
 
 
+def total_cloud(low, mid, high, fallback=None):
+    """
+    Heildarskyjahula ur lagskiptingu med HAMARKSSKORUN.
+
+    Sky leggjast EKKI saman. Ef lasky eru 10% og hasky 50% er heildin 50%,
+    ekki 60% - hasky liggja OFAN a laskyjum sed fra jordu, svo their deila
+    sama himni. Retta samlagningin er hamark, ekki summa.
+
+    Thetta samsvarar lika thvi sem METAR gerir: OKTU-flokkarnir eru
+    UPPSAFNADIR og vid tokum max af logunum. Adur notudum vid 'cloud_cover'
+    fra likonunum sem nota HAMARKS-SLEMBISKORUN (max-random overlap) og
+    skilar KERFISBUNDID HAERRI tolu en METAR gaeti nokkurn tima maelt.
+    Nu nota badir sama reglu og samanburdurinn verdur rettur.
+    """
+    lags = [x for x in (low, mid, high) if x is not None]
+    if not lags:
+        return fallback
+    return max(lags)
+
 def cloud_class(pct):
     if pct is None: return None
     if pct < 10: return "heidskirt"
@@ -1054,7 +1073,13 @@ def fetch_harmonie():
             h["hourly"]["winddirection"].append(
                 dir_to_deg(fc.get("D", "") or fc.findtext("D", "")))
             w  = (fc.get("W", "") or fc.findtext("W", "") or "").lower().strip()
-            cc = next((v for k, v in WEATHER_TO_CLOUD.items() if k in w), None)
+            # [VILLA LAGFAERD v4.6] Adur: next(... if k in w) sem skiladi
+            # FYRSTU samsvorun i ordabokarrod. "skyjad" er HLUTI af
+            # "alskyjad" og kom a undan - svo ALSKYJAD fekk 70% i stad 95%
+            # i hvert einasta skipti. Nu tokum vid LENGSTU samsvorun, sem
+            # er alltaf su nakvaemasta.
+            _hits = [(k, v) for k, v in WEATHER_TO_CLOUD.items() if k in w]
+            cc = max(_hits, key=lambda kv: len(kv[0]))[1] if _hits else None
             h["hourly"]["cloud_cover"].append(cc)
             if not h["hourly"]["time"]: raise ValueError("engir timapunktar")
         nc = len([x for x in h["hourly"]["cloud_cover"] if x is not None])
@@ -1096,9 +1121,16 @@ def archive_forecast(fc, extras):
                 def g(key):
                     a = fc["hourly"].get(f"{key}_{api}", [])
                     return a[i] if i < len(a) else None
+                # Heildarhula med HAMARKSSKORUN ur logunum thremur, svo
+                # hun se sambaerileg vid METAR. Fellur a 'cloud_cover'
+                # likansins ef login vantar.
                 rec = {"t": g("temperature_2m"), "w": g("windspeed_10m"),
                        "d": g("winddirection_10m"),
-                       "p": g("precipitation"),  "c": g("cloud_cover")}
+                       "p": g("precipitation"),
+                       "c": total_cloud(g("cloud_cover_low"),
+                                        g("cloud_cover_mid"),
+                                        g("cloud_cover_high"),
+                                        g("cloud_cover"))}
                 if any(v is not None for v in rec.values()):
                     models[m] = rec
 
@@ -1110,7 +1142,9 @@ def archive_forecast(fc, extras):
                 return a[_j] if _j < len(a) else None
             rec = {"t": ge("temperature"), "w": ge("windspeed"),
                    "d": ge("winddirection"),
-                   "p": ge("precipitation"), "c": ge("cloud_cover")}
+                   "p": ge("precipitation"),
+                   "c": total_cloud(ge("cloud_low"), ge("cloud_mid"),
+                                    ge("cloud_high"), ge("cloud_cover"))}
             if any(v is not None for v in rec.values()):
                 models[k] = rec
 
@@ -2396,7 +2430,10 @@ def make_forecast(fc, extras, model):
                 return a[i] if i < len(a) else None
 
             rt, rw, rp = g("temperature_2m"), g("windspeed_10m"), g("precipitation")
-            rd, rc     = g("winddirection_10m"), g("cloud_cover")
+            rd = g("winddirection_10m")
+            # Heildarhula med HAMARKSSKORUN - sky leggjast ekki saman
+            rc = total_cloud(g("cloud_cover_low"), g("cloud_cover_mid"),
+                             g("cloud_cover_high"), g("cloud_cover"))
 
             ct  = round(rt + cb_hiti, 1)                  if rt is not None else None
             cw  = round(max(0, rw + cb_vindur), 1)        if rw is not None else None
@@ -2441,7 +2478,11 @@ def make_forecast(fc, extras, model):
                 a = _src["hourly"].get(key, [])
                 return a[_j] if _j < len(a) else None
             xT, xW, xP = ge("temperature"), ge("windspeed"), ge("precipitation")
-            xD, xC     = ge("winddirection"), ge("cloud_cover")
+            xD = ge("winddirection")
+            # Hamarksskorun (MET Norway gefur login; HARMONIE gerir thad ekki
+            # og fellur tha a sina heildartolu ur vedurtextanum)
+            xC = total_cloud(ge("cloud_low"), ge("cloud_mid"),
+                             ge("cloud_high"), ge("cloud_cover"))
             ct = round(xT + xcb_hiti, 1)                   if xT is not None else None
             cw = round(max(0, xW + xcb_vindur), 1)         if xW is not None else None
             cp = apply_precip(xP, xcb_scale, xcb_thr)
