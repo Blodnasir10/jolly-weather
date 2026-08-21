@@ -69,7 +69,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "4.6"
+JOLLY_VERSION = "4.7"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -194,12 +194,22 @@ FAIL_RATIO   = {"hiti": 3.5, "vindur": 3.5, "att": 3.0,
 #
 # Med False laerum vid restbias afram (thad segir okkur hver raunveruleg
 # eftirstandandi skekkja er) en BEITUM henni EKKI a spana.
-APPLY_JOLLY_RESIDUAL = False
+# --- RESTLEIDRETTING: v4.7 - KVEIKT A HITA, SLOKKT A HINUM ---------------
+# Fjogurra daga tilraun (slokkt a ollu) syndi:
+#   - vindur/att/sky: Jolly batnadi an leidrettingar -> ENN slokkt
+#   - hiti: restbias SAT FAST A THAKINU (-1.50) dag eftir dag. Thad thydir
+#     hun sa VIDVARANDI hlyhlutdraegni sem vid vorum ekki ad leidretta -
+#     og 21.ag STADFESTIST thad: Jolly +5.1° of hly thegar utgeislunar-
+#     kolnun i logni/heidskiru kvoldi let hitann falla hratt en modelin
+#     (og thvi Jolly-blandan) elta ekki. Kveikt a hita, thak RYMKAD ur
+#     1.5 i 4.0 thvi 1.5 dugdi audsjaanlega ekki vid theim adstaedum.
+APPLY_JOLLY_RESIDUAL = {"hiti": True, "vindur": False,
+                        "att": False, "sky": False}
 
 # Thok a restleidrettingu. Voru adur hardkodud inni i lykkjunni svo
 # sjalfsvoktunin gat ekki vitad hver thau eru - thad olli NameError og
 # felldi keyrsluna. Nu ein uppspretta sem baedi namid og voktunin nota.
-JOLLY_BIAS_CAP = {"hiti": 1.5, "vindur": 1.5, "att": 12.0, "sky": 12.0}
+JOLLY_BIAS_CAP = {"hiti": 4.0, "vindur": 1.5, "att": 12.0, "sky": 12.0}
 
 # --- MEDLIMA-BIAS: TILRAUN v4.0 -----------------------------------------
 # Sannleiksmaelirinn (19.ag) syndi ad ALMENNA hita-biasid gerir 8 af 9
@@ -2528,12 +2538,17 @@ def make_forecast(fc, extras, model):
                   for k2 in ("hiti", "vindur", "att", "sky")}
             jb["urkoma_scale"] = blend2(jbl.get("urkoma_scale", 1.0),
                                         jbh.get("urkoma_scale", 1.0), b_f)
-        if jb and APPLY_JOLLY_RESIDUAL:
-            if temp  is not None: temp  = round(temp + jb.get("hiti", 0.0), 2)
-            if wind  is not None: wind  = round(max(0.0, wind + jb.get("vindur", 0.0)), 2)
-            if wdir  is not None: wdir  = round(wrap360(wdir + jb.get("att", 0.0)), 1)
-            if prec  is not None: prec  = round(max(0.0, prec * jb.get("urkoma_scale", 1.0)), 2)
-            if cloud is not None: cloud = min(100.0, max(0.0, cloud + jb.get("sky", 0.0)))
+        if jb:
+            if temp is not None and APPLY_JOLLY_RESIDUAL.get("hiti"):
+                temp = round(temp + jb.get("hiti", 0.0), 2)
+            if wind is not None and APPLY_JOLLY_RESIDUAL.get("vindur"):
+                wind = round(max(0.0, wind + jb.get("vindur", 0.0)), 2)
+            if wdir is not None and APPLY_JOLLY_RESIDUAL.get("att"):
+                wdir = round(wrap360(wdir + jb.get("att", 0.0)), 1)
+            if prec is not None:      # urkoma-skali alltaf notadur (v2.x)
+                prec = round(max(0.0, prec * jb.get("urkoma_scale", 1.0)), 2)
+            if cloud is not None and APPLY_JOLLY_RESIDUAL.get("sky"):
+                cloud = min(100.0, max(0.0, cloud + jb.get("sky", 0.0)))
 
         # --- GREINING: syna blondu OG restbias fyrir ALLAR breytur ---
         # Adeins fyrir NUVERANDI stund (lead 0-1) svo haegt se ad bera
@@ -2734,7 +2749,12 @@ def print_coverage(model, fc, extras):
                 if _cap and _val >= _cap * 0.95:
                     warn(f"restbias {_v} a thakinu ({jb.get(_v,0):+.2f} af "
                          f"{_cap}) - naer ekki jafnvaegi")
-            _tag = "" if APPLY_JOLLY_RESIDUAL else "  (EKKI NOTUD - tilraun)"
+            _on  = [v for v in ("hiti","vindur","att","sky")
+                    if APPLY_JOLLY_RESIDUAL.get(v)]
+            _off = [v for v in ("hiti","vindur","att","sky")
+                    if not APPLY_JOLLY_RESIDUAL.get(v)]
+            _tag = (f"  (VIRK: {','.join(_on) or '-'} | "
+                    f"OVIRK: {','.join(_off) or '-'})")
             print(f"  restbias{_tag}   hiti {jb.get('hiti',0):+.2f}  "
                   f"vind {jb.get('vindur',0):+.2f}  "
                   f"att {jb.get('att',0):+.1f}  "
