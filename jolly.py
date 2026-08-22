@@ -99,7 +99,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "4.8"
+JOLLY_VERSION = "4.9"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -1397,8 +1397,15 @@ def load_model():
     if raw is None:
         print(f"  Nytt likan v{JOLLY_VERSION}")
         return init_model()
-    if raw.get("version", "").startswith("2.") or \
-       raw.get("version", "").startswith("3."):
+    # [v4.9 LAGFAERT] ADUR var thessi bloklk gaett a bak vid
+    # `version.startswith("2.") or startswith("3.")`. Utgafan er nu 4.x,
+    # svo su gaett var DAUD - eldri hreinsanir hofdu thegar keyrt medan
+    # utgafan var enn 2.x/3.x, en HVER NY hreinsun sem baettist vid eftir
+    # ad utgafan for i 4.x GAT ALDREI KEYRT. Hvert flagg ver sig sjalft
+    # (if not raw.get(flag)) svo utgafugaettin var ovarleg OG ohaefileg -
+    # fjarlaegd svo framtida hreinsanir keyri afram an thess ad muna eftir
+    # thessu.
+    if True:
         # EINSKIPTIS-HREINSUN v3.0: gamla Jolly-maelingin i lead_mae er
         # menguð af spam fra thvi likanid var hálflaert (safnaðist fra
         # keyrslu 1). Medlimir eru endurmetnir jafnodum en gamla Jolly-
@@ -1451,6 +1458,29 @@ def load_model():
             raw["v35_jolly_bias_reset"] = True
             print("  HREINSUN v3.5: jolly_bias nullstillt (var mengad af")
             print("  tvofaldri leidrettingu). Medlimir og thyngdir halda ser.")
+
+        # v4.9: HREINSUN A SKILL-SOGUNNI, EKKERT ANNAD.
+        #
+        # Fra 4.1 til 4.6 gengu THRJAR villur i rod (hrun sem gerdi 4.1-4.4
+        # dauda, sky-maelingarvilla i krufningu/sannleiksmaeli, HARMONIE-
+        # textavilla). Skill-EMA-id (thad sem birtist i "Jolly ... a moti
+        # besta likani") hefur verid ad melta thessa mengun i marga daga.
+        #
+        # ATH: THETTA SNERTIR ADEINS skill{} og lead_mae[...][jolly].
+        # Medlima-bias, thyngdir, reit-thyngdir, cloud_map og OLL hraagogn
+        # (langtimasafn, truth.json) eru ALGJORLEGA OSNERT - beir eru thad
+        # sem raedur spanni, ekki skill-taflan. Spain a morgun verdur eins
+        # OG AN thessarar hreinsunar - adeins talan sem BIRTIST breytist.
+        if not raw.get("v49_skill_reset"):
+            for b in LEAD_BUCKETS:
+                lm = raw.get("lead_mae", {}).get(str(b), {})
+                if JOLLY_KEY in lm:
+                    del lm[JOLLY_KEY]
+            raw["skill"] = {v: {} for v in WEIGHT_VARS}
+            raw["v49_skill_reset"] = True
+            print("  HREINSUN v4.9: Jolly-skill nullstillt (EMA-id bar enn")
+            print("  menguna fra hruni+skyjavillum 4.1-4.6). Medlimir,")
+            print("  thyngdir og oll hraagogn eru OSNERT - spain breytist EKKI.")
 
         if not raw.get("v30_reset_done"):
             for b in LEAD_BUCKETS:
@@ -1733,6 +1763,7 @@ def truth_update(rows_in, model=None):
            for k, v in acc.items() if v[2] > 0}
     cells = {k: (v[0] / v[1], v[1]) for k, v in by_cell.items() if v[1] > 0}
     globals()["_TRUTH_CELLS"] = cells
+    globals()["_TRUTH_ROWS"] = store["rows"]   # fyrir thrihyrningsvornina
     return tbl
 
 def truth_print(tbl):
@@ -1781,23 +1812,43 @@ def truth_print(tbl):
               f"| besti {c_best:6.2f} ({f(c_best):+.0f}%)")
         # THRIHYRNINGSVORN. Ojafnan |sum w*f - o| <= sum w*|f - o| gildir
         # fyrir SOMU thyngdir - svo vid verdum ad nota RAUNVERULEGAR
-        # thyngdir Jolly, ekki ovegid medaltal. (Fyrri utgafa bar saman
-        # vegna blondu vid ovegid medaltal - ekki gild ojafna.)
+        # thyngdir Jolly UR HVERJUM REIT, ekki ovegid medaltal.
+        #
+        # [v4.9 LAGFAERT] Fra v4.1 notar spain STUNDUM reit-thyngdir
+        # (weights_cell) i stad almennu thyngdanna, thegar reitur hefur
+        # nog gogn (WGT() i make_forecast). Fyrri utgafa vornarinnar bar
+        # alltaf saman vid ALMENNU thyngdirnar - ef spain notadi reit-
+        # thyngd fyrir eitthvert PAR i glugganum var samanburdurinn ekki
+        # lengur gildur ojafna, og vornin gat hropad ad osekju - NAKVAEMLEGA
+        # sama tegund villu og vid fundum i sky-krufningunni adur.
+        #
+        # Nu reiknum vid VEGID MEDALTAL PER ROD med SOMU WGT()-adferd og
+        # spain notar - reitur hverrar radar rædur hvada thyngd er beitt.
         mdl = globals().get("_TRUTH_MODEL")
         if mdl:
-            wsum, acc_w = 0.0, 0.0
-            for m in ALL_KEYS:
-                if (m, var) not in tbl:
+            def _cell_w(m, cellname):
+                wc = ((mdl.get("weights_cell", {}).get(var, {})
+                           .get(TRUTH_LEAD, {}) or {}).get(cellname) or {})
+                if m in wc:
+                    return wc[m]
+                return (mdl.get("weights", {}).get(var, {})
+                            .get(TRUTH_LEAD, {}) or {}).get(m, 0.0)
+            # Endurreikna beint ur hraum rodum (store["rows"]) svo hver
+            # rod fai SITT reit - ekki bara eitt medaltal per likan.
+            wsum, acc_w, n_rows = 0.0, 0.0, 0
+            for r in globals().get("_TRUTH_ROWS", []):
+                if r["v"] != var or r["m"] == JOLLY_KEY:
                     continue
-                w = (mdl.get("weights", {}).get(var, {})
-                        .get(TRUTH_LEAD, {}) or {}).get(m, 0.0)
-                wsum += w
-                acc_w += w * tbl[(m, var)][1]
+                w = _cell_w(r["m"], r.get("c", "?"))
+                e = abs(ang_diff(r.get("fcc", r["fc"]), r["ob"])) if var == "att" \
+                    else abs(r.get("fcc", r["fc"]) - r["ob"])
+                wsum += w; acc_w += w * e; n_rows += 1
             if wsum > 0:
                 w_avg = acc_w / wsum
                 if j[0] > w_avg * 1.02:      # 2% svigrum fyrir namundun
                     print(f"      OMOGULEGT: Jolly ({j[0]:.2f}) > VEGID "
-                          f"medaltal medlima ({w_avg:.2f}).")
+                          f"medaltal medlima ({w_avg:.2f}, reit-thyngt, "
+                          f"n={n_rows}).")
                     print(f"      Thrihyrningsojafnan brotin - blondun eda "
                           f"vistun er rong.")
                     warn(f"THRIHYRNINGSVORN brotin a {var}: Jolly {j[0]:.2f} "
