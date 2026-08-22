@@ -65,11 +65,41 @@ SAGA I STUTTU MALI:
         gildid passi vid blonduna. Vornin greip a skyi og vindi 19.ag.
 """
 
+
+# ═══════════════════════════════════════════════════════════════════════
+#  EFNISYFIRLIT - leitadu ad [TAGGI] til ad stokkva beint a kafla
+#
+#  Daemi: skrifadu [SKY] i leit og thu ferd beint i skyjahlutann.
+#  Sama gildir thegar thu segir Claude "farðu í [SPA]".
+#
+#    [STADUR]         STADSETNING OG GRUNNSTILLINGAR
+#    [GJAFAR]         GJAFAR OG LIKON
+#    [STILLINGAR]     STILLIFASTAR - THYNGDIR, THROSKULDAR, ROFAR
+#    [VOKTUN]         SJALFSVOKTUN
+#    [VERKFAERI]      ALMENN VERKFAERI
+#    [TAKN]           TAKN OG LYSINGAR
+#    [BIAS]           BIAS-LEIDRETTING (hiti / vindur / att)
+#    [URKOMA]         URKOMA
+#    [SKY]            SKYJAHULA
+#    [MAELING]        RAUNMAELINGAR - METAR OG VEDUR.IS
+#    [SOKN]           GAGNASOKN FRA GJOFUM
+#    [SAFN]           SPASAFN - GEYMSLA TIL STADFESTINGAR
+#    [LIKAN]          LIKANSKRAIN - UPPBYGGING, HLEDSLA, HREINSANIR
+#    [REITIR]         REITIR - VINDATT x DAGUR/NOTT x THRYSTITHROUN
+#    [LANGTIMASAFN]   LANGTIMASAFN (CSV)
+#    [SANNLEIKUR]     SANNLEIKSMAELIR
+#    [STADFESTING]    STADFESTING OG NAM  <-- STAERSTI KAFLINN
+#    [SPA]            SPAGERD  <-- HER VERDUR SPAIN TIL
+#    [YFIRLIT]        YFIRLIT I LOGG
+#    [KEYRSLA]        VISTUN OG KEYRSLA
+#
+# ═══════════════════════════════════════════════════════════════════════
+
 # ═══════════════════════════════════════════════════════════════════════
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "4.7"
+JOLLY_VERSION = "4.8"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -80,6 +110,11 @@ from collections import Counter
 
 # --- STILLINGAR ------------------------------------------------------------
 LAT, LON   = 65.2620, -14.4035
+# ═══════════════════════════════════════════════════════════════════════
+#  [STADUR]  STADSETNING OG GRUNNSTILLINGAR
+#  Hnit, stodvarnumer, moppur. Breyta HER til ad faera Jolly a annan stad.
+# ═══════════════════════════════════════════════════════════════════════
+
 STATION_ID = 571
 ICAO       = "BIEG"
 DATA_DIR   = Path("docs/data")
@@ -126,6 +161,11 @@ def adaptive_lr(model, key, err):
     return min(LR_MAX, LR * (1.0 + LR_RUN_GAIN * st["run"]))
 
 # Likon sott gegnum Open-Meteo
+# ═══════════════════════════════════════════════════════════════════════
+#  [GJAFAR]  GJAFAR OG LIKON
+#  Hvada spalikon vid sakjum og hvad thau heita innanhuss.
+# ═══════════════════════════════════════════════════════════════════════
+
 MODELS = {
     # UWC-West HARMONIE AROME - sama kerfi sem Vedurstofan notar, 2 km
     "dmi":   "dmi_seamless",
@@ -156,6 +196,11 @@ MIN_CLOUD_N = 6
 # --- THYNGDIR ERU SER FYRIR HVERJA BREYTU --------------------------------
 # GFS getur verid lelegt i hita en gott i vindi. Ad nota hitaskekkju til ad
 # vega vindspa er villa - hver breyta faer sina eigin rodun.
+# ═══════════════════════════════════════════════════════════════════════
+#  [STILLINGAR]  STILLIFASTAR - THYNGDIR, THROSKULDAR, ROFAR
+#  Allt sem vid fikrum i thegar vid stillum. Nam, foll og throskuldar.
+# ═══════════════════════════════════════════════════════════════════════
+
 WEIGHT_VARS = ["hiti", "vindur", "att", "urkoma", "sky"]
 
 # EPS ver okkur gegn 1/MAE -> uendanlegt og VERDUR ad passa vid kvarda
@@ -250,6 +295,11 @@ def cell_weight_blend(n):
 #  tharf ad skoda. Hun man lika sidustu keyrslur (health.json) svo hun
 #  geti greint THROUN - t.d. restbias sem vex jafnt og thett.
 # ══════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════
+#  [VOKTUN]  SJALFSVOKTUN
+#  Vidvaranir, STODU-blokk, souguminni milli keyrslna (health.json).
+# ═══════════════════════════════════════════════════════════════════════
+
 _HEALTH = []          # vidvaranir thessarar keyrslu
 
 def warn(msg, alvarlegt=False):
@@ -377,6 +427,11 @@ HOURLY_VARS = ",".join([
 ])
 
 # --- LOGGUN ----------------------------------------------------------------
+# ═══════════════════════════════════════════════════════════════════════
+#  [VERKFAERI]  ALMENN VERKFAERI
+#  Netkoll, skraarvinnsla, stardfraedi, hringlaga reikningur, timastimplar.
+# ═══════════════════════════════════════════════════════════════════════
+
 class Tee:
     """
     Prentar a stdout (svo Actions sjai thad) OG safnar i minni,
@@ -543,6 +598,11 @@ def lead_bucket(h):
     return 48
 
 # --- TAKNAVAL --------------------------------------------------------------
+# ═══════════════════════════════════════════════════════════════════════
+#  [TAKN]  TAKN OG LYSINGAR
+#  Hvada takn og ordalag birtist a vefnum fyrir gefnar adstaedur.
+# ═══════════════════════════════════════════════════════════════════════
+
 def determine_icon(cloud, precip, temp, is_day, vis, wind, cape=None):
     dn = "day" if is_day else "night"
     p  = precip or 0
@@ -608,6 +668,12 @@ def describe(cloud, precip, temp, vis, wind, cape=None):
 # klst getur attin verid ollu skokk og tha veljum vid RANGAN reit og
 # beitum rangri leidrettingu. Thess vegna veikjum vid skilyrt bias med
 # spalengd: full ahrif <= 6 klst (attin thekkist vel), fjarandi eftir thad.
+# ═══════════════════════════════════════════════════════════════════════
+#  [BIAS]  BIAS-LEIDRETTING (hiti / vindur / att)
+#  Skilyrt bias eftir reit, shrinkage, spalengdartraust. member_bias() er
+#  EINA leidin inn - baedi spain og sannleiksmaelirinn nota hana.
+# ═══════════════════════════════════════════════════════════════════════
+
 COND_LEAD_TRUST = {"1": 1.00, "3": 1.00, "6": 0.90,
                    "12": 0.65, "24": 0.40, "48": 0.20}
 
@@ -651,6 +717,13 @@ PRECIP_GRID   = [0.0, 0.05, 0.10, 0.15, 0.20, 0.30, 0.40, 0.50, 0.70, 1.00]
 PRECIP_WET    = 0.05     # mm - hvad telst "urkoma" vid mat
 PRECIP_MIN_N  = 40       # por adur en laerdur throskuldur er notadur
 
+# ═══════════════════════════════════════════════════════════════════════
+#  [URKOMA]  URKOMA
+#  Throskuldur fintilltur a F1 (ekki MAE), kvardi, og eigin reitur:
+#  vindatt x THRYSTITHROUN, thvi urkoma raest af laegdum en ekki
+#  solarhringssveiflu.
+# ═══════════════════════════════════════════════════════════════════════
+
 def update_precip_threshold(model, m, bs, pairs):
     """Uppfaerir tp/fp/fn talningar fyrir hvern kandidat-throskuld."""
     if not pairs: return
@@ -687,6 +760,12 @@ def apply_precip(raw, scale, thr):
     if raw < thr:   return 0.0
     return round(max(0.0, raw * scale), 2)
 
+
+# ═══════════════════════════════════════════════════════════════════════
+#  [SKY]  SKYJAHULA
+#  Flokkabundin leidretting (EKKI einfold samlagning eins og hinar breyturnar).
+#  total_cloud() = HAMARKSSKORUN: lasky 10% + hasky 50% er 50%, ekki 60%.
+# ═══════════════════════════════════════════════════════════════════════
 
 def correct_cloud(raw, model, m, bs):
     """
@@ -737,6 +816,11 @@ def cloud_class(pct):
     return "alskyjad"
 
 # --- 1. METAR --------------------------------------------------------------
+# ═══════════════════════════════════════════════════════════════════════
+#  [MAELING]  RAUNMAELINGAR - METAR OG VEDUR.IS
+#  METAR (sky, oktur) og api.vedur.is stod 4271 (hiti/vindur/att/thrystingur).
+# ═══════════════════════════════════════════════════════════════════════
+
 CLOUD_OKTAS = {"FEW": 19, "SCT": 44, "BKN": 75, "OVC": 100}
 
 def parse_metar(line):
@@ -923,6 +1007,11 @@ def fetch_and_store_observations(metar_obs):
     return hist, fresh
 
 # --- 3. SPAGJAFAR ----------------------------------------------------------
+# ═══════════════════════════════════════════════════════════════════════
+#  [SOKN]  GAGNASOKN FRA GJOFUM
+#  Open-Meteo (7 likon), MET Norway, HARMONIE ur XML Vedurstofunnar.
+# ═══════════════════════════════════════════════════════════════════════
+
 def fetch_forecasts():
     print("OPEN-METEO:")
     url = (f"https://api.open-meteo.com/v1/forecast"
@@ -1101,6 +1190,12 @@ def fetch_harmonie():
         return None
 
 # --- 4. GEYMA SPA TIL STADFESTINGAR ---------------------------------------
+# ═══════════════════════════════════════════════════════════════════════
+#  [SAFN]  SPASAFN - GEYMSLA TIL STADFESTINGAR
+#  Geymir HRAA spa vid utgafu, lyklad a GILDISTIMA. Kjarninn i thvi ad
+#  6-klst spa se borin saman vid maelingu 6 klst sidar.
+# ═══════════════════════════════════════════════════════════════════════
+
 def archive_forecast(fc, extras):
     """
     Skrifar HRAA likanaspa (an bias-leidrettingar) i forecast_archive.json
@@ -1222,6 +1317,11 @@ def archive_jolly(arch, fcast):
 
 
 # --- 5. STADFESTA OG THJALFA ----------------------------------------------
+# ═══════════════════════════════════════════════════════════════════════
+#  [LIKAN]  LIKANSKRAIN - UPPBYGGING, HLEDSLA, HREINSANIR
+#  jolly_model.json: bias, thyngdir, cell_mae, skill. Einskiptis-hreinsanir.
+# ═══════════════════════════════════════════════════════════════════════
+
 def empty_bias():
     return {"hiti": 0.0, "vindur": 0.0, "att": 0.0,
             "sky": 0.0, "urkoma_scale": 1.0}
@@ -1408,6 +1508,11 @@ def load_model():
         return raw
     return migrate_model(raw)
 
+# ═══════════════════════════════════════════════════════════════════════
+#  [REITIR]  REITIR - VINDATT x DAGUR/NOTT x THRYSTITHROUN
+#  Skilgreining a thvi hvada adstaedur vid laerum ser fyrir.
+# ═══════════════════════════════════════════════════════════════════════
+
 VAR_MAP = [("hiti", "t", "temperature"),
            ("vindur", "w", "windspeed"),
            ("att", "d", "winddirection"),
@@ -1469,6 +1574,11 @@ def cond_key_precip(wd_ob, dp_per_h):
     sec = wind_sector(wd_ob)
     if sec is None: return None
     return f"{SECTOR_NAME[sec]}-{press_trend(dp_per_h)}"
+
+# ═══════════════════════════════════════════════════════════════════════
+#  [LANGTIMASAFN]  LANGTIMASAFN (CSV)
+#  docs/data/verify/YYYY-MM.csv - aldrei hreinsad. Grunnur arstidanams.
+# ═══════════════════════════════════════════════════════════════════════
 
 def append_verify_rows(rows):
     """
@@ -1552,6 +1662,12 @@ def verify_dataset_stats():
 #  Ef thessi maelir og skill-taflan segja olika hluti, tha er skill-taflan
 #  brotin - EKKI hinn.
 # ══════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════
+#  [SANNLEIKUR]  SANNLEIKSMAELIR
+#  Hlaupandi 24 klst gluggi a HRAUM tolum. Oblekkjanlegur - engin EMA,
+#  engin gomul saga. Inniheldur THRIHYRNINGSVORNINA.
+# ═══════════════════════════════════════════════════════════════════════
+
 TRUTH_WINDOW_H = 24
 TRUTH_LEAD     = "1"        # maelum stystu spalengd - thad sem notandinn ser
 
@@ -1704,6 +1820,12 @@ def truth_print(tbl):
                         row.append(f"{'-':>9}")
                 if nmax:
                     print(f"    {rt:12}" + "".join(row) + f"{nmax:>6}")
+
+# ═══════════════════════════════════════════════════════════════════════
+#  [STADFESTING]  STADFESTING OG NAM  <-- STAERSTI KAFLINN
+#  Ber spar saman vid maelingar, laerir bias + thyngdir + reit-thyngdir,
+#  reiknar skill, keyrir fall-einkunn og krufningu.
+# ═══════════════════════════════════════════════════════════════════════
 
 def verify_and_train(arch, obs_history, model):
     """
@@ -2312,6 +2434,12 @@ def verify_and_train(arch, obs_history, model):
     return model
 
 # --- 6. SPA ----------------------------------------------------------------
+# ═══════════════════════════════════════════════════════════════════════
+#  [SPA]  SPAGERD  <-- HER VERDUR SPAIN TIL
+#  Blandar leidrettum medlimum med skilyrtum thyngdum, baetir vid
+#  restleidrettingu, byggir klukkustunda- og dagaspa fyrir vefinn.
+# ═══════════════════════════════════════════════════════════════════════
+
 def make_forecast(fc, extras, model):
     print("SPA:")
     if fc is None:
@@ -2676,6 +2804,11 @@ def make_forecast(fc, extras, model):
           f"{filled} timaraufir fylltar")
     return J
 
+# ═══════════════════════════════════════════════════════════════════════
+#  [YFIRLIT]  YFIRLIT I LOGG
+#  YFIRLIT-taflan, skilyrt bias, skilyrtar thyngdir, fallin likon.
+# ═══════════════════════════════════════════════════════════════════════
+
 def print_coverage(model, fc, extras):
     """
     Yfirlit yfir hvada gjafi skilar hverri breytu og hvada thyngd hann
@@ -2821,6 +2954,11 @@ def print_coverage(model, fc, extras):
 
 
 # --- 7. VISTA --------------------------------------------------------------
+# ═══════════════════════════════════════════════════════════════════════
+#  [KEYRSLA]  VISTUN OG KEYRSLA
+#  Skrifar JSON + logg med STODU-blokk efst. main() og _run().
+# ═══════════════════════════════════════════════════════════════════════
+
 def save_log(tee):
     """
     Vistar loggann i repoid, MED STODU-BLOKK EFST.
