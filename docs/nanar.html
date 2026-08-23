@@ -471,6 +471,50 @@ tr:hover td{background:rgba(255,255,255,0.025)}
 }
 @media(max-width:520px){ .dt-wlbl{font-size:.54rem;min-width:19px} }
 @media(max-width:390px){ .dt-wlbl{font-size:.5rem;min-width:17px} }
+
+/* ══════════ v5.0 DASHBOARD ══════════ */
+.dash-hd{font-size:13px;font-weight:600;color:var(--sub);margin-bottom:12px;
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.dash-n{font-size:11px;color:var(--faint);font-weight:400}
+.dash-pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.dash-pill{padding:5px 11px;border-radius:16px;font-size:11px;font-weight:600;
+  cursor:pointer;border:1.5px solid transparent;background:rgba(255,255,255,0.04);
+  transition:all .15s;user-select:none;opacity:1}
+.dash-pill.off{opacity:.32}
+.dash-chartwrap{position:relative;height:230px}
+.dash-slider-row{display:flex;align-items:center;gap:10px;margin-top:12px}
+.dash-slider-row input[type=range]{flex:1;accent-color:#aac6ea}
+.dash-note{font-size:10.5px;color:var(--faint);margin-top:10px;line-height:1.6}
+
+.dash-lead-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.dash-lead-tbl th{text-align:left;font-size:10px;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--faint);font-weight:600;
+  padding:0 8px 8px;cursor:pointer}
+.dash-lead-tbl th:hover{color:var(--sub)}
+.dash-lead-tbl th.num,.dash-lead-tbl td.num{text-align:right}
+.dash-lead-tbl td{padding:9px 8px;border-top:1px solid rgba(255,255,255,0.055)}
+.dash-lead-tbl tr:hover td{background:rgba(255,255,255,0.025)}
+.dash-lead-tbl .rk{color:var(--faint);width:22px}
+.dash-lead-tbl .mn{font-weight:600;display:flex;align-items:center;gap:7px}
+.dash-lead-tbl .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dash-trend{font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600}
+.dash-trend.up{background:rgba(74,222,128,.12);color:#4ade80}
+.dash-trend.down{background:rgba(248,113,113,.12);color:#f87171}
+.dash-trend.flat{background:rgba(255,255,255,.06);color:var(--faint)}
+.dash-wbar{height:3px;border-radius:2px;background:rgba(255,255,255,0.07);
+  margin-top:4px;overflow:hidden}
+.dash-wbar i{display:block;height:100%;border-radius:2px}
+
+.dash-heat-tbl{display:grid;grid-template-columns:64px repeat(4,1fr);gap:3px}
+.dash-heat-hd{font-size:9.5px;color:var(--faint);text-align:center;padding:4px 2px}
+.dash-heat-lbl{font-size:11px;color:var(--sub);display:flex;align-items:center;
+  padding-right:4px;font-weight:500}
+.dash-heat-cell{border-radius:7px;padding:6px 3px;text-align:center;font-size:9.5px;
+  font-weight:600;min-height:38px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center}
+.dash-heat-cell .v{font-size:8px;opacity:.75;margin-top:1px;font-weight:500}
+.dash-heat-cell.thin{color:var(--faint)!important;background:rgba(255,255,255,0.04)!important;
+  border:1px dashed rgba(255,255,255,0.1)}
 </style>
 </head>
 <body>
@@ -591,6 +635,78 @@ tr:hover td{background:rgba(255,255,255,0.025)}
   </div>
   <div class="n-pills" id="nPills"></div>
 
+  <!-- ═══════════ NÝR DASHBOARD-HLUTI (v5.0) ═══════════ -->
+  <div id="dashRoot">
+
+    <div class="n-sec">1 · Spátrektir — allir gjafar samtímis</div>
+    <div class="n-card">
+      <div class="dash-hd">
+        <span id="dFcTitle">Hiti · næstu klst</span>
+        <span class="dash-n">þykk lína = Jolly · punktalína = mæling</span>
+      </div>
+      <div class="n-tabs" id="dVarTabs" style="margin-bottom:10px"></div>
+      <div class="dash-pills" id="dModelPills"></div>
+      <div class="dash-chartwrap"><canvas id="dFcChart"></canvas></div>
+      <div class="dash-slider-row">
+        <span class="dash-n">Gluggi:</span>
+        <input type="range" id="dWindowSlider" min="0" max="1" value="0" step="1">
+        <span class="dash-n" id="dWindowLbl"></span>
+      </div>
+    </div>
+
+    <div class="n-sec">2 · Tímaflakk — hvernig spáin þróaðist</div>
+    <div class="n-card">
+      <div class="dash-hd">
+        <span>Veldu klukkustund og sjáðu spárnar sem gerðar voru fyrir hana</span>
+      </div>
+      <div id="dTimeTravelPicker" class="dash-pills"></div>
+      <div class="dash-chartwrap" style="height:200px"><canvas id="dTravelChart"></canvas></div>
+      <div class="dash-note" id="dTravelNote"></div>
+    </div>
+
+    <div class="n-sec">3 · Bakvirk nákvæmni — MAE dag frá degi</div>
+    <div class="n-card">
+      <div class="dash-hd">
+        <span>Er einhver að batna eða versna?</span>
+        <span class="dash-n" id="dTrendN"></span>
+      </div>
+      <div class="dash-chartwrap"><canvas id="dTrendChart"></canvas></div>
+    </div>
+
+    <div class="n-sec">4 · Sannreyning — spá á móti mælingu</div>
+    <div class="n-card">
+      <div class="dash-hd">
+        <span>Punktar á ská = fullkomið</span>
+        <span class="dash-n">síðustu 24 klst · @1klst</span>
+      </div>
+      <div class="dash-chartwrap"><canvas id="dScatterChart"></canvas></div>
+    </div>
+
+    <div class="n-sec">5 · Leiðtogatafla</div>
+    <div class="n-card">
+      <div class="dash-hd">
+        <span>Hver er bestur núna</span>
+        <span class="dash-n" id="dLdrSub"></span>
+      </div>
+      <table class="dash-lead-tbl">
+        <thead><tr>
+          <th onclick="dSortLdr('rank')">#</th>
+          <th onclick="dSortLdr('name')">Gjafi</th>
+          <th class="num" onclick="dSortLdr('mae')">MAE</th>
+          <th class="num" onclick="dSortLdr('weight')">Vægi</th>
+          <th class="num" onclick="dSortLdr('trend')">Þróun</th>
+        </tr></thead>
+        <tbody id="dLdrBody"></tbody>
+      </table>
+    </div>
+
+    <div class="n-sec">6 · Reit-þyngdir — vindátt × dagur/nótt</div>
+    <div class="n-card" id="dHeatCard"></div>
+
+  </div>
+  <!-- ═══════════ LOK NÝJA HLUTANS ═══════════ -->
+
+  <div class="n-sec" style="margin-top:34px">Eldri skýrslur</div>
   <div class="n-tabs">
     <button class="n-tab active" onclick="setMetric('hiti',this)">🌡 Hiti</button>
     <button class="n-tab" onclick="setMetric('vindur',this)">💨 Vindur</button>
@@ -622,6 +738,10 @@ tr:hover td{background:rgba(255,255,255,0.025)}
 <script>
 const FC_URL   ='https://raw.githubusercontent.com/Blodnasir10/jolly-weather/main/docs/data/jolly_forecast.json';
 const MODEL_URL='https://raw.githubusercontent.com/Blodnasir10/jolly-weather/main/docs/data/jolly_model.json';
+const ARCH_URL  ='https://raw.githubusercontent.com/Blodnasir10/jolly-weather/main/docs/data/forecast_archive.json';
+const TRUTH_URL ='https://raw.githubusercontent.com/Blodnasir10/jolly-weather/main/docs/data/truth.json';
+const HIST_URL  ='https://raw.githubusercontent.com/Blodnasir10/jolly-weather/main/docs/data/mae_history.json';
+const OBS_URL   ='https://raw.githubusercontent.com/Blodnasir10/jolly-weather/main/docs/data/obs_history.json';
 const MANUDIR=['janúar','febrúar','mars','apríl','maí','júní','júlí','ágúst','september','október','nóvember','desember'];
 const DAGAR=['Sun','Mán','Þri','Mið','Fim','Fös','Lau'];
 const MC={harmonie:'#22d3ee',dmi:'#facc15',knmi:'#fb7185',
@@ -842,12 +962,26 @@ function dfmt(iso){const d=new Date(iso+'Z');return DAGAR[d.getUTCDay()]+' '+d.g
 
 let FC,MODEL,activeMetric='hiti',charts={};
 
+let ARCH=null, TRUTH=null, MAEHIST=null, OBSHIST=null;
+
+async function safeJson(url){
+  try{ const r=await fetch(url+'?t='+Date.now()); if(!r.ok) return null; return await r.json(); }
+  catch(e){ return null; }
+}
+
 async function load(){
   try{
     const[f,m]=await Promise.all([fetch(FC_URL+'?t='+Date.now()),fetch(MODEL_URL+'?t='+Date.now())]);
     FC=await f.json();MODEL=await m.json();
     renderNanar();  // renderForsida sleppt - forsida er a index.html
-  }catch(e){document.getElementById('heroDesc').textContent='Villa við gagnasótt';console.error(e)}
+  }catch(e){document.getElementById('heroDesc').textContent='Villa við gagnasótt';console.error(e);return;}
+
+  // Dashboard-gögnin eru VIÐBÓT - ef eitthvað af þeim vantar sýnir
+  // dashboard-hlutinn "gögn vantar" fyrir ÞANN eina hluta, án þess að
+  // brjóta restina af síðunni.
+  [ARCH, TRUTH, MAEHIST, OBSHIST] = await Promise.all(
+    [ARCH_URL, TRUTH_URL, HIST_URL, OBS_URL].map(safeJson));
+  renderDashboard();
 }
 
 function buildHourlyPages(T, idx){
@@ -1541,6 +1675,329 @@ document.addEventListener('keydown', e=>{
 });
 
 load();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   v5.0 DASHBOARD - allt hér les RAUNVERULEG gögn úr FC/MODEL/ARCH/
+   TRUTH/MAEHIST. Engin gervigögn.
+   ═══════════════════════════════════════════════════════════════ */
+const DVARS=['hiti','vindur','att','sky'];
+const DUNIT={hiti:'°',vindur:'m/s',att:'°',sky:'%'};
+const DKEY ={hiti:'model_temperatures',vindur:'model_windspeeds',
+             att:'model_winddirections',sky:'model_clouds'};
+let dCurVar='hiti', dOnModels=new Set(), dCharts={}, dWinStart=0;
+
+function dModelKeys(){ return Object.keys(MC||{}).filter(k=>k!=='jolly'); }
+
+function renderDashboard(){
+  if(!FC || !FC.hourly){ return; }
+  dOnModels = new Set(dModelKeys());
+  buildDashTabs();
+  buildDashPills();
+  drawDashFc();
+  buildTimeTravel();
+  drawDashTrend();
+  drawDashScatter();
+  drawDashLeaderboard();
+  drawDashHeat();
+}
+
+/* ── 1. SPÁTREKTIR ── */
+function buildDashTabs(){
+  document.getElementById('dVarTabs').innerHTML = DVARS.map(v=>
+    `<button class="n-tab${v===dCurVar?' active':''}" onclick="dSetVar('${v}',this)">${v}</button>`).join('');
+}
+function dSetVar(v, el){
+  dCurVar=v;
+  document.querySelectorAll('#dVarTabs .n-tab').forEach(x=>x.classList.toggle('active',x===el));
+  drawDashFc();
+}
+window.dSetVar=dSetVar;
+
+function buildDashPills(){
+  const keys=dModelKeys();
+  document.getElementById('dModelPills').innerHTML = keys.map(m=>
+    `<div class="dash-pill" data-m="${m}" onclick="dToggleModel('${m}')"
+      style="background:${MC[m]}2a;color:${MC[m]};border-color:${MC[m]}77">${MN[m]||m}</div>`
+  ).join('') + `<div class="dash-pill" style="background:#fff3;color:#fff;border-color:#fff9">JOLLY</div>`;
+}
+function dToggleModel(m){
+  const el=document.querySelector(`#dModelPills [data-m="${m}"]`);
+  if(dOnModels.has(m)){dOnModels.delete(m); el.classList.add('off');}
+  else{dOnModels.add(m); el.classList.remove('off');}
+  drawDashFc();
+}
+window.dToggleModel=dToggleModel;
+
+function drawDashFc(){
+  const H=FC.hourly, T=H.time||[];
+  if(!T.length) return;
+  // Sýna 48 klst glugga sem hægt er að skruna með sleðanum
+  const WIN=48, maxStart=Math.max(0,T.length-WIN);
+  const slider=document.getElementById('dWindowSlider');
+  slider.max=maxStart; slider.oninput=()=>{dWinStart=+slider.value; drawDashFc();};
+  const start=Math.min(dWinStart, maxStart), end=Math.min(start+WIN, T.length);
+  const idxs=Array.from({length:end-start},(_,i)=>start+i);
+  const lbls=idxs.map(i=>{const d=new Date(T[i]); return String(d.getHours()).padStart(2,'0')+':00';});
+  document.getElementById('dWindowLbl').textContent =
+    `${new Date(T[start]).toLocaleDateString('is-IS',{day:'2-digit',month:'2-digit'})} – `+
+    `${new Date(T[end-1]).toLocaleDateString('is-IS',{day:'2-digit',month:'2-digit'})}`;
+
+  const key=DKEY[dCurVar];
+  const sets=[];
+  dModelKeys().forEach(m=>{
+    if(!dOnModels.has(m)) return;
+    const arr=H[key]?.[m]; if(!arr) return;
+    sets.push({label:MN[m]||m,data:idxs.map(i=>arr[i]??null),
+      borderColor:MC[m],backgroundColor:MC[m],borderWidth:1.2,pointRadius:0,tension:.3});
+  });
+  // Jolly - lokaspáin (blandan) fyrir breytuna
+  const jkey = dCurVar==='hiti'?'temperature':dCurVar==='vindur'?'windspeed':
+               dCurVar==='att'?'winddirection':'cloud_cover';
+  const jd = H[jkey];
+  if(jd) sets.push({label:'JOLLY',data:idxs.map(i=>jd[i]??null),
+    borderColor:'#fff',backgroundColor:'#fff',borderWidth:3,pointRadius:0,tension:.3,order:0});
+
+  if(dCharts.fc) dCharts.fc.destroy();
+  dCharts.fc=new Chart(document.getElementById('dFcChart'),{type:'line',
+    data:{labels:lbls,datasets:sets},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{ticks:{maxTicksLimit:8,color:'#646d82',font:{size:9.5}},grid:{color:'rgba(255,255,255,0.04)'}},
+               y:{ticks:{color:'#646d82',font:{size:9.5}},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+  document.getElementById('dFcTitle').textContent=
+    `${dCurVar[0].toUpperCase()+dCurVar.slice(1)} (${DUNIT[dCurVar]})`;
+}
+
+/* ── 2. TÍMAFLAKK ── */
+// Notar forecast_archive.json: fyrir HVERN gildistima eru margar
+// spalengdir (issue-tímar). Vid veljum gildistima og syna hvernig
+// spáin fyrir hann throadist eftir thvi sem naer dro, samanborid
+// vid raunverulega maelingu (obs_history.json).
+let dTravelTarget=null;
+function buildTimeTravel(){
+  const wrap=document.getElementById('dTimeTravelPicker');
+  if(!ARCH || !Object.keys(ARCH).length){
+    wrap.innerHTML='<span class="dash-n">Gögn ekki tiltæk enn — forecast_archive.json fannst ekki.</span>';
+    document.getElementById('dTravelChart').parentElement.style.display='none';
+    return;
+  }
+  document.getElementById('dTravelChart').parentElement.style.display='';
+  const times=Object.keys(ARCH).sort();
+  if(!dTravelTarget || !ARCH[dTravelTarget]) dTravelTarget=times[Math.max(0,times.length-6)];
+  wrap.innerHTML = times.slice(-8).map(t=>{
+    const hh=new Date(t).getHours();
+    return `<div class="dash-pill${t===dTravelTarget?'':' off'}" onclick="dPickTravel('${t}')"
+      style="background:rgba(170,198,234,.12);color:var(--chill);border-color:rgba(170,198,234,.4)">
+      ${String(hh).padStart(2,'0')}:00</div>`;
+  }).join('');
+  drawTimeTravel();
+}
+function dPickTravel(t){ dTravelTarget=t; buildTimeTravel(); }
+window.dPickTravel=dPickTravel;
+
+function drawTimeTravel(){
+  const entry = ARCH[dTravelTarget];
+  if(!entry){ return; }
+  const leads = Object.keys(entry).map(Number).sort((a,b)=>b-a); // 48..1
+  const jollySeries = leads.map(l=>{
+    const md=entry[String(l)]?.models?.jolly;
+    return md ? md.t : null;
+  });
+  // Raunmæling fyrir target-tímann, ef til
+  let obsVal=null;
+  if(OBSHIST){
+    const row=(Array.isArray(OBSHIST)?OBSHIST:OBSHIST.observations||[])
+      .find(o=>(o.time||'').slice(0,16)===dTravelTarget.slice(0,16));
+    if(row) obsVal = row.temperature ?? null;
+  }
+  const lbls = leads.map(l=>`-${l}kl`);
+  if(dCharts.travel) dCharts.travel.destroy();
+  dCharts.travel=new Chart(document.getElementById('dTravelChart'),{type:'line',
+    data:{labels:lbls,datasets:[
+      {label:'Jolly spáði',data:jollySeries,borderColor:'#fff',backgroundColor:'#fff',
+       borderWidth:2.5,pointRadius:4,tension:.25},
+      ...(obsVal!=null?[{label:'Varð í raun',data:leads.map(()=>obsVal),
+        borderColor:'#aac6ea',borderDash:[4,4],borderWidth:1.5,pointRadius:0}]:[])
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,
+      plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:9,boxHeight:9,font:{size:10}}}},
+      scales:{x:{title:{display:true,text:'hve löngu fyrir gildistíma spáin var gerð',
+                  color:'#646d82',font:{size:9.5}},ticks:{color:'#646d82',font:{size:9.5}},grid:{display:false}},
+               y:{ticks:{color:'#646d82',font:{size:9.5}},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+  const kl=new Date(dTravelTarget).toLocaleString('is-IS',
+    {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+  document.getElementById('dTravelNote').textContent =
+    `Gildistími: ${kl} · sýnir hita-spá Jolly eins og hún var þegar hún var gerð `+
+    `1 til 48 klst fyrir þennan tíma.`;
+}
+
+/* ── 3. BAKVIRK MAE ÞRÓUN ── */
+function drawDashTrend(){
+  const wrap=document.getElementById('dTrendChart').parentElement;
+  if(!MAEHIST || !MAEHIST.days || MAEHIST.days.length<2){
+    wrap.style.display='none';
+    document.getElementById('dTrendN').textContent='safnar gögnum - eitt gildi bætist við á dag';
+    document.querySelector('#dTrendChart').closest('.n-card').querySelector('.dash-hd')
+      .insertAdjacentHTML('afterend',
+        '<div class="dash-note">Sagan byrjaði að safnast '+
+        (MAEHIST&&MAEHIST.days&&MAEHIST.days[0]?MAEHIST.days[0].d:'nýlega')+
+        '. Línuritið birtist sjálfkrafa eftir nokkra daga.</div>');
+    return;
+  }
+  wrap.style.display='';
+  const days=MAEHIST.days;
+  const lbls=days.map(d=>d.d.slice(5));
+  const keys=['jolly',...dModelKeys().slice(0,4)]; // Jolly + 4 til að halda skýrleika
+  const sets=keys.map(m=>({
+    label:m==='jolly'?'JOLLY':(MN[m]||m),
+    data:days.map(d=>d[dCurVar]?.[m] ?? null),
+    borderColor:m==='jolly'?'#fff':MC[m],backgroundColor:m==='jolly'?'#fff':MC[m],
+    borderWidth:m==='jolly'?3:1.5,pointRadius:0,tension:.3,spanGaps:true}));
+  if(dCharts.trend) dCharts.trend.destroy();
+  dCharts.trend=new Chart(document.getElementById('dTrendChart'),{type:'line',
+    data:{labels:lbls,datasets:sets},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,
+      plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:9,boxHeight:9,font:{size:10}}}},
+      scales:{x:{ticks:{maxTicksLimit:7,color:'#646d82',font:{size:9.5}},grid:{display:false}},
+               y:{title:{display:true,text:`MAE (${DUNIT[dCurVar]})`,color:'#646d82',font:{size:10}},
+                  ticks:{color:'#646d82',font:{size:9.5}},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+  document.getElementById('dTrendN').textContent=`${days.length} dagar í sögu · ${dCurVar}`;
+}
+
+/* ── 4. SANNREYNINGARDREIFIRIT (truth.json - raunveruleg pör) ── */
+function drawDashScatter(){
+  const wrap=document.getElementById('dScatterChart').parentElement;
+  if(!TRUTH || !TRUTH.rows || !TRUTH.rows.length){
+    wrap.innerHTML='<div class="dash-note">truth.json fannst ekki eða er tómt ennþá.</div>';
+    return;
+  }
+  const rows=TRUTH.rows.filter(r=>r.v===dCurVar);
+  const byModel={};
+  rows.forEach(r=>{
+    (byModel[r.m]=byModel[r.m]||[]).push({x:r.ob, y:(r.fcc??r.fc)});
+  });
+  const keys=Object.keys(byModel);
+  if(!keys.length){
+    wrap.innerHTML='<div class="dash-note">Engin pör fyrir þessa breytu síðustu 24 klst.</div>';
+    return;
+  }
+  const allVals=rows.flatMap(r=>[r.ob,(r.fcc??r.fc)]);
+  const lo=Math.min(...allVals), hi=Math.max(...allVals);
+  const sets=[
+    {label:'Fullkomið',data:[{x:lo,y:lo},{x:hi,y:hi}],type:'line',
+     borderColor:'rgba(255,255,255,0.18)',borderWidth:1.5,pointRadius:0,borderDash:[4,4]},
+    ...keys.map(m=>({label:m==='jolly'?'JOLLY':(MN[m]||m),data:byModel[m],
+      backgroundColor:(m==='jolly'?'#fff':(MC[m]||'#888'))+'cc',
+      pointRadius:m==='jolly'?4:3,pointStyle:m==='jolly'?'star':'circle'}))
+  ];
+  if(dCharts.scatter) dCharts.scatter.destroy();
+  dCharts.scatter=new Chart(document.getElementById('dScatterChart'),{type:'scatter',
+    data:{datasets:sets},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,
+      plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:9,boxHeight:9,font:{size:9.5}}}},
+      scales:{x:{title:{display:true,text:'Mæling',color:'#646d82',font:{size:9.5}},
+                  ticks:{color:'#646d82',font:{size:9.5}},grid:{color:'rgba(255,255,255,0.04)'}},
+               y:{title:{display:true,text:'Spá',color:'#646d82',font:{size:9.5}},
+                  ticks:{color:'#646d82',font:{size:9.5}},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+}
+
+/* ── 5. LEIÐTOGATAFLA ── */
+let dLdrSort='mae', dLdrAsc=true;
+function dSortLdr(k){ if(dLdrSort===k) dLdrAsc=!dLdrAsc; else{dLdrSort=k;dLdrAsc=true;} drawDashLeaderboard(); }
+window.dSortLdr=dSortLdr;
+
+function drawDashLeaderboard(){
+  const bs = (typeof leadSel!=='undefined' && leadSel) ? leadSel : '6';
+  const lm = (MODEL.lead_mae||{})[bs] || {};
+  const w  = (MODEL.weights||{})[dCurVar]?.[bs] || {};
+  document.getElementById('dLdrSub').textContent = `${dCurVar} @${bs}klst`;
+
+  // Þróun: bera saman við gildið fyrir 3 dögum í mae_history, ef til
+  const days=MAEHIST?.days||[];
+  const prev = days.length>=4 ? days[days.length-4] : null;
+
+  let rows = dModelKeys().map(m=>{
+    const cur = lm[m]?.[dVarKey(dCurVar)];
+    const prevV = prev?.[dCurVar]?.[m];
+    let trend=0;
+    if(cur!=null && prevV!=null && prevV>0) trend=(prevV-cur)/prevV*100;
+    return {name:m, mae:cur, weight:Math.round((w[m]||0)*100), trend};
+  }).filter(r=>r.mae!=null);
+  const jc = lm.jolly?.[dVarKey(dCurVar)];
+  const jprev = prev?.[dCurVar]?.jolly;
+  let jtrend=0; if(jc!=null && jprev!=null && jprev>0) jtrend=(jprev-jc)/jprev*100;
+  if(jc!=null) rows.push({name:'jolly', mae:jc, weight:100, trend:jtrend});
+
+  if(!rows.length){
+    document.getElementById('dLdrBody').innerHTML =
+      `<tr><td colspan="5" class="dash-note" style="padding:12px 8px">Engin gögn fyrir þessa breytu/spálengd ennþá.</td></tr>`;
+    return;
+  }
+  rows.sort((a,b)=>{
+    let av=a[dLdrSort], bv=b[dLdrSort];
+    if(dLdrSort==='name'){av=MN[a.name]||a.name; bv=MN[b.name]||b.name;}
+    return (av>bv?1:av<bv?-1:0) * (dLdrAsc?1:-1);
+  });
+  document.getElementById('dLdrBody').innerHTML = rows.map((r,i)=>{
+    const tcls = r.trend>3?'up':r.trend<-3?'down':'flat';
+    const tsym = Math.abs(r.trend)<1 ? '—' : (r.trend>3?'batnar':r.trend<-3?'versnar':'stöðugt');
+    const color = r.name==='jolly' ? '#fff' : (MC[r.name]||'#888');
+    return `<tr>
+      <td class="rk">${i+1}</td>
+      <td class="mn"><span class="dot" style="background:${color}"></span>${r.name==='jolly'?'JOLLY':(MN[r.name]||r.name)}</td>
+      <td class="num">${r.mae!=null?r.mae.toFixed(2):'—'}${DUNIT[dCurVar]}</td>
+      <td class="num">${r.weight}%<div class="dash-wbar"><i style="width:${r.weight}%;background:${color}"></i></div></td>
+      <td class="num"><span class="dash-trend ${tcls}">${tsym}</span></td>
+    </tr>`;
+  }).join('');
+}
+function dVarKey(v){ return v; } // lead_mae er þegar lyklað eftir sama nafni og WEIGHT_VARS
+
+/* ── 6. REIT-ÞYNGDIR HITAKORT ── */
+function dHeatColor(pct){
+  const p=Math.max(0,Math.min(100,pct));
+  return `hsl(${4+(p/100)*130}, 62%, ${38+p*0.22}%)`;
+}
+function drawDashHeat(){
+  const wc = (MODEL.weights_cell||{})[dCurVar]||{};
+  const bs = (typeof leadSel!=='undefined' && leadSel) ? leadSel : '6';
+  const cells=wc[bs]||{};
+  const dirs=['N','A','S','V'];
+  const cellNames=dirs.map(d=>`${d}-dagur`);
+  let out=`<div class="dash-hd"><span>${dCurVar} @${bs}klst — efsta líkan í hverjum reit</span></div>`;
+  out+=`<div class="dash-heat-tbl"><div></div>`+
+       dirs.map(d=>`<div class="dash-heat-hd">${d}</div>`).join('')+
+       `<div class="dash-heat-lbl">Dagur</div>`;
+  cellNames.forEach(cn=>{
+    const w=cells[cn];
+    if(!w || !Object.keys(w).length){
+      out+=`<div class="dash-heat-cell thin">—</div>`;
+    } else {
+      const top=Object.entries(w).sort((a,b)=>b[1]-a[1])[0];
+      const pct=Math.round(top[1]*100);
+      out+=`<div class="dash-heat-cell" style="background:${dHeatColor(pct)}">
+        <div style="color:${pct>55?'#0a0d14':'#fff'}">${top[0]}</div>
+        <div class="v" style="color:${pct>55?'#0a0d1499':'#ffffffbb'}">${pct}%</div></div>`;
+    }
+  });
+  out+=`<div class="dash-heat-lbl">Nótt</div>`;
+  dirs.map(d=>`${d}-nott`).forEach(cn=>{
+    const w=cells[cn];
+    if(!w || !Object.keys(w).length){
+      out+=`<div class="dash-heat-cell thin">—</div>`;
+    } else {
+      const top=Object.entries(w).sort((a,b)=>b[1]-a[1])[0];
+      const pct=Math.round(top[1]*100);
+      out+=`<div class="dash-heat-cell" style="background:${dHeatColor(pct)}">
+        <div style="color:${pct>55?'#0a0d14':'#fff'}">${top[0]}</div>
+        <div class="v" style="color:${pct>55?'#0a0d1499':'#ffffffbb'}">${pct}%</div></div>`;
+    }
+  });
+  out+=`</div><div class="dash-note">Tómir reitir (—) hafa ekki náð nógu mörgum pörum til að fá eigið vægi ennþá og nota almennu þyngdirnar.</div>`;
+  document.getElementById('dHeatCard').innerHTML=out;
+}
+
 </script>
 </body>
 </html>
