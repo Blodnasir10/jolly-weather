@@ -99,7 +99,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "4.9"
+JOLLY_VERSION = "5.0"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -3025,8 +3025,44 @@ def save_log(tee):
         sys.__stdout__.write(f"  Gat ekki vistad logg: {e}\n")
 
 
+def append_mae_history(model):
+    """
+    Geymir EITT snapshot a dag af MAE hvers gjafa (@6klst, allar breytur)
+    + Jolly sjalfrar, i docs/data/mae_history.json. Thetta er ADSKILID
+    fra jolly_model.json - engin ahrif a spa eda naam, adeins gagnasafn
+    fyrir bakvirka throun-graf a vefnum (Nanar-sidan).
+
+    Eitt gildi A DAG (ekki a klst fresti) - annars vex skrain of hratt og
+    dag-fyrir-dag throun er hvort ed er thad sem skiptir mali, ekki
+    klukkustunda-suð.
+    """
+    path = DATA_DIR / "mae_history.json"
+    hist = load_json(path, {"days": []})
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    row = {"d": today}
+    for var in WEIGHT_VARS:
+        lm = model.get("lead_mae", {}).get("6", {})
+        row[var] = {}
+        for m in list(ALL_KEYS) + [JOLLY_KEY]:
+            v = (lm.get(m) or {}).get(var)
+            if v is not None:
+                row[var][m] = round(v, 3)
+
+    if hist["days"] and hist["days"][-1]["d"] == today:
+        hist["days"][-1] = row           # uppfaera daginn i stad thess ad tvitaka
+    else:
+        hist["days"].append(row)
+    hist["days"] = hist["days"][-90:]    # 90 daga gluggi - nog fyrir throun
+    save_json(path, hist)
+
+
 def save(model, fcast):
     save_json(DATA_DIR / "jolly_model.json", model)
+    try:
+        append_mae_history(model)
+    except Exception as e:
+        print(f"  (mae_history: {e})")
     if fcast:
         save_json(DATA_DIR / "jolly_forecast.json", fcast)
     log = load_json(DATA_DIR / "run_log.json", [])
