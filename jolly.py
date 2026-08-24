@@ -99,7 +99,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "5.0"
+JOLLY_VERSION = "5.1"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -1310,6 +1310,12 @@ def archive_jolly(arch, fcast):
         slot = arch.setdefault(t, {}).setdefault(str(lead),
                                                 {"issue": issue, "models": {}})
         slot.setdefault("models", {})[JOLLY_KEY] = rec
+        # [v5.1] Geyma REITINN sem thyngdir/bias voru RAUNVERULEGA valin
+        # ut fra (spad att), svo stadfesting sanni Jolly a moti rettum
+        # forsendum i stad thess ad endurreikna reit ur maeldri att.
+        c = H.get("cell", [])
+        if i < len(c) and c[i]:
+            slot["cell"] = c[i]
         n += 1
     save_json(DATA_DIR / "forecast_archive.json", arch)
     print(f"  Jolly skrad i safnid: {n} spalengdir")
@@ -1911,11 +1917,26 @@ def verify_and_train(arch, obs_history, model):
                 done = list(entry.get("models", {}).keys())
             elif not isinstance(done, list):
                 done = []
-            # Reitur thessa gildistima: vindatt (maeld) x dagur/nott
+            # [v5.1] Reitur thessa gildistima.
+            #
+            # ADUR: alltaf endurreiknad ur MAELDRI att (o.get("winddirection")).
+            # EN vid UTGAFU er reiturinn valinn ur SPADRI att (grov_att i
+            # make_forecast), thvi mæld att er ekki til fyrirfram. Ef spa og
+            # maeling lenda sitt hvorum megin vid 90°-mark (algengt thegar
+            # attarspa-skekkja er 30-80° eins og sannleiksmaelirinn synir),
+            # thá VELDUR thetta OLIKUM REIT - og bry samanburdurinn vid
+            # thrihyrningsvornina verdur OGILDUR (ber saman vid blondu sem
+            # aldrei var reiknud). Stadfest með raundaemum 24.ag.
+            #
+            # NU: nota GEYMDA reitinn (slot["cell"], sett i archive_jolly)
+            # ef til - thad ER reiturinn sem raunverulega red thyngdum/bias.
+            # Fellur a gomlu adferdina (mæld att) fyrir eldri faerslur sem
+            # voru skradar fyrir v5.1 og hafa ekki "cell" geymt.
             entry_is_day = entry.get("is_day")
             if entry_is_day is None:
                 entry_is_day = 1   # sjalfgefid dagur ef vantar
-            cell = cond_key(o.get("winddirection"), entry_is_day >= 0.5)
+            cell = entry.get("cell") or \
+                   cond_key(o.get("winddirection"), entry_is_day >= 0.5)
             # Urkomureitur: att x thrystithroun (annar en hinir)
             cell_p = cond_key_precip(o.get("winddirection"),
                                      entry.get("dp_h"))
@@ -2525,6 +2546,7 @@ def make_forecast(fc, extras, model):
                     "winddirection": [], "windgust": [], "precipitation": [],
                     "cloud_cover": [], "cloud_low": [], "cloud_mid": [],
                     "cloud_high": [], "visibility": [], "is_day": [],
+                    "cell": [],  # [v5.1] reiturinn (spadri att) sem RED thyngdum/bias
                     "icon": [], "condition": [], "beaufort": [],
                     "model_temperatures":   {m: [] for m in ALL_KEYS},
                     "model_windspeeds":     {m: [] for m in ALL_KEYS},
@@ -2569,6 +2591,10 @@ def make_forecast(fc, extras, model):
             _a = fc["hourly"].get("is_day", [])
             if i < len(_a): _isd = _a[i]
         cur_cell = cond_key(grov_att, (_isd is None) or (_isd >= 0.5))
+        # [v5.1] Geyma reitinn sem RED thyngdum/bias thessa klukkustund,
+        # svo stadfesting geti sannreynt Jolly a moti REITNUM SEM HUN
+        # RAUNVERULEGA NOTADI - ekki reit endurreiknudum ur mældri att.
+        J["hourly"]["cell"].append(cur_cell)
 
         # Urkomureitur: att x THRYSTITHROUN (spad thrystifall/ris)
         _dp = None
