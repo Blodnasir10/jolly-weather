@@ -99,7 +99,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "5.1"
+JOLLY_VERSION = "5.2"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -391,9 +391,6 @@ RECOVER_TOL  = 1.5     # "god spa" = innan 1.5x af besta thann tima
 # (samsvarar um thad bil maelinakvaemni stodvarinnar)
 SKILL_FLOOR = {"hiti": 0.15, "vindur": 0.20, "att": 5.0,
                "urkoma": 0.05, "sky": 3.0}
-
-VAR_LABEL = {"hiti": "hiti", "vindur": "vindur",
-             "urkoma": "urkoma", "sky": "sky"}
 
 # --- MET Norway (api.met.no) --------------------------------------------
 # Skilmalar krefjast einkennandi User-Agent med tengilid. Almennur eda
@@ -1316,6 +1313,16 @@ def archive_jolly(arch, fcast):
         c = H.get("cell", [])
         if i < len(c) and c[i]:
             slot["cell"] = c[i]
+        # [v5.2] DYPRI lagfaering: geyma SJALFAR THYNGDIRNAR sem voru
+        # notadar thessa klukkustund. weights_cell er EMA sem uppfaerist
+        # i HVERRI keyrslu (CELLW_LR=0.10) - jafnvel med rettum REIT
+        # (v5.1) geta THYNGDIRNAR INNAN hans hafa breyst milli utgafu og
+        # stadfestingar, thvi train-skrefid keyrir a milli. Med thvi ad
+        # geyma NAKVAEMU thyngdirnar sjalfar lokast thetta gap alveg -
+        # samanburdur vid stadfestingu notar SAMA reikning og Jolly gerdi.
+        uw = H.get("used_weights", [])
+        if i < len(uw) and uw[i]:
+            slot["weights"] = uw[i]
         n += 1
     save_json(DATA_DIR / "forecast_archive.json", arch)
     print(f"  Jolly skrad i safnid: {n} spalengdir")
@@ -1736,10 +1743,18 @@ def truth_update(rows_in, model=None):
         m, var, ob, fc, cell = r["m"], r["v"], r["ob"], r["fc"], r.get("cell")
         if ob is None or fc is None:
             continue
-        store["rows"].append({"t": stamp, "m": m, "v": var,
-                              "ob": round(ob, 2), "fc": round(fc, 2),
-                              "fcc": round(_corr(m, var, fc, cell), 2),
-                              "c": cell or "?"})
+        row = {"t": stamp, "m": m, "v": var,
+               "ob": round(ob, 2), "fc": round(fc, 2),
+               "fcc": round(_corr(m, var, fc, cell), 2),
+               "c": cell or "?"}
+        # [v5.2] w_issue = thyngd thessa gjafa EINS OG HUN VAR VID UTGAFU
+        # spar (geymd i forecast_archive.json slot["weights"]). Vistad her
+        # svo throhyrningsvornin geti notad NAKVAEMU somu thyngd og Jolly
+        # notadi, i stad thess ad endurreikna ur current model-stodu sem
+        # hefur thegar breyst vegna EMA-uppfaerslu milli utgafu og stadfestingar.
+        if r.get("w_issue") is not None:
+            row["wi"] = round(r["w_issue"], 4)
+        store["rows"].append(row)
 
     cutoff = now - timedelta(hours=TRUTH_WINDOW_H)
     kept = []
@@ -1830,35 +1845,53 @@ def truth_print(tbl):
         #
         # Nu reiknum vid VEGID MEDALTAL PER ROD med SOMU WGT()-adferd og
         # spain notar - reitur hverrar radar rædur hvada thyngd er beitt.
+        # [v5.2 - DYPRI LAGFAERING]
+        # v5.1 lagadi HVADA REIT er notadur (spad vs maeld att). En INNAN
+        # reits breytast thyngdirnar sjalfar EMA-vegis i HVERRI keyrslu
+        # (CELLW_LR=0.10) - milli utgafu spar og stadfestingar keyrir
+        # train-skrefid a.m.k. einu sinni. Thvi hoggur endurreiknud thyngd
+        # UR CURRENT model EKKI vid thyngdina sem Jolly RAUNVERULEGA notadi.
+        #
+        # LOKALAUSN: hver rod i truth.json geymir NU "wi" - thyngdina EINS
+        # OG HUN VAR VID UTGAFU (geymd alla leid fra make_forecast gegnum
+        # forecast_archive.json). Notum hana beint thegar hun er til =
+        # FULLKOMLEGA nakvaemur samanburdur, EKKERT tímamisraemi eftir.
+        #
+        # Fyrir eldri radir (fyrir v5.2, ekkert "wi") follum vid a
+        # reit-uppflettingu ur CURRENT model - eins og v4.9/v5.1 gerdu.
+        # Thetta sjalfhreinsast a ~1 solarhring thegar glugginn endurnyjast.
         mdl = globals().get("_TRUTH_MODEL")
-        if mdl:
-            def _cell_w(m, cellname):
-                wc = ((mdl.get("weights_cell", {}).get(var, {})
-                           .get(TRUTH_LEAD, {}) or {}).get(cellname) or {})
-                if m in wc:
-                    return wc[m]
-                return (mdl.get("weights", {}).get(var, {})
-                            .get(TRUTH_LEAD, {}) or {}).get(m, 0.0)
-            # Endurreikna beint ur hraum rodum (store["rows"]) svo hver
-            # rod fai SITT reit - ekki bara eitt medaltal per likan.
-            wsum, acc_w, n_rows = 0.0, 0.0, 0
-            for r in globals().get("_TRUTH_ROWS", []):
-                if r["v"] != var or r["m"] == JOLLY_KEY:
-                    continue
-                w = _cell_w(r["m"], r.get("c", "?"))
-                e = abs(ang_diff(r.get("fcc", r["fc"]), r["ob"])) if var == "att" \
-                    else abs(r.get("fcc", r["fc"]) - r["ob"])
-                wsum += w; acc_w += w * e; n_rows += 1
-            if wsum > 0:
-                w_avg = acc_w / wsum
-                if j[0] > w_avg * 1.02:      # 2% svigrum fyrir namundun
-                    print(f"      OMOGULEGT: Jolly ({j[0]:.2f}) > VEGID "
-                          f"medaltal medlima ({w_avg:.2f}, reit-thyngt, "
-                          f"n={n_rows}).")
-                    print(f"      Thrihyrningsojafnan brotin - blondun eda "
-                          f"vistun er rong.")
-                    warn(f"THRIHYRNINGSVORN brotin a {var}: Jolly {j[0]:.2f} "
-                         f"> vegid medaltal {w_avg:.2f}", alvarlegt=True)
+
+        def _fallback_w(m, cellname):
+            if not mdl: return 0.0
+            wc = ((mdl.get("weights_cell", {}).get(var, {})
+                       .get(TRUTH_LEAD, {}) or {}).get(cellname) or {})
+            if m in wc:
+                return wc[m]
+            return (mdl.get("weights", {}).get(var, {})
+                        .get(TRUTH_LEAD, {}) or {}).get(m, 0.0)
+
+        wsum, acc_w, n_rows, n_exact = 0.0, 0.0, 0, 0
+        for r in globals().get("_TRUTH_ROWS", []):
+            if r["v"] != var or r["m"] == JOLLY_KEY:
+                continue
+            if r.get("wi") is not None:
+                w = r["wi"]; n_exact += 1
+            else:
+                w = _fallback_w(r["m"], r.get("c", "?"))
+            e = abs(ang_diff(r.get("fcc", r["fc"]), r["ob"])) if var == "att" \
+                else abs(r.get("fcc", r["fc"]) - r["ob"])
+            wsum += w; acc_w += w * e; n_rows += 1
+        if wsum > 0:
+            w_avg = acc_w / wsum
+            tag = f"n={n_rows}, {n_exact} nakvaem" if n_exact else f"n={n_rows}, allt varaleid"
+            if j[0] > w_avg * 1.02:      # 2% svigrum fyrir namundun
+                print(f"      OMOGULEGT: Jolly ({j[0]:.2f}) > VEGID "
+                      f"medaltal medlima ({w_avg:.2f}, {tag}).")
+                print(f"      Thrihyrningsojafnan brotin - blondun eda "
+                      f"vistun er rong.")
+                warn(f"THRIHYRNINGSVORN brotin a {var}: Jolly {j[0]:.2f} "
+                     f"> vegid medaltal {w_avg:.2f}", alvarlegt=True)
 
     # Sundurlidun eftir reit - thar sem nakvaemnin raunverulega byr
     cells = globals().get("_TRUTH_CELLS") or {}
@@ -1953,8 +1986,16 @@ def verify_and_train(arch, obs_history, model):
                         # Sannleiksmaelir: geyma MED REIT svo haegt se ad
                         # sundurlida eftir vindatt x dagur/nott
                         if lead_s == TRUTH_LEAD and var != "urkoma":
+                            # [v5.2] Geyma RAUNVERULEGU thyngdina sem
+                            # thessi gjafi hafdi VID UTGAFU thessarar spar,
+                            # ur entry["weights"] (v5.2). Fellur a None ef
+                            # eldri faersla an thess - throhyrningsvornin
+                            # notar tha varaleid (mel. thyngdir CURRENT).
+                            _wt = (entry.get("weights", {}).get(var, {})
+                                       .get(m))
                             truth_rows.append({"m": m, "v": var, "ob": ov,
-                                               "fc": fv, "cell": cell})
+                                               "fc": fv, "cell": cell,
+                                               "w_issue": _wt})
                         # REIT-MAE: hvada likan er best I THESSUM adstaedum.
                         # Urkoma notar thrystireitinn, hinar att x dagur/nott.
                         _c = cell_p if var == "urkoma" else cell
@@ -2547,6 +2588,8 @@ def make_forecast(fc, extras, model):
                     "cloud_cover": [], "cloud_low": [], "cloud_mid": [],
                     "cloud_high": [], "visibility": [], "is_day": [],
                     "cell": [],  # [v5.1] reiturinn (spadri att) sem RED thyngdum/bias
+                    "used_weights": [],  # [v5.2] raunveruleg thyngd HVERS gjafa,
+                                          # HVERRAR breytu, thessa klukkustund
                     "icon": [], "condition": [], "beaufort": [],
                     "model_temperatures":   {m: [] for m in ALL_KEYS},
                     "model_windspeeds":     {m: [] for m in ALL_KEYS},
@@ -2617,9 +2660,17 @@ def make_forecast(fc, extras, model):
                 return wc[m]
             return model["weights"][var][bs].get(m, 0.0)
 
+        # [v5.2] Safna RAUNVERULEGUM thyngdum allra gjafa, allra breyta,
+        # thessa klukkustund - svo haegt se ad geyma their NAKVAEMLEGA
+        # eins og thaer voru VID UTGAFU, ekki endurreikna their seinna ur
+        # model-stodu sem hefur thegar breyst (weights_cell er EMA sem
+        # uppfaerist i HVERRI keyrslu).
+        hour_weights = {v: {} for v in WEIGHT_VARS}
+
         for m, api in MODELS.items():
             # Fjorar thyngdir - ein per breytu
             wv = {v: WGT(v, m) for v in WEIGHT_VARS}
+            for _v in WEIGHT_VARS: hour_weights[_v][m] = wv[_v]
             b  = model["bias"][m][bs]
             bl = model["bias"][m][b_lo]
             bh = model["bias"][m][b_hi]
@@ -2673,6 +2724,7 @@ def make_forecast(fc, extras, model):
 
         for k, src in extras.items():
             xv = {v: WGT(v, k) for v in WEIGHT_VARS}
+            for _v in WEIGHT_VARS: hour_weights[_v][k] = xv[_v]
             xb = model["bias"][k][bs]
             xl = model["bias"][k][b_lo]; xh = model["bias"][k][b_hi]
             xcb_hiti = blend2(
@@ -2715,6 +2767,10 @@ def make_forecast(fc, extras, model):
                 D.append((wrap360(xD + xb.get("att", 0.0)), xv["att"]))
             if cc is not None and xv["sky"]    > 0: C.append((cc, xv["sky"]))
             if cp is not None and xv["urkoma"] > 0: P.append((cp, xv["urkoma"]))
+
+        # [v5.2] Geyma thyngdir thessarar klukkustundar - eitt gildi i
+        # J["hourly"]["used_weights"] per klukkustund, sama index og time/cell.
+        J["hourly"]["used_weights"].append(hour_weights)
 
         def wa(p):
             if not p: return None
