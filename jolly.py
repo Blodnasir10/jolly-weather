@@ -99,7 +99,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "5.2"
+JOLLY_VERSION = "5.3"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -3030,60 +3030,101 @@ def print_coverage(model, fc, extras):
     if dead:
         print(f"  ENGIN GOGN: {', '.join(dead)} -> thyngd 0 a ollum breytum")
 
-    # Skilyrt bias yfirlit - synir hvort reitir eru farnir ad greina sig
+    # [v5.3] YFIRLIT VIÐ ALLAR SPALENGDIR - adur var ADEINS synt vid 6klst
+    # (thessi 'bs = "6"' fastlyklun ofar), svo vid vissum ALDREI hvernig
+    # Jolly og medlimir stodu sig vid 1/3/12/24/48 klst - nam var i lagi
+    # (cell_mae/weights_cell/cond_bias eru RETT lyklud eftir spalengd), en
+    # SKYRSLUGERDIN sjalf var blind. Nu: eitt yfirlit per spalengd, hiti.
+    print()
+    print("YFIRLIT HITA VID ALLAR SPALENGDIR (MAE í °C, þyngd í svigum):")
+    print("  gjafi    " + "".join(f"{str(b)+'kl':>11}" for b in LEAD_BUCKETS))
+    for m in list(ALL_KEYS) + [JOLLY_KEY]:
+        row = []
+        for b in LEAD_BUCKETS:
+            _bs = str(b)
+            _lm = model.get("lead_mae", {}).get(_bs, {}).get(m, {})
+            _n  = (_lm.get("n_var") or {}).get("hiti", 0)
+            _e  = _lm.get("hiti")
+            if m == JOLLY_KEY:
+                row.append(f"{_e:6.2f}    " if _e is not None else "   bid    ")
+            else:
+                _w = model.get("weights", {}).get("hiti", {}).get(_bs, {}).get(m, 0.0)
+                if _e is None or _n < MIN_N_BY_VAR["hiti"]:
+                    row.append(f"  bid n={_n:<3}")
+                else:
+                    row.append(f"{_e:5.2f}({_w:3.0%})")
+        if m == JOLLY_KEY:
+            print("  " + "-"*(9+11*len(LEAD_BUCKETS)))
+        print(f"  {m:9s}" + "".join(f"{c:>11}" for c in row))
+
+    # [v5.3] Skilyrt bias VID ALLAR SPALENGDIR - adur adeins @6klst.
+    # Nam sjalft var alltaf rett lyklad (cb[m][bs][cell][var]) - thetta
+    # var eingongu skyrslugerd sem faldi 1/3/12/24/48 klst.
     cb = model.get("cond_bias", {})
     if cb:
-        print("  SKILYRT HITABIAS (@6 klst, reitir med >= "
-              f"{COND_MIN_N} por):")
-        shown = False
-        for m in ALL_KEYS:
-            cells = (cb.get(m, {}) or {}).get("6", {})
-            parts = []
-            for cell in ["N-dagur","A-dagur","S-dagur","V-dagur",
-                         "N-nott","A-nott","S-nott","V-nott"]:
-                e = (cells.get(cell) or {}).get("hiti")
-                if e and e["n"] >= COND_MIN_N:
-                    parts.append(f"{cell} {-(e['sum']/e['n']):+.1f}(n{e['n']})")
-            if parts:
-                print(f"    {m:9s} " + "  ".join(parts))
-                shown = True
-        if not shown:
-            print("    (reitir enn ad byggjast upp - tharf fleiri stadfestingar)")
+        for _bs in [str(b) for b in LEAD_BUCKETS]:
+            print(f"  SKILYRT HITABIAS (@{_bs} klst, reitir med >= "
+                  f"{COND_MIN_N} por):")
+            shown = False
+            for m in ALL_KEYS:
+                cells = (cb.get(m, {}) or {}).get(_bs, {})
+                parts = []
+                for cell in ["N-dagur","A-dagur","S-dagur","V-dagur",
+                             "N-nott","A-nott","S-nott","V-nott"]:
+                    e = (cells.get(cell) or {}).get("hiti")
+                    if e and e["n"] >= COND_MIN_N:
+                        parts.append(f"{cell} {-(e['sum']/e['n']):+.1f}(n{e['n']})")
+                if parts:
+                    print(f"    {m:9s} " + "  ".join(parts))
+                    shown = True
+            if not shown:
+                print("    (reitir enn ad byggjast upp - tharf fleiri stadfestingar)")
     print("  ('--gogn' = gjafinn skilar ekki breytunni | "
           "'bid' = of fair samanburdir enn)")
 
-    # SKILYRTAR THYNGDIR - hver er bestur i hvada adstaedum
+    # [v5.3] SKILYRTAR THYNGDIR VID ALLAR SPALENGDIR - adur adeins @6klst.
+    # weights_cell er RETT lyklad eftir spalengd nu thegar (v4.1) - thetta
+    # var eingongu skyrslugerd sem faldi 1/3/12/24/48 klst algjorlega.
     wc_all = model.get("weights_cell", {})
     if wc_all:
-        print("  SKILYRTAR THYNGDIR @6klst (hver er bestur i hvada adstaedum):")
-        for var in WEIGHT_VARS:
-            cells = (wc_all.get(var, {}).get("6", {}) or {})
-            if not cells:
-                continue
-            for cname in sorted(cells):
-                w = cells[cname]
-                top = sorted(((v, k) for k, v in w.items() if v > 0),
-                             reverse=True)[:3]
-                if top:
-                    txt = " | ".join(f"{k} {v*100:.0f}%" for v, k in top)
-                    print(f"    {var:7} {cname:10} {txt}")
+        for _bs in [str(b) for b in LEAD_BUCKETS]:
+            any_shown = False
+            lines = []
+            for var in WEIGHT_VARS:
+                cells = (wc_all.get(var, {}).get(_bs, {}) or {})
+                if not cells:
+                    continue
+                for cname in sorted(cells):
+                    w = cells[cname]
+                    top = sorted(((v, k) for k, v in w.items() if v > 0),
+                                 reverse=True)[:3]
+                    if top:
+                        txt = " | ".join(f"{k} {v*100:.0f}%" for v, k in top)
+                        lines.append(f"    {var:7} {cname:10} {txt}")
+                        any_shown = True
+            if any_shown:
+                print(f"  SKILYRTAR THYNGDIR @{_bs}klst (hver er bestur i hvada adstaedum):")
+                for ln in lines: print(ln)
     # Sannleiksmaelirinn - obrengladur samanburdur
     try:
         truth_print(globals().get("_TRUTH_TBL") or {})
     except Exception as e:
         print(f"  (sannleikstafla: {e})")
-    # Fallin likon - their eru AFRAM maeld og geta komid aftur inn
+    # [v5.3] Fallin likon VID ALLAR SPALENGDIR - adur adeins @6klst.
+    # failed{} er RETT lyklad eftir spalengd nu thegar - eingongu
+    # skyrslugerdin var blind a 1/3/12/24/48 klst.
     _f = model.get("failed", {})
-    _lines = []
-    for _v in WEIGHT_VARS:
-        _o = sorted(m for m, r in (_f.get(_v, {}).get("6", {}) or {}).items()
-                    if r.get("out"))
-        if _o:
-            _lines.append(f"    {_v}: {', '.join(_o)}")
-    if _lines:
-        print("  FALLIN LIKON @6klst (0 vaegi, enn maeld, geta komid aftur):")
-        for _l in _lines:
-            print(_l)
+    for _bs in [str(b) for b in LEAD_BUCKETS]:
+        _lines = []
+        for _v in WEIGHT_VARS:
+            _o = sorted(m for m, r in (_f.get(_v, {}).get(_bs, {}) or {}).items()
+                        if r.get("out"))
+            if _o:
+                _lines.append(f"    {_v}: {', '.join(_o)}")
+        if _lines:
+            print(f"  FALLIN LIKON @{_bs}klst (0 vaegi, enn maeld, geta komid aftur):")
+            for _l in _lines:
+                print(_l)
 
 
 # --- 7. VISTA --------------------------------------------------------------
