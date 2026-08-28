@@ -99,7 +99,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "5.3"
+JOLLY_VERSION = "5.4"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -3046,7 +3046,10 @@ def print_coverage(model, fc, extras):
             _n  = (_lm.get("n_var") or {}).get("hiti", 0)
             _e  = _lm.get("hiti")
             if m == JOLLY_KEY:
-                row.append(f"{_e:6.2f}    " if _e is not None else "   bid    ")
+                # [v5.4] SYNA 'n' fyrir JOLLY LIKA - adur sast adeins MAE,
+                # svo tolur eins og 3.08 vid 24kl gatu verid 1 hávaðapar
+                # eda 200 stodug pör, og vid höfðum ENGA leið að greina þar á milli.
+                row.append(f"{_e:5.2f}(n{_n:<3})" if _e is not None else "  bid n=0  ")
             else:
                 _w = model.get("weights", {}).get("hiti", {}).get(_bs, {}).get(m, 0.0)
                 if _e is None or _n < MIN_N_BY_VAR["hiti"]:
