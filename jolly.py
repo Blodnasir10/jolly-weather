@@ -99,7 +99,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "5.4"
+JOLLY_VERSION = "5.5"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -277,11 +277,33 @@ CELLW_MIN_N   = 12     # undir thessu: nota EINGONGU almennar thyngdir
 CELLW_FULL_N  = 60     # yfir thessu: nota EINGONGU reit-thyngdir
 CELLW_LR      = 0.10   # veldisjofnun a reit-MAE
 
-def cell_weight_blend(n):
-    """Hlutfall reit-thyngda a moti almennum. 0 = almennar, 1 = reitur."""
-    if n <= CELLW_MIN_N:  return 0.0
-    if n >= CELLW_FULL_N: return 1.0
-    return (n - CELLW_MIN_N) / float(CELLW_FULL_N - CELLW_MIN_N)
+def cell_weight_blend(n, bs=None):
+    """
+    Hlutfall reit-thyngda a moti almennum. 0 = almennar, 1 = reitur.
+
+    [v5.5] SPALENGDAR-MEÐVITAД. Reiturinn er valinn ur SPADRI vindatt
+    (grov_att), og su spa verdur ovissari eftir thvi sem lengra er spad -
+    NAKVAEMLEGA sama fyrirbaeri og COND_LEAD_TRUST var buid til fyrir
+    skilyrt bias i v3.1. Endurnytum somu kurfu her.
+
+    Adur (v4.1-v5.4) treysti cell_weight_blend EINGONGU á 'n' - og thar
+    sem n vex NATTURLEGA med tima (langtimasofnun), nadi hun FULLU
+    trausti (alpha=1) vid 24-48kl ALVEG EINS OG vid 6kl, thott spada
+    attin sem VALDI reitinn se margfalt ovissari that. Kerfid var thvi
+    "mjog sjalfsorugt" (thröng thyngd a 1-2 likön) einmitt thar sem
+    forsendan (reiturinn) var throstust - log 28.agust synir thetta:
+    sky @24klst gaf ollu vaegi til AÐEINS TVEGGJA likana.
+
+    Nu margfaldast n-byggda hlutfallid med COND_LEAD_TRUST[bs], svo fullt
+    traust vid 24-48klst KREFST margfalt haerra n en vid 1-6klst.
+    """
+    base = 0.0
+    if n <= CELLW_MIN_N:  base = 0.0
+    elif n >= CELLW_FULL_N: base = 1.0
+    else: base = (n - CELLW_MIN_N) / float(CELLW_FULL_N - CELLW_MIN_N)
+    if bs is None:
+        return base
+    return base * COND_LEAD_TRUST.get(bs, 0.5)
 
 # ══════════════════════════════════════════════════════════════════════
 #  SJALFSVOKTUN
@@ -2440,7 +2462,7 @@ def verify_and_train(arch, obs_history, model):
                 if tot_c <= 0:
                     continue
                 n_cell = min((per_m[m].get("n", 0) for m in keep), default=0)
-                alpha = cell_weight_blend(n_cell)
+                alpha = cell_weight_blend(n_cell, bs)
                 if alpha <= 0:
                     continue
                 wc[cname] = {
