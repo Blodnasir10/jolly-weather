@@ -99,7 +99,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "5.7"
+JOLLY_VERSION = "5.8"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -3060,10 +3060,19 @@ def print_coverage(model, fc, extras):
             jb = (model.get("jolly_bias") or {}).get(_bs)
             if not jb:
                 continue
+            # [v5.8] VIDVORUN ADEINS FYRIR VIRKAR LEIDRETTINGAR. Adur var
+            # engin athugun a APPLY_JOLLY_RESIDUAL her - vindur/att/sky
+            # eru OVIRK (thjalfud en aldrei beitt), svo their a thakinu
+            # hefur NULL ahrif a spa. Samt fylltist STADA-blokkin af 8
+            # atridum um thetta - gagnslaus vidvorun sem faldi hitt sem
+            # raunverulega skiptir mali. Nu adeins hropad fyrir breytur
+            # sem eru RAUNVERULEGA notadar i spanni.
             for _v, _cap in (("hiti", JOLLY_BIAS_CAP.get("hiti", 1.5)),
                              ("vindur", JOLLY_BIAS_CAP.get("vindur", 1.5)),
                              ("att", JOLLY_BIAS_CAP.get("att", 12.0)),
                              ("sky", JOLLY_BIAS_CAP.get("sky", 12.0))):
+                if not APPLY_JOLLY_RESIDUAL.get(_v):
+                    continue
                 _val = abs(jb.get(_v, 0.0) or 0.0)
                 if _cap and _val >= _cap * 0.95:
                     warn(f"restbias {_v} @{_bs}klst a thakinu "
