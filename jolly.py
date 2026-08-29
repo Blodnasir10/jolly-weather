@@ -99,7 +99,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "5.5"
+JOLLY_VERSION = "5.7"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -263,8 +263,30 @@ JOLLY_BIAS_CAP = {"hiti": 4.0, "vindur": 1.5, "att": 12.0, "sky": 12.0}
 #
 # Med False fyrir breytu er EKKERT bias lagt a medlimi i theirri breytu
 # (hvorki almennt ne skilyrt). Vid maelum svo hvort Jolly batni.
-APPLY_MEMBER_BIAS = {"hiti": False, "vindur": True, "att": True,
+#
+# [v5.6] SPALENGDAR-MEÐVITAД TILRAUN A HITA: akvordunin um ad slokkva
+# a hita-bias (19.ag) var byggd EINGONGU a sannleiksmaelinum sem maelir
+# ADEINS @1klst. Ohaefilegt ad lata thad gilda um allar sex spalengdir -
+# vid 24-48klst hafa medlimir haft miklu lengri tima til ad reka fra
+# upphafsastandi, svo kerfisbundin skekkja (sem member_bias er hannad
+# til ad leidretta) gaeti verid RAÐANDI hluti af skekkjunni thar, ólíkt
+# vid 1klst thar sem hun bætti vid suð.
+#
+# Gildi geta nu verid:
+#   True / False  - eins og adur, gildir a ollum spalengdum
+#   set af strengjum - t.d. {"24","48"} - AÐEINS virkt vid thaer spalengdir
+#
+# HITI: slokkt vid 1-12klst (studd af maelingum), TILRAUN kveikt vid
+# 24-48klst (studd af rokum, EKKI enn maelt beint - fylgjumst med).
+APPLY_MEMBER_BIAS = {"hiti": {"24", "48"}, "vindur": True, "att": True,
                      "urkoma": True, "sky": True}
+
+def _member_bias_on(var, bs):
+    """Er member_bias virk fyrir thessa breytu VID THESSA spalengd."""
+    v = APPLY_MEMBER_BIAS.get(var, True)
+    if isinstance(v, (set, frozenset, list, tuple)):
+        return str(bs) in v
+    return bool(v)
 
 # --- SKILYRTAR THYNGDIR -------------------------------------------------
 # Ekki bara "hver er bestur i hita" heldur "hver er bestur i hita I
@@ -277,25 +299,28 @@ CELLW_MIN_N   = 12     # undir thessu: nota EINGONGU almennar thyngdir
 CELLW_FULL_N  = 60     # yfir thessu: nota EINGONGU reit-thyngdir
 CELLW_LR      = 0.10   # veldisjofnun a reit-MAE
 
+# [v5.6] SER KURFA FYRIR SKILYRTAR THYNGDIR - ekki sama og COND_LEAD_TRUST.
+# v5.5 endurnytti COND_LEAD_TRUST (buin til fyrir skilyrt BIAS) beint fyrir
+# THYNGDIR. Threar keyrslur af gognum (28.-29.ag) synda STOÐUGT mynstur:
+# 24klst BATNADI throung og thett (3.08->2.77->2.54) en 48klst VERSNADI
+# throung og thett (2.77->2.94->3.01). Likleg skyring: 0.2 vid 48klst er
+# OF LAGT - kerfid fellur nær eingongu a almennu thyngdirnar thar sem
+# reit-thyngdir gaetu i raun hjalpad, ekki bara skadad.
+#
+# THETTA ER TILRAUN, ekki endanlegt svar - fylgjumst afram med gognum.
+CELLW_LEAD_TRUST = {"1": 1.00, "3": 1.00, "6": 0.90,
+                     "12": 0.65, "24": 0.55, "48": 0.45}
+
 def cell_weight_blend(n, bs=None):
     """
     Hlutfall reit-thyngda a moti almennum. 0 = almennar, 1 = reitur.
 
     [v5.5] SPALENGDAR-MEÐVITAД. Reiturinn er valinn ur SPADRI vindatt
-    (grov_att), og su spa verdur ovissari eftir thvi sem lengra er spad -
-    NAKVAEMLEGA sama fyrirbaeri og COND_LEAD_TRUST var buid til fyrir
-    skilyrt bias i v3.1. Endurnytum somu kurfu her.
+    (grov_att), og su spa verdur ovissari eftir thvi sem lengra er spad.
 
-    Adur (v4.1-v5.4) treysti cell_weight_blend EINGONGU á 'n' - og thar
-    sem n vex NATTURLEGA med tima (langtimasofnun), nadi hun FULLU
-    trausti (alpha=1) vid 24-48kl ALVEG EINS OG vid 6kl, thott spada
-    attin sem VALDI reitinn se margfalt ovissari that. Kerfid var thvi
-    "mjog sjalfsorugt" (thröng thyngd a 1-2 likön) einmitt thar sem
-    forsendan (reiturinn) var throstust - log 28.agust synir thetta:
-    sky @24klst gaf ollu vaegi til AÐEINS TVEGGJA likana.
-
-    Nu margfaldast n-byggda hlutfallid med COND_LEAD_TRUST[bs], svo fullt
-    traust vid 24-48klst KREFST margfalt haerra n en vid 1-6klst.
+    [v5.6] Notar NU CELLW_LEAD_TRUST i stad COND_LEAD_TRUST - saerhaefd
+    kurfa fyrir thyngdir, thar sem gogn syndu ad bias-kurfan (0.2 vid
+    48klst) var of ihaldssom fyrir thyngdir sérstaklega.
     """
     base = 0.0
     if n <= CELLW_MIN_N:  base = 0.0
@@ -303,7 +328,7 @@ def cell_weight_blend(n, bs=None):
     else: base = (n - CELLW_MIN_N) / float(CELLW_FULL_N - CELLW_MIN_N)
     if bs is None:
         return base
-    return base * COND_LEAD_TRUST.get(bs, 0.5)
+    return base * CELLW_LEAD_TRUST.get(bs, 0.5)
 
 # ══════════════════════════════════════════════════════════════════════
 #  SJALFSVOKTUN
@@ -402,7 +427,7 @@ def member_bias(model, m, bs, cell, var, general):
     Bias sem er raunverulega lagt a medlim. Ein leid inn - svo
     sannleiksmaelirinn geti notad NAKVAEMLEGA sama utreikning og spain.
     """
-    if not APPLY_MEMBER_BIAS.get(var, True):
+    if not _member_bias_on(var, bs):
         return 0.0
     return cond_bias_value(model, m, bs, cell, var, general)
 FAIL_MIN_N   = 10      # ekki fella ut fyrr en nogu morg por
@@ -3026,24 +3051,32 @@ def print_coverage(model, fc, extras):
             cells.append(f"{e:5.1f}   -  " if e is not None else "  bid     ")
         print("  " + "-" * 62)
         print(f"  {'JOLLY':9s} " + "".join(cells))
-        jb = (model.get("jolly_bias") or {}).get(bs)
-        if jb:
-            # Restbias a thakinu = leidrettingin naer ekki jafnvaegi
+        # [v5.6] RESTBIAS VID ALLAR SPALENGDIR - adur adeins @6klst.
+        # Thetta var siðasta blinda svaedid eftir v5.3: ef restbias er a
+        # thakinu vid 24/48klst saum vid thad ALDREI, thott hun vaeri
+        # rett lykluð allan timann. Serstok ahersla a 24/48 - STAKAR
+        # linur MERKTAR ⚡ svo their skera sig ur i loggnum.
+        for _bs in [str(b) for b in LEAD_BUCKETS]:
+            jb = (model.get("jolly_bias") or {}).get(_bs)
+            if not jb:
+                continue
             for _v, _cap in (("hiti", JOLLY_BIAS_CAP.get("hiti", 1.5)),
                              ("vindur", JOLLY_BIAS_CAP.get("vindur", 1.5)),
                              ("att", JOLLY_BIAS_CAP.get("att", 12.0)),
                              ("sky", JOLLY_BIAS_CAP.get("sky", 12.0))):
                 _val = abs(jb.get(_v, 0.0) or 0.0)
                 if _cap and _val >= _cap * 0.95:
-                    warn(f"restbias {_v} a thakinu ({jb.get(_v,0):+.2f} af "
-                         f"{_cap}) - naer ekki jafnvaegi")
+                    warn(f"restbias {_v} @{_bs}klst a thakinu "
+                         f"({jb.get(_v,0):+.2f} af {_cap}) - naer ekki "
+                         f"jafnvaegi", alvarlegt=(_bs in ("24","48")))
             _on  = [v for v in ("hiti","vindur","att","sky")
                     if APPLY_JOLLY_RESIDUAL.get(v)]
             _off = [v for v in ("hiti","vindur","att","sky")
                     if not APPLY_JOLLY_RESIDUAL.get(v)]
             _tag = (f"  (VIRK: {','.join(_on) or '-'} | "
                     f"OVIRK: {','.join(_off) or '-'})")
-            print(f"  restbias{_tag}   hiti {jb.get('hiti',0):+.2f}  "
+            _star = " ⚡" if _bs in ("24","48") else ""
+            print(f"  restbias@{_bs}klst{_star}{_tag}   hiti {jb.get('hiti',0):+.2f}  "
                   f"vind {jb.get('vindur',0):+.2f}  "
                   f"att {jb.get('att',0):+.1f}  "
                   f"urk x{jb.get('urkoma_scale',1):.2f}  "
@@ -3173,6 +3206,59 @@ def save_log(tee):
         sys.__stdout__.write(f"  Gat ekki vistad logg: {e}\n")
 
 
+
+def print_2448_tracker():
+    """
+    [v5.6] SÉRSTAKUR REKJARI FYRIR 24 OG 48 KLST - "ofur ahersla" spalengdir.
+
+    [v5.7] UTVIKKAD I ALLAR FIMM BREYTUR - ekki bara hita. Notandi benti a
+    ad CELLW_LEAD_TRUST (v5.6) gildir fyrir ALLAR breytur i WEIGHT_VARS,
+    ekki bara hita (sama lykkja i weights_cell-utreikningi). Fram ad thessu
+    saum vid ADEINS hvort hiti batnadi/versnadi - blint a hvort breytingin
+    hjalpadi eda skadadi vind/att/sky/urkomu a somu spalengdum.
+
+    Synir I EINNI BLOKK, fyrir HVERJA breytu:
+      - dag-fyrir-dag throun MAE ur mae_history.json
+      - VIDVORUN ef versnar 3 daga i rod / FOGNUD ef batnar 3 daga i rod
+    Og fyrir HVORA spalengd (24/48), stodu leidretinga sem eiga serstaklega
+    vid: member_bias (adeins skilgreint fyrir hita i dag) og CELLW_LEAD_TRUST.
+    """
+    hist = load_json(DATA_DIR / "mae_history.json", {"days": []})
+    days = hist.get("days", [])
+    if not days:
+        return
+    UNIT = {"hiti": "C", "vindur": "m/s", "att": "gr",
+            "urkoma": "mm", "sky": "%"}
+    print()
+    print("═" * 60)
+    print("  24-48 KLST REKJARI (ofur-ahersla spalengdir, allar breytur)")
+    print("═" * 60)
+
+    for bs in ("24", "48"):
+        mb_on = _member_bias_on("hiti", bs)
+        cwt = CELLW_LEAD_TRUST.get(bs, "?")
+        print(f"  --- @{bs}klst ---  member_bias(hiti)="
+              f"{'VIRK' if mb_on else 'ovirk'}  CELLW_LEAD_TRUST={cwt}")
+        for var in WEIGHT_VARS:
+            vals = []
+            for d in days[-7:]:
+                v = (d.get(var, {}).get(bs, {}) or {}).get(JOLLY_KEY)
+                vals.append((d["d"][5:], v))
+            shown = [f"{lbl}:{v:.2f}" for lbl, v in vals if v is not None]
+            u = UNIT.get(var, "")
+            print(f"    {var:7} ({u:4}): " +
+                  " -> ".join(shown or ["(engin saga enn)"]))
+
+            nums = [v for _, v in vals if v is not None]
+            if len(nums) >= 3 and nums[-1] > nums[-2] > nums[-3]:
+                warn(f"{var} @{bs}klst VERSNAR 3 daga i rod "
+                     f"({nums[-3]:.2f} -> {nums[-2]:.2f} -> {nums[-1]:.2f})",
+                     alvarlegt=True)
+            elif len(nums) >= 3 and nums[-1] < nums[-2] < nums[-3]:
+                print(f"      ✓ batnar 3 daga i rod "
+                      f"({nums[-3]:.2f} -> {nums[-2]:.2f} -> {nums[-1]:.2f})")
+    print("═" * 60)
+
 def append_mae_history(model):
     """
     Geymir EITT snapshot a dag af MAE hvers gjafa (@6klst, allar breytur)
@@ -3188,14 +3274,19 @@ def append_mae_history(model):
     hist = load_json(path, {"days": []})
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
+    # [v5.6] GEYMA ALLAR SPALENGDIR, ekki bara 6klst - naudsynlegt fyrir
+    # 24/48klst rekjarann. Byggt eins: row[var][bs][gjafi] = MAE.
     row = {"d": today}
     for var in WEIGHT_VARS:
-        lm = model.get("lead_mae", {}).get("6", {})
         row[var] = {}
-        for m in list(ALL_KEYS) + [JOLLY_KEY]:
-            v = (lm.get(m) or {}).get(var)
-            if v is not None:
-                row[var][m] = round(v, 3)
+        for b in LEAD_BUCKETS:
+            bs = str(b)
+            lm = model.get("lead_mae", {}).get(bs, {})
+            row[var][bs] = {}
+            for m in list(ALL_KEYS) + [JOLLY_KEY]:
+                v = (lm.get(m) or {}).get(var)
+                if v is not None:
+                    row[var][bs][m] = round(v, 3)
 
     if hist["days"] and hist["days"][-1]["d"] == today:
         hist["days"][-1] = row           # uppfaera daginn i stad thess ad tvitaka
@@ -3255,6 +3346,10 @@ def _run():
     arch  = archive_jolly(arch, fcast)      # eftir spa - Jolly er nidurstadan
     print_coverage(model, fc, extras)
     save(model, fcast)
+    try:
+        print_2448_tracker()
+    except Exception as _e:
+        print(f"  (24-48 rekjari: {_e})")
 
     print("=" * 64)
     for var in WEIGHT_VARS:
