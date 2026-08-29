@@ -99,7 +99,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "5.8"
+JOLLY_VERSION = "5.9"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -276,9 +276,20 @@ JOLLY_BIAS_CAP = {"hiti": 4.0, "vindur": 1.5, "att": 12.0, "sky": 12.0}
 #   True / False  - eins og adur, gildir a ollum spalengdum
 #   set af strengjum - t.d. {"24","48"} - AÐEINS virkt vid thaer spalengdir
 #
-# HITI: slokkt vid 1-12klst (studd af maelingum), TILRAUN kveikt vid
-# 24-48klst (studd af rokum, EKKI enn maelt beint - fylgjumst med).
-APPLY_MEMBER_BIAS = {"hiti": {"24", "48"}, "vindur": True, "att": True,
+# [v5.9] AFTURKOLLUN A v5.6-TILRAUN. Notandi tok eftir ALVARLEGRI
+# afturfor i 24-48klst nakvaemni og bad um endurskodun. v5.6-tilraunin
+# (hiti kveikt vid 24/48klst) var EINA breytingin i thessu ferli sem var
+# ALDREI MAELD BEINT - eingongu rokstudd. Grunur: TVOFOLD LEIDRETTING -
+# restbias (jolly_bias) laerdi sina -1 til -2° leidrettingu A MEDAN
+# member_bias var SLOKKT, og lærir HAEGT (lagt LR). Thegar member_bias
+# kviknadi vid 24/48klst i v5.6 fjarlaegdi hann HLUTA af upprunalegu
+# skekkjunni ur HVERJUM medlim ADUR EN blondun - en restbias VISSI EKKI
+# AF THVI og helt afram ad beita SAMA STORA leidrettingu sem miðadist
+# vid GOMLU (staerri) skekkjuna. Netto: oleidrett um allt ad 1-2° i
+# ranga att. Sama EÐLI og tvöfalda leidrettingin i agust (v3.4) - tvaer
+# ohaðar leidrettingar, laerdar a olikum tima, sem vita ekki hvor af
+# annarri. AFTURKALLAD i thekkt, MAELT ASTAND fra 19.agust.
+APPLY_MEMBER_BIAS = {"hiti": False, "vindur": True, "att": True,
                      "urkoma": True, "sky": True}
 
 def _member_bias_on(var, bs):
@@ -1531,6 +1542,29 @@ def load_model():
         # (langtimasafn, truth.json) eru ALGJORLEGA OSNERT - beir eru thad
         # sem raedur spanni, ekki skill-taflan. Spain a morgun verdur eins
         # OG AN thessarar hreinsunar - adeins talan sem BIRTIST breytist.
+        # [v5.9] EINSKIPTIS-HREINSUN: jolly_bias(hiti) VID 24 OG 48 KLST.
+        #
+        # Fra thvi v5.6 kveikti a member_bias(hiti) vid thessar spalengdir
+        # (grunur um tvofalda leidrettingu, sja APPLY_MEMBER_BIAS ad ofan),
+        # hefur restbias haft NOKKRAR keyrslur til ad laera RANGA (of stora)
+        # leidrettingu sem tok ekki tillit til ad member_bias var einnig
+        # ad leidretta somu skekkju. Frekar en ad bida marga daga eftir ad
+        # EMA vindi hott ofan af thessu SJALFT (LR er lagt af asettu radi),
+        # nullstillum vid jolly_bias(hiti) EINGONGU vid 24/48klst - hun
+        # laerir ser fra grunni undir hreinu (member_bias-lausu) astandi.
+        #
+        # ATH: ADEINS hiti vid 24/48klst - ekkert annad snert. Vindur/att/
+        # sky halda ollu sinu, hiti vid 1-12klst haldast oskert lika.
+        if not raw.get("v59_hiti_2448_reset"):
+            for _b in ("24", "48"):
+                _jb = raw.get("jolly_bias", {}).get(_b)
+                if _jb is not None:
+                    _jb["hiti"] = 0.0
+            raw["v59_hiti_2448_reset"] = True
+            print("  HREINSUN v5.9: jolly_bias(hiti) vid 24/48klst")
+            print("  nullstillt - grunur um tvofalda leidrettingu eftir")
+            print("  ad member_bias(hiti) var kveikt thar i v5.6.")
+
         if not raw.get("v49_skill_reset"):
             for b in LEAD_BUCKETS:
                 lm = raw.get("lead_mae", {}).get(str(b), {})
