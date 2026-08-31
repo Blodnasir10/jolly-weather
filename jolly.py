@@ -99,7 +99,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "6.0"
+JOLLY_VERSION = "6.1"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -255,6 +255,17 @@ APPLY_JOLLY_RESIDUAL = {"hiti": True, "vindur": False,
 # sjalfsvoktunin gat ekki vitad hver thau eru - thad olli NameError og
 # felldi keyrsluna. Nu ein uppspretta sem baedi namid og voktunin nota.
 JOLLY_BIAS_CAP = {"hiti": 4.0, "vindur": 1.5, "att": 12.0, "sky": 12.0}
+
+# [v6.1] ORYGGISNET A member_bias (cond_bias_value). Rannsokn a vindi
+# stadfesti ad SKILYRT VINDBIAS (+1.3 til +2.4 i N-dagur) er STÖÐUGT
+# milli spalengda og LIKLEGA RAUNVERULEGT (dalvindshrödun sem grofgerd
+# likon na ekki - allir 9 gjafar syna SAMA teikn, svipud staerd). EKKI
+# villa i dag. EN cond_bias_value hefur ALDREI haft NOKKURT thak - ef
+# fair punktar i reit fa storar utlagaskekkjur eiga their engan CAP eins
+# og restbias (JOLLY_BIAS_CAP) hefur haft sidan v3.4. Settum thvi somu
+# vorn a, med thaki HÆRRA en NUVERANDI stærstu gildi (svo engin breyting
+# a hegdun i dag) - eingongu vörn gegn framtíðar utlogum.
+MEMBER_BIAS_CAP = {"hiti": 5.0, "vindur": 4.0, "att": 30.0, "sky": 30.0}
 
 # --- MEDLIMA-BIAS: TILRAUN v4.0 -----------------------------------------
 # Sannleiksmaelirinn (19.ag) syndi ad ALMENNA hita-biasid gerir 8 af 9
@@ -756,6 +767,9 @@ def cond_bias_value(model, m, bs, cell, var, general):
     w_n    = n / (n + COND_SHRINK_K)
     w_lead = COND_LEAD_TRUST.get(bs, 0.5)
     w = w_n * w_lead
+    _cap = MEMBER_BIAS_CAP.get(var)
+    if _cap is not None:
+        measured = max(-_cap, min(_cap, measured))
     return w * measured + (1 - w) * general
 
 # --- URKOMUTHROSKULDUR ---------------------------------------------------
