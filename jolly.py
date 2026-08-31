@@ -99,7 +99,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "5.9"
+JOLLY_VERSION = "6.0"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -3159,27 +3159,31 @@ def print_coverage(model, fc, extras):
         print(f"  {m:9s}" + "".join(f"{c:>11}" for c in row))
 
     # [v5.3] Skilyrt bias VID ALLAR SPALENGDIR - adur adeins @6klst.
-    # Nam sjalft var alltaf rett lyklad (cb[m][bs][cell][var]) - thetta
-    # var eingongu skyrslugerd sem faldi 1/3/12/24/48 klst.
+    # [v6.0] UTVIKKAD I VINDUR - vid RANNSOKUM 'vindur @48klst versnar
+    # 3 daga i rod' og fundum ad member_bias() hefur EKKERT THAK, en
+    # sast ALDREI i loggnum fyrir adrar breytur en hita. Nu birt fyrir
+    # BAEDI svo vid getum SED hvort skilyrt vindbias er ad reka.
     cb = model.get("cond_bias", {})
     if cb:
-        for _bs in [str(b) for b in LEAD_BUCKETS]:
-            print(f"  SKILYRT HITABIAS (@{_bs} klst, reitir med >= "
-                  f"{COND_MIN_N} por):")
-            shown = False
-            for m in ALL_KEYS:
-                cells = (cb.get(m, {}) or {}).get(_bs, {})
-                parts = []
-                for cell in ["N-dagur","A-dagur","S-dagur","V-dagur",
-                             "N-nott","A-nott","S-nott","V-nott"]:
-                    e = (cells.get(cell) or {}).get("hiti")
-                    if e and e["n"] >= COND_MIN_N:
-                        parts.append(f"{cell} {-(e['sum']/e['n']):+.1f}(n{e['n']})")
-                if parts:
-                    print(f"    {m:9s} " + "  ".join(parts))
-                    shown = True
-            if not shown:
-                print("    (reitir enn ad byggjast upp - tharf fleiri stadfestingar)")
+        for _var, _lbl, _unit in (("hiti", "HITABIAS", "°"),
+                                   ("vindur", "VINDBIAS", "m/s")):
+            for _bs in [str(b) for b in LEAD_BUCKETS]:
+                print(f"  SKILYRT {_lbl} (@{_bs} klst, reitir med >= "
+                      f"{COND_MIN_N} por):")
+                shown = False
+                for m in ALL_KEYS:
+                    cells = (cb.get(m, {}) or {}).get(_bs, {})
+                    parts = []
+                    for cell in ["N-dagur","A-dagur","S-dagur","V-dagur",
+                                 "N-nott","A-nott","S-nott","V-nott"]:
+                        e = (cells.get(cell) or {}).get(_var)
+                        if e and e["n"] >= COND_MIN_N:
+                            parts.append(f"{cell} {-(e['sum']/e['n']):+.2f}(n{e['n']})")
+                    if parts:
+                        print(f"    {m:9s} " + "  ".join(parts))
+                        shown = True
+                if not shown:
+                    print("    (reitir enn ad byggjast upp - tharf fleiri stadfestingar)")
     print("  ('--gogn' = gjafinn skilar ekki breytunni | "
           "'bid' = of fair samanburdir enn)")
 
