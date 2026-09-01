@@ -1,12 +1,12 @@
 STADA  OK - ekkert athugavert
 ================================================================
-JOLLY v6.1  2026-09-01 04:56 UTC
+JOLLY v6.1  2026-09-01 09:57 UTC
 Eiginleg spastadfesting eftir spalengd | 9 gjafar | stod 571 + BIEG
 ================================================================
 METAR BIEG:
-  OK 24 faerslur | nyjust 2026-09-01T04:00 sky=100% botn=4600ft | aldur 0.9 klst
+  OK 24 faerslur | nyjust 2026-09-01T09:00 sky=75% botn=1200ft | aldur 1.0 klst
 MAELING stod 4271 (Egilsstadaflugvollur):
-  OK 2026-09-01T04:00 | hiti=5.5 vindur=2.7 att=9.0
+  OK 2026-09-01T09:00 | hiti=5.8 vindur=5.3 att=23.0
   METAR skyjagogn a 24 timapunkta
   720 maelingar geymdar (717 med skyjahulu)
 OPEN-METEO:
@@ -19,123 +19,136 @@ OPEN-METEO:
     mfr     127 gildi
     gfs     168 gildi
 HARMONIE (Vedurstofa):
-  OK 108 timapunktar (108 med skyjahulu ur vedurtexta - grof)
+  OK 111 timapunktar (111 med skyjahulu ur vedurtexta - grof)
 MET NORWAY (api.met.no):
   OK 90 timapunktar (90 med skyjahulu)
 LIKAN:
-  Hladid v2.x - 679 keyrslur, 120138 stadfest por
+  Hladid v2.x - 680 keyrslur, 120354 stadfest por
 SPASAFN:
-  Geymdi 6 spalengdir fyrir utgafu 2026-09-01T04:00
-  Safnid: 80 gildistimar (hreinsadi 3)
+  Geymdi 6 spalengdir fyrir utgafu 2026-09-01T09:00
+  Safnid: 79 gildistimar (hreinsadi 4)
 STADFESTING:
-  216 NY stadfest por a 4 gildistimum
-  [GREINING @6klst hiti] Jolly 1.75 vs besti ecmwf 0.45 vs medaltal-medlima 1.03  (n=2)
-           Jolly-spa bil: 4.7 - 4.8, medaltal 4.7 | maeling medaltal 6.5
-           Jolly bias: -1.75  (0 = engin kerfisbundin skekkja)
-           dmi hra-bias: -0.70
-           knmi hra-bias: -1.80
-  Langtimasafn: +54 radir | 18268 samtals | 2 man (2026-08 - 2026-09)
+  248 NY stadfest por a 4 gildistimum
+  [GREINING @24klst hiti] Jolly 0.29 vs besti knmi 0.00 vs medaltal-medlima 0.70  (n=1)
+           Jolly-spa bil: 5.7 - 5.7, medaltal 5.7 | maeling medaltal 6.0
+           Jolly bias: -0.29  (0 = engin kerfisbundin skekkja)
+           dmi hra-bias: -1.60
+           knmi hra-bias: +0.00
+  KRUFNING @1klst sky (maeling 75.0):
+    dmi       hratt    0.0 -> leidrett   24.0  x thyngd  0.0%
+    knmi      hratt    1.0 -> leidrett   28.0  x thyngd  0.0%
+    ecmwf     hratt   69.0 -> leidrett   50.0  x thyngd 18.2%
+    icon      hratt   93.0 -> leidrett   52.0  x thyngd 13.9%
+    ukmo      hratt  100.0 -> leidrett   51.0  x thyngd 18.6%
+    mfr       hratt   45.0 -> leidrett   41.0  x thyngd 15.5%
+    gfs       hratt  100.0 -> leidrett   45.0  x thyngd 12.0%
+    harmonie  hratt   95.0 -> leidrett   42.0  x thyngd  0.0%
+    metno     hratt   65.6 -> leidrett   47.0  x thyngd 21.8%
+    REIKNUD BLANDA          47.8
+    GEYMD JOLLY-SPA         48.0   mismunur +0.2
+  Langtimasafn: +62 radir | 18330 samtals | 2 man (2026-08 - 2026-09)
+    harmonie kemur AFTUR INN i sky @48klst (3 godar spar i rod)
   [hiti]
-     1 klst  Jolly   1.22C  besti knmi       0.92  -> -32.6% lakari  (n=118)
-     3 klst  Jolly   1.13C  besti dmi        0.74  -> -52.2% lakari  (n=120)
+     1 klst  Jolly   1.24C  besti mfr        0.91  -> -36.2% lakari  (n=119)
+     3 klst  Jolly   1.14C  besti mfr        0.83  -> -38.2% lakari  (n=121)
      6 klst  Jolly   1.42C  besti dmi        0.98  -> -44.6% lakari  (n=122)
-    12 klst  Jolly   1.29C  besti dmi        0.74  -> -74.2% lakari  (n=125)
-    24 klst  Jolly   1.65C  besti harmonie   0.77  -> -100.0% lakari  (n=134)
-    48 klst  Jolly   2.08C  besti ukmo       1.00  -> -100.0% lakari  (n=149)
+    12 klst  Jolly   1.20C  besti dmi        0.68  -> -76.6% lakari  (n=127)
+    24 klst  Jolly   1.49C  besti harmonie   0.77  -> -93.0% lakari  (n=135)
+    48 klst  Jolly   1.89C  besti ukmo       0.91  -> -100.0% lakari  (n=150)
   [vindur]
-     1 klst  Jolly   0.98m/s  besti harmonie   0.76  -> -30.1% lakari  (n=118)
-     3 klst  Jolly   1.02m/s  besti metno      0.90  -> -13.8% lakari  (n=120)
+     1 klst  Jolly   0.87m/s  besti harmonie   0.72  -> -20.4% lakari  (n=119)
+     3 klst  Jolly   1.05m/s  besti ecmwf      0.93  -> -12.7% lakari  (n=121)
      6 klst  Jolly   0.94m/s  besti knmi       0.84  -> -12.3% lakari  (n=122)
-    12 klst  Jolly   0.96m/s  besti dmi        0.81  -> -19.2% lakari  (n=125)
-    24 klst  Jolly   1.03m/s  besti metno      0.83  -> -23.1% lakari  (n=134)
-    48 klst  Jolly   1.53m/s  besti icon       0.94  -> -62.1% lakari  (n=149)
+    12 klst  Jolly   0.97m/s  besti dmi        0.72  -> -34.7% lakari  (n=127)
+    24 klst  Jolly   0.92m/s  besti ecmwf      0.87  ->  -6.0% lakari  (n=135)
+    48 klst  Jolly   1.39m/s  besti icon       0.83  -> -67.1% lakari  (n=150)
   [att]
-     1 klst  Jolly  26.75gr  besti icon      27.37  ->  +2.3% BETRI  (n=113)
-     3 klst  Jolly  38.36gr  besti icon      26.14  -> -46.7% lakari  (n=113)
-     6 klst  Jolly  42.41gr  besti icon      37.96  -> -11.7% lakari  (n=116)
-    12 klst  Jolly  47.35gr  besti mfr       30.48  -> -55.3% lakari  (n=118)
-    24 klst  Jolly  33.81gr  besti harmonie  25.23  -> -34.0% lakari  (n=130)
-    48 klst  Jolly  30.58gr  besti mfr       27.31  -> -12.0% lakari  (n=142)
+     1 klst  Jolly  23.69gr  besti icon      25.84  ->  +8.3% BETRI  (n=114)
+     3 klst  Jolly  34.47gr  besti icon      23.16  -> -48.8% lakari  (n=114)
+     6 klst  Jolly  42.41gr  besti harmonie  36.53  -> -16.1% lakari  (n=116)
+    12 klst  Jolly  43.52gr  besti mfr       29.35  -> -48.3% lakari  (n=120)
+    24 klst  Jolly  32.36gr  besti harmonie  24.26  -> -33.4% lakari  (n=131)
+    48 klst  Jolly  28.85gr  besti mfr       24.05  -> -19.9% lakari  (n=143)
   [sky]
-     1 klst  Jolly  24.67%  besti metno     11.60  -> -100.0% lakari  (n=118)
-     3 klst  Jolly  30.70%  besti icon      14.53  -> -100.0% lakari  (n=120)
-     6 klst  Jolly  28.66%  besti metno     14.50  -> -97.7% lakari  (n=122)
-    12 klst  Jolly  28.20%  besti icon      13.49  -> -100.0% lakari  (n=125)
-    24 klst  Jolly  28.10%  besti icon      13.16  -> -100.0% lakari  (n=134)
-    48 klst  Jolly  28.98%  besti icon      18.76  -> -54.5% lakari  (n=149)
-  Haest thyngd @6klst -> hiti: dmi 15% | vindur: knmi 14% | att: icon 12% | urkoma: dmi 21% | sky: metno 17%
+     1 klst  Jolly  24.95%  besti metno     12.07  -> -100.0% lakari  (n=119)
+     3 klst  Jolly  28.93%  besti icon      14.46  -> -100.0% lakari  (n=121)
+     6 klst  Jolly  28.66%  besti metno     15.76  -> -81.8% lakari  (n=122)
+    12 klst  Jolly  27.46%  besti ukmo      13.59  -> -100.0% lakari  (n=127)
+    24 klst  Jolly  26.89%  besti icon      12.53  -> -100.0% lakari  (n=135)
+    48 klst  Jolly  27.54%  besti icon      16.54  -> -66.5% lakari  (n=150)
+  Haest thyngd @6klst -> hiti: dmi 14% | vindur: knmi 14% | att: harmonie 12% | urkoma: dmi 21% | sky: metno 15%
 SPA:
   [SPA-GREINING @0klst - berid saman vid maelingu ofar]
-    hiti  : blanda 5.64 -0.51 -> 5.13
-    vindur: blanda 4.4 -1.19 -> 4.4
-    att   : blanda 354.1 -10.7 -> 354.1
-    sky   : blanda 43.39 +11.5 -> 43
+    hiti  : blanda 5.57 -0.27 -> 5.3
+    vindur: blanda 6.65 -1.18 -> 6.65
+    att   : blanda 3.0 -11.0 -> 3.0
+    sky   : blanda 53.54 +12.0 -> 54
     medlimir i blondu: hiti=9 vindur=9 sky=6 att=9 (af 9)
-    leidrettir medlimir hiti: [5.5, 5.6, 6.0, 5.5, 5.9, 5.8, 5.4, 5.0, 6.1]
-    leidrettir medlimir vind: [3.4, 3.1, 5.4, 4.1, 4.7, 4.9, 6.7, 3.4, 3.9]
+    leidrettir medlimir hiti: [5.8, 5.8, 5.6, 5.7, 5.6, 5.9, 3.8, 6.0, 5.6]
+    leidrettir medlimir vind: [6.5, 6.5, 6.2, 7.3, 7.2, 5.7, 7.7, 6.5, 6.2]
   [SPA-GREINING @1klst - berid saman vid maelingu ofar]
-    hiti  : blanda 5.18 -0.51 -> 4.67
-    vindur: blanda 4.55 -1.19 -> 4.55
-    att   : blanda 1.3 -10.7 -> 1.3
-    sky   : blanda 48.04 +11.5 -> 48
+    hiti  : blanda 5.98 -0.27 -> 5.71
+    vindur: blanda 6.81 -1.18 -> 6.81
+    att   : blanda 1.2 -11.0 -> 1.2
+    sky   : blanda 53.97 +12.0 -> 54
     medlimir i blondu: hiti=9 vindur=9 sky=6 att=9 (af 9)
-    leidrettir medlimir hiti: [4.4, 4.1, 5.8, 5.5, 5.8, 5.6, 5.0, 5.0, 5.8]
-    leidrettir medlimir vind: [4.1, 3.2, 5.1, 4.8, 5.0, 4.9, 6.5, 3.4, 4.0]
+    leidrettir medlimir hiti: [5.9, 5.9, 5.8, 6.2, 6.0, 6.0, 5.2, 7.0, 5.8]
+    leidrettir medlimir vind: [6.6, 6.7, 6.3, 8.0, 7.0, 6.6, 7.0, 6.5, 6.6]
   OK 120 klst | 6 dagar | 20 timaraufir fylltar
   Jolly skrad i safnid: 6 spalengdir
 YFIRLIT (@6 klst):
   gjafi      hiti        vindur      att         urkoma      sky
-  dmi         1.0  15%   0.9  14%  50.6  11%  bid n=0    26.5   0% 
-  knmi        1.2  12%   0.8  14%  50.7  10%  bid n=0    35.6   8% 
+  dmi         1.0  14%   0.9  13%  50.6  10%  bid n=0    26.5   0% 
+  knmi        1.2  11%   0.8  14%  50.7  10%  bid n=0    35.6   8% 
   ecmwf       1.3   9%   1.3   9%  40.5  11%  bid n=0    22.3  11% 
   icon        1.2  11%   1.2   9%  38.0  12%  bid n=0    17.6  14% 
-  ukmo        1.3  10%   1.2   9%  42.7  11%  bid n=0    16.6  15% 
-  mfr         1.2  10%   1.0  11%  39.2  12%  bid n=0    21.9  12% 
-  gfs         1.2  11%   0.9  12%  39.1  12%  bid n=0    20.5  12% 
-  harmonie    1.1  13%   1.1  12%  40.0  11%   --gogn    22.0  11% 
-  metno       1.3  10%   1.0  11%  43.1  11%  bid n=0    14.5  17% 
+  ukmo        1.3   9%   1.2   9%  42.7  10%  bid n=0    16.6  15% 
+  mfr         1.2  10%   1.0  11%  39.2  11%  bid n=0    21.9  12% 
+  gfs         1.2  10%   0.9  12%  39.1  11%  bid n=0    20.5  12% 
+  harmonie    1.1  14%   1.1  12%  36.5  12%   --gogn    19.8  13% 
+  metno       1.2  10%   1.0  11%  38.0  12%  bid n=0    15.8  15% 
   --------------------------------------------------------------
   JOLLY       1.4   -    0.9   -   42.4   -    bid      28.7   -  
-  restbias@1klst  (VIRK: hiti | OVIRK: vindur,att,sky)   hiti -0.51  vind -1.19  att -10.7  urk x1.00  sky +11.5
-  restbias@3klst  (VIRK: hiti | OVIRK: vindur,att,sky)   hiti -0.44  vind -1.46  att -6.2  urk x1.00  sky +12.0
+  restbias@1klst  (VIRK: hiti | OVIRK: vindur,att,sky)   hiti -0.27  vind -1.18  att -11.0  urk x1.00  sky +12.0
+  restbias@3klst  (VIRK: hiti | OVIRK: vindur,att,sky)   hiti -0.07  vind -1.50  att -8.0  urk x1.00  sky +12.0
   restbias@6klst  (VIRK: hiti | OVIRK: vindur,att,sky)   hiti -0.45  vind -1.17  att +12.0  urk x1.00  sky +12.0
-  restbias@12klst  (VIRK: hiti | OVIRK: vindur,att,sky)   hiti -0.16  vind -1.38  att +4.4  urk x1.00  sky +12.0
-  restbias@24klst ⚡  (VIRK: hiti | OVIRK: vindur,att,sky)   hiti +0.44  vind +0.58  att +3.9  urk x1.00  sky +12.0
-  restbias@48klst ⚡  (VIRK: hiti | OVIRK: vindur,att,sky)   hiti +2.47  vind -0.61  att -8.7  urk x1.00  sky +12.0
+  restbias@12klst  (VIRK: hiti | OVIRK: vindur,att,sky)   hiti +0.01  vind -1.50  att +6.2  urk x1.00  sky +12.0
+  restbias@24klst ⚡  (VIRK: hiti | OVIRK: vindur,att,sky)   hiti +0.47  vind +0.59  att +5.7  urk x1.00  sky +12.0
+  restbias@48klst ⚡  (VIRK: hiti | OVIRK: vindur,att,sky)   hiti +2.41  vind -0.65  att -6.9  urk x1.00  sky +12.0
 
 YFIRLIT HITA VID ALLAR SPALENGDIR (MAE í °C, þyngd í svigum):
   gjafi            1kl        3kl        6kl       12kl       24kl       48kl
-  dmi        1.05(13%)  0.74(15%)  0.98(15%)  0.74(15%)  0.90(13%)  1.19(12%)
-  knmi       0.92(14%)  0.76(14%)  1.18(12%)  0.83(13%)  1.07(11%)  1.24(11%)
-  ecmwf      1.33( 9%)  1.20( 8%)  1.33( 9%)  1.03(10%)  1.25( 8%)  1.21(10%)
-  icon       1.11(11%)  0.86(11%)  1.16(11%)  0.95(11%)  1.01(10%)  1.03(12%)
-  ukmo       1.49( 8%)  0.95(10%)  1.30(10%)  1.15( 9%)  0.93(11%)  1.00(12%)
-  mfr        0.94(13%)  0.86(11%)  1.22(10%)  0.91(11%)  0.95(11%)  1.22(10%)
-  gfs        1.13(11%)  1.24( 8%)  1.19(11%)  0.91(11%)  0.88(12%)  1.31( 9%)
-  harmonie   1.48(10%)  1.10(11%)  1.12(13%)  1.16(11%)  0.77(16%)  1.09(13%)
-  metno      1.23(10%)  0.99(10%)  1.26(10%)  1.05(10%)  1.15( 9%)  1.21(10%)
+  dmi        1.18(12%)  0.89(13%)  0.98(14%)  0.68(16%)  0.98(12%)  1.08(12%)
+  knmi       1.10(12%)  0.99(11%)  1.18(11%)  0.78(13%)  0.96(12%)  1.10(11%)
+  ecmwf      1.26(10%)  1.15( 9%)  1.33( 9%)  0.96(10%)  1.16( 9%)  1.14(10%)
+  icon       1.05(12%)  0.84(12%)  1.16(11%)  0.90(10%)  1.01(10%)  0.95(12%)
+  ukmo       1.43( 9%)  0.96(11%)  1.30( 9%)  1.09( 9%)  0.96(11%)  0.91(12%)
+  mfr        0.91(13%)  0.83(12%)  1.22(10%)  0.86(11%)  0.84(12%)  1.08(10%)
+  gfs        1.11(11%)  1.16( 9%)  1.19(10%)  0.91(10%)  0.96(10%)  1.16(10%)
+  harmonie   1.34(11%)  0.97(13%)  1.06(14%)  1.04(11%)  0.77(15%)  1.11(12%)
+  metno      1.15(11%)  0.98(10%)  1.18(10%)  0.96(10%)  1.06( 9%)  1.11(10%)
   ---------------------------------------------------------------------------
-  jolly     1.22(n118) 1.13(n120) 1.42(n122) 1.29(n125) 1.65(n134) 2.08(n149)
+  jolly     1.24(n119) 1.14(n121) 1.42(n122) 1.20(n127) 1.49(n135) 1.89(n150)
   SKILYRT HITABIAS (@1 klst, reitir med >= 3 por):
-    dmi       N-dagur -0.40(n891)  A-dagur +0.20(n112)  S-dagur +0.44(n634)  V-dagur -0.01(n124)  N-nott +0.09(n193)  A-nott -0.07(n63)  S-nott -0.24(n271)  V-nott -0.19(n36)
-    knmi      N-dagur -0.50(n891)  A-dagur +0.19(n112)  S-dagur +0.42(n634)  V-dagur -0.02(n124)  N-nott -0.06(n193)  A-nott -0.01(n63)  S-nott -0.21(n271)  V-nott -0.19(n36)
-    ecmwf     N-dagur -0.88(n891)  A-dagur -0.36(n112)  S-dagur +0.20(n634)  V-dagur -0.12(n124)  N-nott -1.32(n193)  A-nott -2.38(n63)  S-nott -1.16(n271)  V-nott -1.29(n36)
-    icon      N-dagur -0.59(n891)  A-dagur +0.29(n112)  S-dagur +0.81(n634)  V-dagur +0.13(n124)  N-nott -0.58(n193)  A-nott -1.41(n63)  S-nott -0.46(n271)  V-nott -0.63(n36)
-    ukmo      N-dagur -1.34(n891)  A-dagur -0.20(n112)  S-dagur +0.18(n634)  V-dagur -0.24(n124)  N-nott -0.79(n193)  A-nott -1.23(n63)  S-nott -0.81(n271)  V-nott -0.51(n36)
-    mfr       N-dagur +0.01(n891)  A-dagur -0.36(n112)  S-dagur +0.35(n634)  V-dagur +0.43(n124)  N-nott -0.94(n193)  A-nott -2.00(n63)  S-nott -1.49(n271)  V-nott -1.20(n36)
-    gfs       N-dagur -1.08(n891)  A-dagur -0.90(n112)  S-dagur -0.05(n634)  V-dagur -0.70(n124)  N-nott -0.67(n193)  A-nott -1.47(n63)  S-nott -0.95(n271)  V-nott -0.72(n36)
-    harmonie  N-dagur -0.47(n882)  A-dagur +0.07(n111)  S-dagur +0.45(n628)  V-dagur -0.51(n121)  N-nott +0.28(n160)  A-nott +0.73(n45)  S-nott +0.27(n236)  V-nott -0.42(n30)
-    metno     N-dagur -0.84(n909)  A-dagur -0.44(n112)  S-dagur -0.03(n642)  V-dagur -0.22(n124)  N-nott -1.27(n193)  A-nott -2.35(n63)  S-nott -1.26(n271)  V-nott -1.21(n36)
+    dmi       N-dagur -0.39(n897)  A-dagur +0.20(n112)  S-dagur +0.44(n634)  V-dagur -0.01(n124)  N-nott +0.09(n193)  A-nott -0.07(n63)  S-nott -0.24(n271)  V-nott -0.19(n36)
+    knmi      N-dagur -0.49(n897)  A-dagur +0.19(n112)  S-dagur +0.42(n634)  V-dagur -0.02(n124)  N-nott -0.06(n193)  A-nott -0.01(n63)  S-nott -0.21(n271)  V-nott -0.19(n36)
+    ecmwf     N-dagur -0.87(n897)  A-dagur -0.36(n112)  S-dagur +0.20(n634)  V-dagur -0.12(n124)  N-nott -1.32(n193)  A-nott -2.38(n63)  S-nott -1.16(n271)  V-nott -1.29(n36)
+    icon      N-dagur -0.58(n897)  A-dagur +0.29(n112)  S-dagur +0.81(n634)  V-dagur +0.13(n124)  N-nott -0.58(n193)  A-nott -1.41(n63)  S-nott -0.46(n271)  V-nott -0.63(n36)
+    ukmo      N-dagur -1.33(n897)  A-dagur -0.20(n112)  S-dagur +0.18(n634)  V-dagur -0.24(n124)  N-nott -0.79(n193)  A-nott -1.23(n63)  S-nott -0.81(n271)  V-nott -0.51(n36)
+    mfr       N-dagur +0.01(n897)  A-dagur -0.36(n112)  S-dagur +0.35(n634)  V-dagur +0.43(n124)  N-nott -0.94(n193)  A-nott -2.00(n63)  S-nott -1.49(n271)  V-nott -1.20(n36)
+    gfs       N-dagur -1.07(n897)  A-dagur -0.90(n112)  S-dagur -0.05(n634)  V-dagur -0.70(n124)  N-nott -0.67(n193)  A-nott -1.47(n63)  S-nott -0.95(n271)  V-nott -0.72(n36)
+    harmonie  N-dagur -0.46(n889)  A-dagur +0.07(n111)  S-dagur +0.45(n628)  V-dagur -0.51(n121)  N-nott +0.28(n160)  A-nott +0.73(n45)  S-nott +0.27(n236)  V-nott -0.42(n30)
+    metno     N-dagur -0.84(n916)  A-dagur -0.44(n112)  S-dagur -0.03(n642)  V-dagur -0.22(n124)  N-nott -1.27(n193)  A-nott -2.35(n63)  S-nott -1.26(n271)  V-nott -1.21(n36)
   SKILYRT HITABIAS (@3 klst, reitir med >= 3 por):
-    dmi       N-dagur -0.39(n828)  A-dagur +0.30(n110)  S-dagur +0.42(n600)  V-dagur +0.06(n118)  N-nott +0.11(n165)  A-nott -0.10(n60)  S-nott -0.30(n231)  V-nott +0.01(n31)
-    knmi      N-dagur -0.48(n828)  A-dagur +0.30(n110)  S-dagur +0.41(n600)  V-dagur +0.06(n118)  N-nott -0.07(n165)  A-nott -0.05(n60)  S-nott -0.25(n231)  V-nott -0.05(n31)
-    ecmwf     N-dagur -0.86(n828)  A-dagur -0.37(n110)  S-dagur +0.27(n600)  V-dagur -0.05(n118)  N-nott -1.45(n165)  A-nott -2.40(n60)  S-nott -1.22(n231)  V-nott -1.25(n31)
-    icon      N-dagur -0.58(n828)  A-dagur +0.27(n110)  S-dagur +0.85(n600)  V-dagur +0.22(n118)  N-nott -0.66(n165)  A-nott -1.41(n60)  S-nott -0.48(n231)  V-nott -0.51(n31)
-    ukmo      N-dagur -1.32(n828)  A-dagur -0.25(n110)  S-dagur +0.22(n600)  V-dagur -0.19(n118)  N-nott -0.83(n165)  A-nott -1.19(n60)  S-nott -0.82(n231)  V-nott -0.63(n31)
-    mfr       N-dagur +0.03(n828)  A-dagur -0.33(n110)  S-dagur +0.40(n600)  V-dagur +0.51(n118)  N-nott -1.04(n165)  A-nott -1.98(n60)  S-nott -1.53(n231)  V-nott -1.10(n31)
-    gfs       N-dagur -1.07(n828)  A-dagur -0.95(n110)  S-dagur -0.00(n600)  V-dagur -0.67(n118)  N-nott -0.62(n165)  A-nott -1.41(n60)  S-nott -0.98(n231)  V-nott -0.60(n31)
-    harmonie  N-dagur -0.46(n819)  A-dagur +0.12(n109)  S-dagur +0.46(n598)  V-dagur -0.38(n117)  N-nott +0.21(n164)  A-nott -0.00(n57)  S-nott +0.24(n230)  V-nott -0.05(n30)
-    metno     N-dagur -0.84(n837)  A-dagur -0.42(n110)  S-dagur +0.03(n603)  V-dagur -0.14(n118)  N-nott -1.38(n169)  A-nott -2.37(n60)  S-nott -1.34(n236)  V-nott -1.14(n31)
+    dmi       N-dagur -0.38(n834)  A-dagur +0.30(n110)  S-dagur +0.42(n600)  V-dagur +0.06(n118)  N-nott +0.11(n165)  A-nott -0.10(n60)  S-nott -0.30(n231)  V-nott +0.01(n31)
+    knmi      N-dagur -0.48(n834)  A-dagur +0.30(n110)  S-dagur +0.41(n600)  V-dagur +0.06(n118)  N-nott -0.07(n165)  A-nott -0.05(n60)  S-nott -0.25(n231)  V-nott -0.05(n31)
+    ecmwf     N-dagur -0.85(n834)  A-dagur -0.37(n110)  S-dagur +0.27(n600)  V-dagur -0.05(n118)  N-nott -1.45(n165)  A-nott -2.40(n60)  S-nott -1.22(n231)  V-nott -1.25(n31)
+    icon      N-dagur -0.58(n834)  A-dagur +0.27(n110)  S-dagur +0.85(n600)  V-dagur +0.22(n118)  N-nott -0.66(n165)  A-nott -1.41(n60)  S-nott -0.48(n231)  V-nott -0.51(n31)
+    ukmo      N-dagur -1.31(n834)  A-dagur -0.25(n110)  S-dagur +0.22(n600)  V-dagur -0.19(n118)  N-nott -0.83(n165)  A-nott -1.19(n60)  S-nott -0.82(n231)  V-nott -0.63(n31)
+    mfr       N-dagur +0.03(n834)  A-dagur -0.33(n110)  S-dagur +0.40(n600)  V-dagur +0.51(n118)  N-nott -1.04(n165)  A-nott -1.98(n60)  S-nott -1.53(n231)  V-nott -1.10(n31)
+    gfs       N-dagur -1.06(n834)  A-dagur -0.95(n110)  S-dagur -0.00(n600)  V-dagur -0.67(n118)  N-nott -0.62(n165)  A-nott -1.41(n60)  S-nott -0.98(n231)  V-nott -0.60(n31)
+    harmonie  N-dagur -0.45(n826)  A-dagur +0.12(n109)  S-dagur +0.46(n598)  V-dagur -0.38(n117)  N-nott +0.21(n164)  A-nott -0.00(n57)  S-nott +0.24(n230)  V-nott -0.05(n30)
+    metno     N-dagur -0.83(n844)  A-dagur -0.42(n110)  S-dagur +0.03(n603)  V-dagur -0.14(n118)  N-nott -1.38(n169)  A-nott -2.37(n60)  S-nott -1.34(n236)  V-nott -1.14(n31)
   SKILYRT HITABIAS (@6 klst, reitir med >= 3 por):
     dmi       N-dagur -0.43(n817)  A-dagur +0.12(n92)  S-dagur +0.47(n567)  V-dagur -0.09(n114)  N-nott +0.15(n181)  A-nott -0.10(n53)  S-nott -0.33(n264)  V-nott -0.19(n36)
     knmi      N-dagur -0.52(n817)  A-dagur +0.14(n92)  S-dagur +0.46(n567)  V-dagur -0.10(n114)  N-nott -0.01(n181)  A-nott -0.01(n53)  S-nott -0.30(n264)  V-nott -0.19(n36)
@@ -144,58 +157,58 @@ YFIRLIT HITA VID ALLAR SPALENGDIR (MAE í °C, þyngd í svigum):
     ukmo      N-dagur -1.37(n817)  A-dagur -0.15(n92)  S-dagur +0.25(n567)  V-dagur -0.25(n114)  N-nott -0.71(n181)  A-nott -1.25(n53)  S-nott -0.90(n264)  V-nott -0.51(n36)
     mfr       N-dagur +0.02(n817)  A-dagur -0.24(n92)  S-dagur +0.45(n567)  V-dagur +0.44(n114)  N-nott -0.92(n181)  A-nott -2.09(n53)  S-nott -1.58(n264)  V-nott -1.20(n36)
     gfs       N-dagur -1.11(n817)  A-dagur -0.93(n92)  S-dagur +0.01(n567)  V-dagur -0.90(n114)  N-nott -0.55(n181)  A-nott -1.46(n53)  S-nott -1.05(n264)  V-nott -0.72(n36)
-    harmonie  N-dagur -0.52(n810)  A-dagur -0.16(n91)  S-dagur +0.47(n559)  V-dagur -0.56(n113)  N-nott +0.29(n175)  A-nott -0.17(n50)  S-nott +0.15(n258)  V-nott -0.41(n35)
-    metno     N-dagur -0.86(n827)  A-dagur -0.33(n92)  S-dagur +0.04(n569)  V-dagur -0.25(n114)  N-nott -1.19(n181)  A-nott -2.49(n53)  S-nott -1.36(n264)  V-nott -1.21(n36)
+    harmonie  N-dagur -0.51(n817)  A-dagur -0.16(n91)  S-dagur +0.47(n559)  V-dagur -0.56(n113)  N-nott +0.29(n175)  A-nott -0.17(n50)  S-nott +0.15(n258)  V-nott -0.41(n35)
+    metno     N-dagur -0.85(n834)  A-dagur -0.33(n92)  S-dagur +0.04(n569)  V-dagur -0.25(n114)  N-nott -1.19(n181)  A-nott -2.49(n53)  S-nott -1.36(n264)  V-nott -1.21(n36)
   SKILYRT HITABIAS (@12 klst, reitir med >= 3 por):
-    dmi       N-dagur -0.39(n777)  A-dagur +0.26(n101)  S-dagur +0.43(n579)  V-dagur -0.02(n118)  N-nott +0.13(n182)  A-nott -0.07(n63)  S-nott -0.21(n268)  V-nott -0.19(n36)
-    knmi      N-dagur -0.48(n777)  A-dagur +0.25(n101)  S-dagur +0.41(n579)  V-dagur -0.04(n118)  N-nott -0.02(n182)  A-nott -0.01(n63)  S-nott -0.17(n268)  V-nott -0.19(n36)
-    ecmwf     N-dagur -0.87(n777)  A-dagur -0.34(n101)  S-dagur +0.15(n579)  V-dagur -0.15(n118)  N-nott -1.26(n182)  A-nott -2.38(n63)  S-nott -1.13(n268)  V-nott -1.29(n36)
-    icon      N-dagur -0.60(n777)  A-dagur +0.22(n101)  S-dagur +0.72(n579)  V-dagur +0.09(n118)  N-nott -0.54(n182)  A-nott -1.41(n63)  S-nott -0.40(n268)  V-nott -0.63(n36)
-    ukmo      N-dagur -1.34(n777)  A-dagur -0.31(n101)  S-dagur +0.21(n579)  V-dagur -0.23(n118)  N-nott -0.73(n182)  A-nott -1.23(n63)  S-nott -0.78(n268)  V-nott -0.51(n36)
-    mfr       N-dagur -0.00(n777)  A-dagur -0.36(n101)  S-dagur +0.23(n579)  V-dagur +0.40(n118)  N-nott -0.87(n182)  A-nott -2.00(n63)  S-nott -1.47(n268)  V-nott -1.20(n36)
-    gfs       N-dagur -1.09(n777)  A-dagur -0.98(n101)  S-dagur -0.08(n579)  V-dagur -0.78(n118)  N-nott -0.64(n182)  A-nott -1.47(n63)  S-nott -0.95(n268)  V-nott -0.72(n36)
-    harmonie  N-dagur -0.48(n779)  A-dagur +0.03(n100)  S-dagur +0.49(n577)  V-dagur -0.48(n117)  N-nott +0.28(n176)  A-nott -0.00(n60)  S-nott +0.29(n261)  V-nott -0.41(n35)
-    metno     N-dagur -0.85(n790)  A-dagur -0.45(n101)  S-dagur -0.10(n586)  V-dagur -0.25(n118)  N-nott -1.21(n182)  A-nott -2.35(n63)  S-nott -1.24(n268)  V-nott -1.21(n36)
+    dmi       N-dagur -0.38(n783)  A-dagur +0.26(n101)  S-dagur +0.43(n579)  V-dagur -0.02(n118)  N-nott +0.13(n182)  A-nott -0.07(n63)  S-nott -0.21(n268)  V-nott -0.19(n36)
+    knmi      N-dagur -0.47(n783)  A-dagur +0.25(n101)  S-dagur +0.41(n579)  V-dagur -0.04(n118)  N-nott -0.02(n182)  A-nott -0.01(n63)  S-nott -0.17(n268)  V-nott -0.19(n36)
+    ecmwf     N-dagur -0.87(n783)  A-dagur -0.34(n101)  S-dagur +0.15(n579)  V-dagur -0.15(n118)  N-nott -1.26(n182)  A-nott -2.38(n63)  S-nott -1.13(n268)  V-nott -1.29(n36)
+    icon      N-dagur -0.59(n783)  A-dagur +0.22(n101)  S-dagur +0.72(n579)  V-dagur +0.09(n118)  N-nott -0.54(n182)  A-nott -1.41(n63)  S-nott -0.40(n268)  V-nott -0.63(n36)
+    ukmo      N-dagur -1.33(n783)  A-dagur -0.31(n101)  S-dagur +0.21(n579)  V-dagur -0.23(n118)  N-nott -0.73(n182)  A-nott -1.23(n63)  S-nott -0.78(n268)  V-nott -0.51(n36)
+    mfr       N-dagur +0.00(n783)  A-dagur -0.36(n101)  S-dagur +0.23(n579)  V-dagur +0.40(n118)  N-nott -0.87(n182)  A-nott -2.00(n63)  S-nott -1.47(n268)  V-nott -1.20(n36)
+    gfs       N-dagur -1.07(n783)  A-dagur -0.98(n101)  S-dagur -0.08(n579)  V-dagur -0.78(n118)  N-nott -0.64(n182)  A-nott -1.47(n63)  S-nott -0.95(n268)  V-nott -0.72(n36)
+    harmonie  N-dagur -0.47(n786)  A-dagur +0.03(n100)  S-dagur +0.49(n577)  V-dagur -0.48(n117)  N-nott +0.28(n176)  A-nott -0.00(n60)  S-nott +0.29(n261)  V-nott -0.41(n35)
+    metno     N-dagur -0.84(n797)  A-dagur -0.45(n101)  S-dagur -0.10(n586)  V-dagur -0.25(n118)  N-nott -1.21(n182)  A-nott -2.35(n63)  S-nott -1.24(n268)  V-nott -1.21(n36)
   SKILYRT HITABIAS (@24 klst, reitir med >= 3 por):
-    dmi       N-dagur -0.39(n827)  A-dagur +0.05(n99)  S-dagur +0.41(n635)  V-dagur -0.08(n119)  N-nott +0.12(n185)  A-nott -0.07(n63)  S-nott -0.12(n265)  V-nott -0.19(n36)
-    knmi      N-dagur -0.49(n827)  A-dagur +0.06(n99)  S-dagur +0.40(n635)  V-dagur -0.04(n119)  N-nott -0.03(n185)  A-nott -0.01(n63)  S-nott -0.10(n265)  V-nott -0.19(n36)
-    ecmwf     N-dagur -0.90(n827)  A-dagur -0.30(n99)  S-dagur +0.21(n635)  V-dagur -0.18(n119)  N-nott -1.34(n185)  A-nott -2.38(n63)  S-nott -1.08(n265)  V-nott -1.29(n36)
-    icon      N-dagur -0.58(n827)  A-dagur +0.36(n99)  S-dagur +0.82(n635)  V-dagur +0.11(n119)  N-nott -0.59(n185)  A-nott -1.41(n63)  S-nott -0.34(n265)  V-nott -0.63(n36)
-    ukmo      N-dagur -1.32(n827)  A-dagur -0.17(n99)  S-dagur +0.19(n635)  V-dagur -0.28(n119)  N-nott -0.74(n185)  A-nott -1.23(n63)  S-nott -0.72(n265)  V-nott -0.51(n36)
-    mfr       N-dagur +0.01(n827)  A-dagur -0.37(n99)  S-dagur +0.39(n635)  V-dagur +0.37(n119)  N-nott -0.97(n185)  A-nott -2.00(n63)  S-nott -1.39(n265)  V-nott -1.20(n36)
-    gfs       N-dagur -1.11(n827)  A-dagur -0.92(n99)  S-dagur -0.05(n635)  V-dagur -0.77(n119)  N-nott -0.64(n185)  A-nott -1.47(n63)  S-nott -0.88(n265)  V-nott -0.72(n36)
-    harmonie  N-dagur -0.50(n819)  A-dagur +0.01(n98)  S-dagur +0.45(n632)  V-dagur -0.47(n116)  N-nott +0.27(n179)  A-nott -0.00(n60)  S-nott +0.35(n259)  V-nott -0.41(n35)
-    metno     N-dagur -0.87(n835)  A-dagur -0.39(n99)  S-dagur -0.02(n638)  V-dagur -0.24(n119)  N-nott -1.29(n185)  A-nott -2.35(n63)  S-nott -1.18(n265)  V-nott -1.21(n36)
+    dmi       N-dagur -0.38(n833)  A-dagur +0.05(n99)  S-dagur +0.41(n635)  V-dagur -0.08(n119)  N-nott +0.12(n185)  A-nott -0.07(n63)  S-nott -0.12(n265)  V-nott -0.19(n36)
+    knmi      N-dagur -0.48(n833)  A-dagur +0.06(n99)  S-dagur +0.40(n635)  V-dagur -0.04(n119)  N-nott -0.03(n185)  A-nott -0.01(n63)  S-nott -0.10(n265)  V-nott -0.19(n36)
+    ecmwf     N-dagur -0.89(n833)  A-dagur -0.30(n99)  S-dagur +0.21(n635)  V-dagur -0.18(n119)  N-nott -1.34(n185)  A-nott -2.38(n63)  S-nott -1.08(n265)  V-nott -1.29(n36)
+    icon      N-dagur -0.58(n833)  A-dagur +0.36(n99)  S-dagur +0.82(n635)  V-dagur +0.11(n119)  N-nott -0.59(n185)  A-nott -1.41(n63)  S-nott -0.34(n265)  V-nott -0.63(n36)
+    ukmo      N-dagur -1.31(n833)  A-dagur -0.17(n99)  S-dagur +0.19(n635)  V-dagur -0.28(n119)  N-nott -0.74(n185)  A-nott -1.23(n63)  S-nott -0.72(n265)  V-nott -0.51(n36)
+    mfr       N-dagur +0.01(n833)  A-dagur -0.37(n99)  S-dagur +0.39(n635)  V-dagur +0.37(n119)  N-nott -0.97(n185)  A-nott -2.00(n63)  S-nott -1.39(n265)  V-nott -1.20(n36)
+    gfs       N-dagur -1.10(n833)  A-dagur -0.92(n99)  S-dagur -0.05(n635)  V-dagur -0.77(n119)  N-nott -0.64(n185)  A-nott -1.47(n63)  S-nott -0.88(n265)  V-nott -0.72(n36)
+    harmonie  N-dagur -0.49(n826)  A-dagur +0.01(n98)  S-dagur +0.45(n632)  V-dagur -0.47(n116)  N-nott +0.27(n179)  A-nott -0.00(n60)  S-nott +0.35(n259)  V-nott -0.41(n35)
+    metno     N-dagur -0.86(n842)  A-dagur -0.39(n99)  S-dagur -0.02(n638)  V-dagur -0.24(n119)  N-nott -1.29(n185)  A-nott -2.35(n63)  S-nott -1.18(n265)  V-nott -1.21(n36)
   SKILYRT HITABIAS (@48 klst, reitir med >= 3 por):
-    dmi       N-dagur -0.34(n786)  A-dagur +0.21(n111)  S-dagur +0.45(n628)  V-dagur -0.15(n102)  N-nott +0.20(n159)  A-nott -0.07(n63)  S-nott -0.12(n265)  V-nott -0.19(n36)
-    knmi      N-dagur -0.44(n786)  A-dagur +0.21(n111)  S-dagur +0.43(n628)  V-dagur -0.11(n102)  N-nott +0.11(n159)  A-nott -0.01(n63)  S-nott -0.10(n265)  V-nott -0.19(n36)
-    ecmwf     N-dagur -0.86(n786)  A-dagur -0.41(n111)  S-dagur +0.23(n628)  V-dagur -0.21(n102)  N-nott -1.38(n159)  A-nott -2.38(n63)  S-nott -1.08(n265)  V-nott -1.29(n36)
-    icon      N-dagur -0.56(n786)  A-dagur +0.20(n111)  S-dagur +0.84(n628)  V-dagur +0.07(n102)  N-nott -0.60(n159)  A-nott -1.41(n63)  S-nott -0.34(n265)  V-nott -0.63(n36)
-    ukmo      N-dagur -1.29(n786)  A-dagur -0.32(n111)  S-dagur +0.23(n628)  V-dagur -0.35(n102)  N-nott -0.74(n159)  A-nott -1.23(n63)  S-nott -0.72(n265)  V-nott -0.51(n36)
-    mfr       N-dagur +0.06(n786)  A-dagur -0.43(n111)  S-dagur +0.41(n628)  V-dagur +0.37(n102)  N-nott -0.97(n159)  A-nott -2.00(n63)  S-nott -1.39(n265)  V-nott -1.20(n36)
-    gfs       N-dagur -1.12(n786)  A-dagur -1.06(n111)  S-dagur -0.02(n628)  V-dagur -0.88(n102)  N-nott -0.69(n159)  A-nott -1.47(n63)  S-nott -0.88(n265)  V-nott -0.72(n36)
-    harmonie  N-dagur -0.45(n784)  A-dagur +0.04(n110)  S-dagur +0.50(n626)  V-dagur -0.55(n101)  N-nott +0.39(n153)  A-nott -0.00(n60)  S-nott +0.35(n259)  V-nott -0.41(n35)
-    metno     N-dagur -0.84(n797)  A-dagur -0.50(n111)  S-dagur -0.01(n631)  V-dagur -0.26(n102)  N-nott -1.32(n159)  A-nott -2.35(n63)  S-nott -1.18(n265)  V-nott -1.21(n36)
+    dmi       N-dagur -0.34(n792)  A-dagur +0.21(n111)  S-dagur +0.45(n628)  V-dagur -0.15(n102)  N-nott +0.20(n159)  A-nott -0.07(n63)  S-nott -0.12(n265)  V-nott -0.19(n36)
+    knmi      N-dagur -0.43(n792)  A-dagur +0.21(n111)  S-dagur +0.43(n628)  V-dagur -0.11(n102)  N-nott +0.11(n159)  A-nott -0.01(n63)  S-nott -0.10(n265)  V-nott -0.19(n36)
+    ecmwf     N-dagur -0.85(n792)  A-dagur -0.41(n111)  S-dagur +0.23(n628)  V-dagur -0.21(n102)  N-nott -1.38(n159)  A-nott -2.38(n63)  S-nott -1.08(n265)  V-nott -1.29(n36)
+    icon      N-dagur -0.55(n792)  A-dagur +0.20(n111)  S-dagur +0.84(n628)  V-dagur +0.07(n102)  N-nott -0.60(n159)  A-nott -1.41(n63)  S-nott -0.34(n265)  V-nott -0.63(n36)
+    ukmo      N-dagur -1.27(n792)  A-dagur -0.32(n111)  S-dagur +0.23(n628)  V-dagur -0.35(n102)  N-nott -0.74(n159)  A-nott -1.23(n63)  S-nott -0.72(n265)  V-nott -0.51(n36)
+    mfr       N-dagur +0.06(n792)  A-dagur -0.43(n111)  S-dagur +0.41(n628)  V-dagur +0.37(n102)  N-nott -0.97(n159)  A-nott -2.00(n63)  S-nott -1.39(n265)  V-nott -1.20(n36)
+    gfs       N-dagur -1.11(n792)  A-dagur -1.06(n111)  S-dagur -0.02(n628)  V-dagur -0.88(n102)  N-nott -0.69(n159)  A-nott -1.47(n63)  S-nott -0.88(n265)  V-nott -0.72(n36)
+    harmonie  N-dagur -0.44(n791)  A-dagur +0.04(n110)  S-dagur +0.50(n626)  V-dagur -0.55(n101)  N-nott +0.39(n153)  A-nott -0.00(n60)  S-nott +0.35(n259)  V-nott -0.41(n35)
+    metno     N-dagur -0.83(n804)  A-dagur -0.50(n111)  S-dagur -0.01(n631)  V-dagur -0.26(n102)  N-nott -1.32(n159)  A-nott -2.35(n63)  S-nott -1.18(n265)  V-nott -1.21(n36)
   SKILYRT VINDBIAS (@1 klst, reitir med >= 3 por):
-    dmi       N-dagur +1.48(n891)  A-dagur -0.40(n112)  S-dagur +0.99(n634)  V-dagur +0.23(n124)  N-nott +0.60(n193)  A-nott +0.50(n63)  S-nott +0.50(n271)  V-nott -0.63(n36)
-    knmi      N-dagur +1.60(n891)  A-dagur -0.52(n112)  S-dagur +0.98(n634)  V-dagur +0.28(n124)  N-nott +0.60(n193)  A-nott +0.54(n63)  S-nott +0.59(n271)  V-nott -0.56(n36)
-    ecmwf     N-dagur +2.18(n891)  A-dagur +0.19(n112)  S-dagur +1.31(n634)  V-dagur +0.54(n124)  N-nott +1.10(n193)  A-nott +0.77(n63)  S-nott +1.40(n271)  V-nott -0.04(n36)
-    icon      N-dagur +1.68(n891)  A-dagur -0.06(n112)  S-dagur +0.73(n634)  V-dagur +0.33(n124)  N-nott +0.37(n193)  A-nott +0.29(n63)  S-nott +0.50(n271)  V-nott -0.44(n36)
-    ukmo      N-dagur +2.31(n891)  A-dagur -0.07(n112)  S-dagur +1.33(n634)  V-dagur +0.32(n124)  N-nott +1.25(n193)  A-nott +0.67(n63)  S-nott +0.91(n271)  V-nott -0.43(n36)
-    mfr       N-dagur +1.48(n891)  A-dagur -0.17(n112)  S-dagur +1.02(n634)  V-dagur +0.13(n124)  N-nott +0.29(n193)  A-nott -0.04(n63)  S-nott +0.52(n271)  V-nott -1.14(n36)
-    gfs       N-dagur +1.33(n891)  A-dagur -0.31(n112)  S-dagur +0.04(n634)  V-dagur +0.07(n124)  N-nott -0.24(n193)  A-nott -0.37(n63)  S-nott -0.20(n271)  V-nott -0.75(n36)
-    harmonie  N-dagur +1.45(n882)  A-dagur -0.45(n111)  S-dagur +1.01(n628)  V-dagur +0.23(n121)  N-nott +0.33(n160)  A-nott +0.76(n45)  S-nott +0.59(n236)  V-nott -0.33(n30)
-    metno     N-dagur +1.26(n909)  A-dagur -0.40(n112)  S-dagur +0.71(n642)  V-dagur -0.14(n124)  N-nott +0.68(n193)  A-nott +0.46(n63)  S-nott +0.87(n271)  V-nott -0.82(n36)
+    dmi       N-dagur +1.47(n897)  A-dagur -0.40(n112)  S-dagur +0.99(n634)  V-dagur +0.23(n124)  N-nott +0.60(n193)  A-nott +0.50(n63)  S-nott +0.50(n271)  V-nott -0.63(n36)
+    knmi      N-dagur +1.60(n897)  A-dagur -0.52(n112)  S-dagur +0.98(n634)  V-dagur +0.28(n124)  N-nott +0.60(n193)  A-nott +0.54(n63)  S-nott +0.59(n271)  V-nott -0.56(n36)
+    ecmwf     N-dagur +2.18(n897)  A-dagur +0.19(n112)  S-dagur +1.31(n634)  V-dagur +0.54(n124)  N-nott +1.10(n193)  A-nott +0.77(n63)  S-nott +1.40(n271)  V-nott -0.04(n36)
+    icon      N-dagur +1.67(n897)  A-dagur -0.06(n112)  S-dagur +0.73(n634)  V-dagur +0.33(n124)  N-nott +0.37(n193)  A-nott +0.29(n63)  S-nott +0.50(n271)  V-nott -0.44(n36)
+    ukmo      N-dagur +2.30(n897)  A-dagur -0.07(n112)  S-dagur +1.33(n634)  V-dagur +0.32(n124)  N-nott +1.25(n193)  A-nott +0.67(n63)  S-nott +0.91(n271)  V-nott -0.43(n36)
+    mfr       N-dagur +1.48(n897)  A-dagur -0.17(n112)  S-dagur +1.02(n634)  V-dagur +0.13(n124)  N-nott +0.29(n193)  A-nott -0.04(n63)  S-nott +0.52(n271)  V-nott -1.14(n36)
+    gfs       N-dagur +1.31(n897)  A-dagur -0.31(n112)  S-dagur +0.04(n634)  V-dagur +0.07(n124)  N-nott -0.24(n193)  A-nott -0.37(n63)  S-nott -0.20(n271)  V-nott -0.75(n36)
+    harmonie  N-dagur +1.44(n889)  A-dagur -0.45(n111)  S-dagur +1.01(n628)  V-dagur +0.23(n121)  N-nott +0.33(n160)  A-nott +0.76(n45)  S-nott +0.59(n236)  V-nott -0.33(n30)
+    metno     N-dagur +1.25(n916)  A-dagur -0.40(n112)  S-dagur +0.71(n642)  V-dagur -0.14(n124)  N-nott +0.68(n193)  A-nott +0.46(n63)  S-nott +0.87(n271)  V-nott -0.82(n36)
   SKILYRT VINDBIAS (@3 klst, reitir med >= 3 por):
-    dmi       N-dagur +1.46(n828)  A-dagur -0.32(n110)  S-dagur +0.94(n600)  V-dagur +0.15(n118)  N-nott +0.51(n165)  A-nott +0.57(n60)  S-nott +0.51(n231)  V-nott -0.63(n31)
-    knmi      N-dagur +1.59(n828)  A-dagur -0.45(n110)  S-dagur +0.93(n600)  V-dagur +0.20(n118)  N-nott +0.51(n165)  A-nott +0.61(n60)  S-nott +0.60(n231)  V-nott -0.58(n31)
-    ecmwf     N-dagur +2.16(n828)  A-dagur +0.26(n110)  S-dagur +1.30(n600)  V-dagur +0.47(n118)  N-nott +0.98(n165)  A-nott +0.80(n60)  S-nott +1.43(n231)  V-nott -0.06(n31)
-    icon      N-dagur +1.70(n828)  A-dagur +0.01(n110)  S-dagur +0.70(n600)  V-dagur +0.26(n118)  N-nott +0.32(n165)  A-nott +0.34(n60)  S-nott +0.52(n231)  V-nott -0.44(n31)
-    ukmo      N-dagur +2.31(n828)  A-dagur +0.00(n110)  S-dagur +1.33(n600)  V-dagur +0.19(n118)  N-nott +1.12(n165)  A-nott +0.73(n60)  S-nott +0.94(n231)  V-nott -0.50(n31)
-    mfr       N-dagur +1.46(n828)  A-dagur -0.15(n110)  S-dagur +0.98(n600)  V-dagur +0.03(n118)  N-nott +0.21(n165)  A-nott +0.00(n60)  S-nott +0.57(n231)  V-nott -1.08(n31)
-    gfs       N-dagur +1.31(n828)  A-dagur -0.21(n110)  S-dagur +0.03(n600)  V-dagur +0.05(n118)  N-nott -0.37(n165)  A-nott -0.35(n60)  S-nott -0.21(n231)  V-nott -0.70(n31)
-    harmonie  N-dagur +1.42(n819)  A-dagur -0.37(n109)  S-dagur +0.98(n598)  V-dagur +0.20(n117)  N-nott +0.31(n164)  A-nott +0.49(n57)  S-nott +0.59(n230)  V-nott -0.30(n30)
-    metno     N-dagur +1.24(n837)  A-dagur -0.31(n110)  S-dagur +0.68(n603)  V-dagur -0.23(n118)  N-nott +0.65(n169)  A-nott +0.49(n60)  S-nott +0.87(n236)  V-nott -0.73(n31)
+    dmi       N-dagur +1.45(n834)  A-dagur -0.32(n110)  S-dagur +0.94(n600)  V-dagur +0.15(n118)  N-nott +0.51(n165)  A-nott +0.57(n60)  S-nott +0.51(n231)  V-nott -0.63(n31)
+    knmi      N-dagur +1.58(n834)  A-dagur -0.45(n110)  S-dagur +0.93(n600)  V-dagur +0.20(n118)  N-nott +0.51(n165)  A-nott +0.61(n60)  S-nott +0.60(n231)  V-nott -0.58(n31)
+    ecmwf     N-dagur +2.16(n834)  A-dagur +0.26(n110)  S-dagur +1.30(n600)  V-dagur +0.47(n118)  N-nott +0.98(n165)  A-nott +0.80(n60)  S-nott +1.43(n231)  V-nott -0.06(n31)
+    icon      N-dagur +1.69(n834)  A-dagur +0.01(n110)  S-dagur +0.70(n600)  V-dagur +0.26(n118)  N-nott +0.32(n165)  A-nott +0.34(n60)  S-nott +0.52(n231)  V-nott -0.44(n31)
+    ukmo      N-dagur +2.30(n834)  A-dagur +0.00(n110)  S-dagur +1.33(n600)  V-dagur +0.19(n118)  N-nott +1.12(n165)  A-nott +0.73(n60)  S-nott +0.94(n231)  V-nott -0.50(n31)
+    mfr       N-dagur +1.46(n834)  A-dagur -0.15(n110)  S-dagur +0.98(n600)  V-dagur +0.03(n118)  N-nott +0.21(n165)  A-nott +0.00(n60)  S-nott +0.57(n231)  V-nott -1.08(n31)
+    gfs       N-dagur +1.30(n834)  A-dagur -0.21(n110)  S-dagur +0.03(n600)  V-dagur +0.05(n118)  N-nott -0.37(n165)  A-nott -0.35(n60)  S-nott -0.21(n231)  V-nott -0.70(n31)
+    harmonie  N-dagur +1.42(n826)  A-dagur -0.37(n109)  S-dagur +0.98(n598)  V-dagur +0.20(n117)  N-nott +0.31(n164)  A-nott +0.49(n57)  S-nott +0.59(n230)  V-nott -0.30(n30)
+    metno     N-dagur +1.23(n844)  A-dagur -0.31(n110)  S-dagur +0.68(n603)  V-dagur -0.23(n118)  N-nott +0.65(n169)  A-nott +0.49(n60)  S-nott +0.87(n236)  V-nott -0.73(n31)
   SKILYRT VINDBIAS (@6 klst, reitir med >= 3 por):
     dmi       N-dagur +1.53(n817)  A-dagur -0.38(n92)  S-dagur +0.98(n567)  V-dagur +0.23(n114)  N-nott +0.57(n181)  A-nott +0.49(n53)  S-nott +0.47(n264)  V-nott -0.63(n36)
     knmi      N-dagur +1.65(n817)  A-dagur -0.49(n92)  S-dagur +0.98(n567)  V-dagur +0.30(n114)  N-nott +0.58(n181)  A-nott +0.54(n53)  S-nott +0.56(n264)  V-nott -0.56(n36)
@@ -204,139 +217,139 @@ YFIRLIT HITA VID ALLAR SPALENGDIR (MAE í °C, þyngd í svigum):
     ukmo      N-dagur +2.38(n817)  A-dagur -0.01(n92)  S-dagur +1.36(n567)  V-dagur +0.36(n114)  N-nott +1.17(n181)  A-nott +0.78(n53)  S-nott +0.86(n264)  V-nott -0.43(n36)
     mfr       N-dagur +1.53(n817)  A-dagur -0.10(n92)  S-dagur +1.03(n567)  V-dagur +0.05(n114)  N-nott +0.25(n181)  A-nott +0.07(n53)  S-nott +0.46(n264)  V-nott -1.14(n36)
     gfs       N-dagur +1.40(n817)  A-dagur -0.32(n92)  S-dagur +0.08(n567)  V-dagur +0.07(n114)  N-nott -0.26(n181)  A-nott -0.33(n53)  S-nott -0.28(n264)  V-nott -0.75(n36)
-    harmonie  N-dagur +1.47(n810)  A-dagur -0.40(n91)  S-dagur +1.04(n559)  V-dagur +0.25(n113)  N-nott +0.35(n175)  A-nott +0.40(n50)  S-nott +0.59(n258)  V-nott -0.36(n35)
-    metno     N-dagur +1.29(n827)  A-dagur -0.32(n92)  S-dagur +0.77(n569)  V-dagur -0.11(n114)  N-nott +0.66(n181)  A-nott +0.43(n53)  S-nott +0.81(n264)  V-nott -0.82(n36)
+    harmonie  N-dagur +1.47(n817)  A-dagur -0.40(n91)  S-dagur +1.04(n559)  V-dagur +0.25(n113)  N-nott +0.35(n175)  A-nott +0.40(n50)  S-nott +0.59(n258)  V-nott -0.36(n35)
+    metno     N-dagur +1.28(n834)  A-dagur -0.32(n92)  S-dagur +0.77(n569)  V-dagur -0.11(n114)  N-nott +0.66(n181)  A-nott +0.43(n53)  S-nott +0.81(n264)  V-nott -0.82(n36)
   SKILYRT VINDBIAS (@12 klst, reitir med >= 3 por):
-    dmi       N-dagur +1.43(n777)  A-dagur -0.29(n101)  S-dagur +0.91(n579)  V-dagur +0.31(n118)  N-nott +0.49(n182)  A-nott +0.50(n63)  S-nott +0.50(n268)  V-nott -0.63(n36)
-    knmi      N-dagur +1.55(n777)  A-dagur -0.45(n101)  S-dagur +0.91(n579)  V-dagur +0.34(n118)  N-nott +0.50(n182)  A-nott +0.54(n63)  S-nott +0.58(n268)  V-nott -0.56(n36)
-    ecmwf     N-dagur +2.16(n777)  A-dagur +0.27(n101)  S-dagur +1.25(n579)  V-dagur +0.57(n118)  N-nott +0.99(n182)  A-nott +0.77(n63)  S-nott +1.42(n268)  V-nott -0.04(n36)
-    icon      N-dagur +1.66(n777)  A-dagur +0.08(n101)  S-dagur +0.69(n579)  V-dagur +0.35(n118)  N-nott +0.26(n182)  A-nott +0.29(n63)  S-nott +0.50(n268)  V-nott -0.44(n36)
-    ukmo      N-dagur +2.27(n777)  A-dagur +0.04(n101)  S-dagur +1.28(n579)  V-dagur +0.37(n118)  N-nott +1.11(n182)  A-nott +0.67(n63)  S-nott +0.93(n268)  V-nott -0.43(n36)
-    mfr       N-dagur +1.44(n777)  A-dagur -0.10(n101)  S-dagur +0.91(n579)  V-dagur +0.13(n118)  N-nott +0.17(n182)  A-nott -0.04(n63)  S-nott +0.50(n268)  V-nott -1.14(n36)
-    gfs       N-dagur +1.30(n777)  A-dagur -0.23(n101)  S-dagur -0.07(n579)  V-dagur +0.09(n118)  N-nott -0.34(n182)  A-nott -0.37(n63)  S-nott -0.23(n268)  V-nott -0.75(n36)
-    harmonie  N-dagur +1.41(n779)  A-dagur -0.38(n100)  S-dagur +0.95(n577)  V-dagur +0.31(n117)  N-nott +0.28(n176)  A-nott +0.42(n60)  S-nott +0.64(n261)  V-nott -0.36(n35)
-    metno     N-dagur +1.22(n790)  A-dagur -0.29(n101)  S-dagur +0.65(n586)  V-dagur -0.08(n118)  N-nott +0.58(n182)  A-nott +0.46(n63)  S-nott +0.87(n268)  V-nott -0.82(n36)
+    dmi       N-dagur +1.42(n783)  A-dagur -0.29(n101)  S-dagur +0.91(n579)  V-dagur +0.31(n118)  N-nott +0.49(n182)  A-nott +0.50(n63)  S-nott +0.50(n268)  V-nott -0.63(n36)
+    knmi      N-dagur +1.55(n783)  A-dagur -0.45(n101)  S-dagur +0.91(n579)  V-dagur +0.34(n118)  N-nott +0.50(n182)  A-nott +0.54(n63)  S-nott +0.58(n268)  V-nott -0.56(n36)
+    ecmwf     N-dagur +2.15(n783)  A-dagur +0.27(n101)  S-dagur +1.25(n579)  V-dagur +0.57(n118)  N-nott +0.99(n182)  A-nott +0.77(n63)  S-nott +1.42(n268)  V-nott -0.04(n36)
+    icon      N-dagur +1.65(n783)  A-dagur +0.08(n101)  S-dagur +0.69(n579)  V-dagur +0.35(n118)  N-nott +0.26(n182)  A-nott +0.29(n63)  S-nott +0.50(n268)  V-nott -0.44(n36)
+    ukmo      N-dagur +2.26(n783)  A-dagur +0.04(n101)  S-dagur +1.28(n579)  V-dagur +0.37(n118)  N-nott +1.11(n182)  A-nott +0.67(n63)  S-nott +0.93(n268)  V-nott -0.43(n36)
+    mfr       N-dagur +1.44(n783)  A-dagur -0.10(n101)  S-dagur +0.91(n579)  V-dagur +0.13(n118)  N-nott +0.17(n182)  A-nott -0.04(n63)  S-nott +0.50(n268)  V-nott -1.14(n36)
+    gfs       N-dagur +1.29(n783)  A-dagur -0.23(n101)  S-dagur -0.07(n579)  V-dagur +0.09(n118)  N-nott -0.34(n182)  A-nott -0.37(n63)  S-nott -0.23(n268)  V-nott -0.75(n36)
+    harmonie  N-dagur +1.40(n786)  A-dagur -0.38(n100)  S-dagur +0.95(n577)  V-dagur +0.31(n117)  N-nott +0.28(n176)  A-nott +0.42(n60)  S-nott +0.64(n261)  V-nott -0.36(n35)
+    metno     N-dagur +1.21(n797)  A-dagur -0.29(n101)  S-dagur +0.65(n586)  V-dagur -0.08(n118)  N-nott +0.58(n182)  A-nott +0.46(n63)  S-nott +0.87(n268)  V-nott -0.82(n36)
   SKILYRT VINDBIAS (@24 klst, reitir med >= 3 por):
-    dmi       N-dagur +1.40(n827)  A-dagur -0.45(n99)  S-dagur +0.96(n635)  V-dagur +0.25(n119)  N-nott +0.50(n185)  A-nott +0.50(n63)  S-nott +0.55(n265)  V-nott -0.63(n36)
-    knmi      N-dagur +1.52(n827)  A-dagur -0.57(n99)  S-dagur +0.95(n635)  V-dagur +0.28(n119)  N-nott +0.50(n185)  A-nott +0.54(n63)  S-nott +0.64(n265)  V-nott -0.56(n36)
-    ecmwf     N-dagur +2.15(n827)  A-dagur +0.24(n99)  S-dagur +1.31(n635)  V-dagur +0.51(n119)  N-nott +0.99(n185)  A-nott +0.77(n63)  S-nott +1.46(n265)  V-nott -0.04(n36)
-    icon      N-dagur +1.65(n827)  A-dagur -0.05(n99)  S-dagur +0.73(n635)  V-dagur +0.34(n119)  N-nott +0.29(n185)  A-nott +0.29(n63)  S-nott +0.55(n265)  V-nott -0.44(n36)
-    ukmo      N-dagur +2.20(n827)  A-dagur -0.08(n99)  S-dagur +1.33(n635)  V-dagur +0.31(n119)  N-nott +1.08(n185)  A-nott +0.67(n63)  S-nott +0.99(n265)  V-nott -0.43(n36)
-    mfr       N-dagur +1.42(n827)  A-dagur -0.13(n99)  S-dagur +1.00(n635)  V-dagur +0.19(n119)  N-nott +0.19(n185)  A-nott -0.04(n63)  S-nott +0.56(n265)  V-nott -1.14(n36)
-    gfs       N-dagur +1.33(n827)  A-dagur -0.27(n99)  S-dagur +0.06(n635)  V-dagur +0.06(n119)  N-nott -0.36(n185)  A-nott -0.37(n63)  S-nott -0.17(n265)  V-nott -0.75(n36)
-    harmonie  N-dagur +1.38(n819)  A-dagur -0.47(n98)  S-dagur +1.01(n632)  V-dagur +0.25(n116)  N-nott +0.28(n179)  A-nott +0.42(n60)  S-nott +0.68(n259)  V-nott -0.36(n35)
-    metno     N-dagur +1.19(n835)  A-dagur -0.38(n99)  S-dagur +0.71(n638)  V-dagur -0.14(n119)  N-nott +0.57(n185)  A-nott +0.46(n63)  S-nott +0.93(n265)  V-nott -0.82(n36)
+    dmi       N-dagur +1.40(n833)  A-dagur -0.45(n99)  S-dagur +0.96(n635)  V-dagur +0.25(n119)  N-nott +0.50(n185)  A-nott +0.50(n63)  S-nott +0.55(n265)  V-nott -0.63(n36)
+    knmi      N-dagur +1.52(n833)  A-dagur -0.57(n99)  S-dagur +0.95(n635)  V-dagur +0.28(n119)  N-nott +0.50(n185)  A-nott +0.54(n63)  S-nott +0.64(n265)  V-nott -0.56(n36)
+    ecmwf     N-dagur +2.14(n833)  A-dagur +0.24(n99)  S-dagur +1.31(n635)  V-dagur +0.51(n119)  N-nott +0.99(n185)  A-nott +0.77(n63)  S-nott +1.46(n265)  V-nott -0.04(n36)
+    icon      N-dagur +1.64(n833)  A-dagur -0.05(n99)  S-dagur +0.73(n635)  V-dagur +0.34(n119)  N-nott +0.29(n185)  A-nott +0.29(n63)  S-nott +0.55(n265)  V-nott -0.44(n36)
+    ukmo      N-dagur +2.19(n833)  A-dagur -0.08(n99)  S-dagur +1.33(n635)  V-dagur +0.31(n119)  N-nott +1.08(n185)  A-nott +0.67(n63)  S-nott +0.99(n265)  V-nott -0.43(n36)
+    mfr       N-dagur +1.42(n833)  A-dagur -0.13(n99)  S-dagur +1.00(n635)  V-dagur +0.19(n119)  N-nott +0.19(n185)  A-nott -0.04(n63)  S-nott +0.56(n265)  V-nott -1.14(n36)
+    gfs       N-dagur +1.31(n833)  A-dagur -0.27(n99)  S-dagur +0.06(n635)  V-dagur +0.06(n119)  N-nott -0.36(n185)  A-nott -0.37(n63)  S-nott -0.17(n265)  V-nott -0.75(n36)
+    harmonie  N-dagur +1.38(n826)  A-dagur -0.47(n98)  S-dagur +1.01(n632)  V-dagur +0.25(n116)  N-nott +0.28(n179)  A-nott +0.42(n60)  S-nott +0.68(n259)  V-nott -0.36(n35)
+    metno     N-dagur +1.18(n842)  A-dagur -0.38(n99)  S-dagur +0.71(n638)  V-dagur -0.14(n119)  N-nott +0.57(n185)  A-nott +0.46(n63)  S-nott +0.93(n265)  V-nott -0.82(n36)
   SKILYRT VINDBIAS (@48 klst, reitir med >= 3 por):
-    dmi       N-dagur +1.32(n786)  A-dagur -0.35(n111)  S-dagur +0.99(n628)  V-dagur +0.36(n102)  N-nott +0.34(n159)  A-nott +0.50(n63)  S-nott +0.55(n265)  V-nott -0.63(n36)
-    knmi      N-dagur +1.44(n786)  A-dagur -0.47(n111)  S-dagur +0.97(n628)  V-dagur +0.41(n102)  N-nott +0.36(n159)  A-nott +0.54(n63)  S-nott +0.64(n265)  V-nott -0.56(n36)
-    ecmwf     N-dagur +2.06(n786)  A-dagur +0.24(n111)  S-dagur +1.34(n628)  V-dagur +0.54(n102)  N-nott +0.83(n159)  A-nott +0.77(n63)  S-nott +1.46(n265)  V-nott -0.04(n36)
-    icon      N-dagur +1.65(n786)  A-dagur +0.02(n111)  S-dagur +0.79(n628)  V-dagur +0.39(n102)  N-nott +0.23(n159)  A-nott +0.29(n63)  S-nott +0.55(n265)  V-nott -0.44(n36)
-    ukmo      N-dagur +2.15(n786)  A-dagur -0.01(n111)  S-dagur +1.38(n628)  V-dagur +0.33(n102)  N-nott +0.89(n159)  A-nott +0.67(n63)  S-nott +0.99(n265)  V-nott -0.43(n36)
-    mfr       N-dagur +1.34(n786)  A-dagur -0.13(n111)  S-dagur +1.04(n628)  V-dagur +0.19(n102)  N-nott -0.02(n159)  A-nott -0.04(n63)  S-nott +0.56(n265)  V-nott -1.14(n36)
-    gfs       N-dagur +1.29(n786)  A-dagur -0.27(n111)  S-dagur +0.07(n628)  V-dagur +0.22(n102)  N-nott -0.35(n159)  A-nott -0.37(n63)  S-nott -0.17(n265)  V-nott -0.75(n36)
-    harmonie  N-dagur +1.25(n784)  A-dagur -0.40(n110)  S-dagur +1.05(n626)  V-dagur +0.40(n101)  N-nott +0.11(n153)  A-nott +0.42(n60)  S-nott +0.68(n259)  V-nott -0.36(n35)
-    metno     N-dagur +1.12(n797)  A-dagur -0.31(n111)  S-dagur +0.73(n631)  V-dagur -0.08(n102)  N-nott +0.43(n159)  A-nott +0.46(n63)  S-nott +0.93(n265)  V-nott -0.82(n36)
+    dmi       N-dagur +1.31(n792)  A-dagur -0.35(n111)  S-dagur +0.99(n628)  V-dagur +0.36(n102)  N-nott +0.34(n159)  A-nott +0.50(n63)  S-nott +0.55(n265)  V-nott -0.63(n36)
+    knmi      N-dagur +1.43(n792)  A-dagur -0.47(n111)  S-dagur +0.97(n628)  V-dagur +0.41(n102)  N-nott +0.36(n159)  A-nott +0.54(n63)  S-nott +0.64(n265)  V-nott -0.56(n36)
+    ecmwf     N-dagur +2.05(n792)  A-dagur +0.24(n111)  S-dagur +1.34(n628)  V-dagur +0.54(n102)  N-nott +0.83(n159)  A-nott +0.77(n63)  S-nott +1.46(n265)  V-nott -0.04(n36)
+    icon      N-dagur +1.65(n792)  A-dagur +0.02(n111)  S-dagur +0.79(n628)  V-dagur +0.39(n102)  N-nott +0.23(n159)  A-nott +0.29(n63)  S-nott +0.55(n265)  V-nott -0.44(n36)
+    ukmo      N-dagur +2.14(n792)  A-dagur -0.01(n111)  S-dagur +1.38(n628)  V-dagur +0.33(n102)  N-nott +0.89(n159)  A-nott +0.67(n63)  S-nott +0.99(n265)  V-nott -0.43(n36)
+    mfr       N-dagur +1.33(n792)  A-dagur -0.13(n111)  S-dagur +1.04(n628)  V-dagur +0.19(n102)  N-nott -0.02(n159)  A-nott -0.04(n63)  S-nott +0.56(n265)  V-nott -1.14(n36)
+    gfs       N-dagur +1.27(n792)  A-dagur -0.27(n111)  S-dagur +0.07(n628)  V-dagur +0.22(n102)  N-nott -0.35(n159)  A-nott -0.37(n63)  S-nott -0.17(n265)  V-nott -0.75(n36)
+    harmonie  N-dagur +1.25(n791)  A-dagur -0.40(n110)  S-dagur +1.05(n626)  V-dagur +0.40(n101)  N-nott +0.11(n153)  A-nott +0.42(n60)  S-nott +0.68(n259)  V-nott -0.36(n35)
+    metno     N-dagur +1.11(n804)  A-dagur -0.31(n111)  S-dagur +0.73(n631)  V-dagur -0.08(n102)  N-nott +0.43(n159)  A-nott +0.46(n63)  S-nott +0.93(n265)  V-nott -0.82(n36)
   ('--gogn' = gjafinn skilar ekki breytunni | 'bid' = of fair samanburdir enn)
   SKILYRTAR THYNGDIR @1klst (hver er bestur i hvada adstaedum):
-    hiti    N-dagur    mfr 16% | dmi 13% | knmi 13%
+    hiti    N-dagur    mfr 16% | dmi 12% | icon 12%
     hiti    S-dagur    mfr 13% | metno 13% | harmonie 12%
-    hiti    S-nott     knmi 14% | dmi 13% | mfr 13%
-    vindur  N-dagur    gfs 13% | knmi 13% | dmi 12%
+    hiti    S-nott     mfr 13% | knmi 12% | dmi 12%
+    vindur  N-dagur    gfs 14% | dmi 12% | mfr 12%
     vindur  S-dagur    dmi 14% | knmi 14% | harmonie 13%
-    vindur  S-nott     harmonie 14% | metno 11% | knmi 11%
+    vindur  S-nott     harmonie 14% | ecmwf 12% | metno 11%
     att     N-dagur    metno 13% | harmonie 13% | mfr 13%
-    att     S-dagur    mfr 16% | gfs 16% | ecmwf 11%
+    att     S-dagur    gfs 16% | mfr 16% | ecmwf 11%
     att     S-nott     mfr 20% | ecmwf 19% | metno 18%
     sky     N-dagur    metno 22% | icon 20% | ecmwf 18%
     sky     S-dagur    metno 19% | ukmo 18% | mfr 18%
-    sky     S-nott     metno 22% | ukmo 18% | ecmwf 18%
+    sky     S-nott     metno 20% | ukmo 19% | ecmwf 17%
   SKILYRTAR THYNGDIR @3klst (hver er bestur i hvada adstaedum):
-    hiti    N-dagur    mfr 16% | knmi 12% | dmi 12%
-    hiti    S-dagur    dmi 14% | mfr 12% | knmi 12%
-    hiti    S-nott     dmi 15% | knmi 14% | icon 12%
-    vindur  N-dagur    gfs 13% | metno 12% | mfr 12%
+    hiti    N-dagur    mfr 16% | icon 12% | dmi 11%
+    hiti    S-dagur    dmi 14% | mfr 12% | harmonie 12%
+    hiti    S-nott     dmi 13% | harmonie 12% | mfr 12%
+    vindur  N-dagur    mfr 13% | gfs 13% | metno 13%
     vindur  S-dagur    dmi 16% | knmi 14% | harmonie 13%
-    vindur  S-nott     dmi 12% | metno 12% | ecmwf 11%
-    att     N-dagur    icon 14% | harmonie 12% | mfr 12%
+    vindur  S-nott     harmonie 12% | dmi 12% | ecmwf 12%
+    att     N-dagur    icon 15% | harmonie 12% | mfr 12%
     att     S-dagur    knmi 17% | dmi 13% | harmonie 12%
-    att     S-nott     icon 15% | harmonie 13% | knmi 12%
+    att     S-nott     icon 16% | harmonie 13% | knmi 12%
     sky     N-dagur    icon 19% | metno 18% | ukmo 16%
     sky     S-dagur    ukmo 18% | ecmwf 16% | metno 16%
     sky     S-nott     icon 17% | ukmo 17% | metno 16%
   SKILYRTAR THYNGDIR @6klst (hver er bestur i hvada adstaedum):
-    hiti    N-dagur    dmi 14% | harmonie 12% | knmi 12%
+    hiti    N-dagur    dmi 14% | harmonie 13% | knmi 12%
     hiti    S-dagur    harmonie 15% | dmi 12% | knmi 12%
-    hiti    S-nott     dmi 14% | harmonie 12% | knmi 12%
+    hiti    S-nott     dmi 14% | harmonie 13% | knmi 12%
     vindur  N-dagur    gfs 13% | dmi 13% | knmi 13%
     vindur  S-dagur    dmi 15% | knmi 15% | harmonie 12%
-    vindur  S-nott     knmi 14% | dmi 13% | harmonie 11%
-    att     N-dagur    mfr 14% | harmonie 12% | icon 12%
-    att     S-dagur    gfs 14% | metno 13% | ecmwf 12%
-    att     S-nott     icon 12% | mfr 11% | ukmo 11%
+    vindur  S-nott     knmi 14% | dmi 13% | harmonie 12%
+    att     N-dagur    mfr 14% | harmonie 13% | icon 12%
+    att     S-dagur    gfs 13% | metno 13% | harmonie 12%
+    att     S-nott     harmonie 12% | icon 11% | metno 11%
     sky     N-dagur    metno 16% | icon 16% | ukmo 14%
     sky     S-dagur    metno 16% | ukmo 14% | harmonie 13%
-    sky     S-nott     metno 16% | ukmo 14% | icon 14%
+    sky     S-nott     metno 15% | ukmo 14% | icon 14%
   SKILYRTAR THYNGDIR @12klst (hver er bestur i hvada adstaedum):
     hiti    N-dagur    dmi 16% | knmi 13% | mfr 12%
-    hiti    S-dagur    dmi 14% | knmi 13% | gfs 11%
+    hiti    S-dagur    dmi 14% | knmi 13% | mfr 11%
     hiti    S-nott     dmi 15% | knmi 13% | mfr 12%
-    vindur  N-dagur    dmi 15% | knmi 14% | harmonie 11%
-    vindur  S-dagur    dmi 15% | knmi 12% | harmonie 12%
-    vindur  S-nott     dmi 14% | knmi 13% | icon 12%
-    att     N-dagur    mfr 14% | harmonie 13% | dmi 12%
-    att     S-dagur    mfr 14% | gfs 13% | ukmo 11%
+    vindur  N-dagur    dmi 16% | knmi 14% | harmonie 12%
+    vindur  S-dagur    dmi 15% | knmi 13% | harmonie 12%
+    vindur  S-nott     dmi 15% | knmi 13% | harmonie 11%
+    att     N-dagur    mfr 13% | harmonie 12% | dmi 12%
+    att     S-dagur    mfr 13% | gfs 13% | ukmo 11%
     att     S-nott     ukmo 13% | mfr 13% | gfs 12%
-    sky     N-dagur    icon 16% | ukmo 13% | metno 13%
+    sky     N-dagur    icon 15% | ukmo 13% | metno 13%
     sky     S-dagur    metno 14% | ukmo 12% | icon 12%
-    sky     S-nott     icon 14% | ukmo 14% | metno 13%
+    sky     S-nott     icon 14% | ukmo 13% | metno 13%
   SKILYRTAR THYNGDIR @24klst (hver er bestur i hvada adstaedum):
-    hiti    N-dagur    harmonie 15% | dmi 14% | knmi 12%
+    hiti    N-dagur    harmonie 15% | knmi 13% | dmi 13%
     hiti    S-dagur    harmonie 14% | dmi 13% | knmi 12%
-    hiti    S-nott     harmonie 15% | dmi 13% | mfr 12%
-    vindur  N-dagur    gfs 12% | dmi 12% | metno 12%
-    vindur  S-dagur    dmi 13% | harmonie 13% | knmi 13%
-    vindur  S-nott     metno 13% | ecmwf 12% | gfs 11%
-    att     N-dagur    mfr 17% | harmonie 14% | metno 10%
-    att     S-dagur    harmonie 15% | knmi 11% | metno 11%
-    att     S-nott     harmonie 14% | mfr 12% | gfs 12%
-    sky     N-dagur    icon 22% | metno 15% | ukmo 15%
-    sky     S-dagur    icon 17% | mfr 16% | metno 14%
-    sky     S-nott     icon 19% | metno 15% | ukmo 15%
+    hiti    S-nott     harmonie 15% | mfr 13% | dmi 12%
+    vindur  N-dagur    metno 12% | dmi 12% | gfs 12%
+    vindur  S-dagur    dmi 13% | knmi 13% | harmonie 13%
+    vindur  S-nott     metno 12% | ecmwf 12% | dmi 12%
+    att     N-dagur    mfr 18% | harmonie 14% | metno 11%
+    att     S-dagur    harmonie 15% | metno 12% | knmi 11%
+    att     S-nott     harmonie 14% | gfs 12% | mfr 12%
+    sky     N-dagur    icon 21% | ukmo 15% | metno 15%
+    sky     S-dagur    icon 17% | mfr 16% | ukmo 14%
+    sky     S-nott     icon 19% | ukmo 16% | metno 15%
   SKILYRTAR THYNGDIR @48klst (hver er bestur i hvada adstaedum):
-    hiti    N-dagur    harmonie 14% | dmi 12% | ukmo 12%
-    hiti    S-dagur    harmonie 14% | ukmo 13% | dmi 12%
-    hiti    S-nott     harmonie 13% | ukmo 12% | icon 12%
-    vindur  N-dagur    knmi 13% | icon 13% | dmi 12%
-    vindur  S-dagur    knmi 12% | icon 12% | gfs 12%
-    vindur  S-nott     knmi 13% | icon 12% | gfs 11%
-    att     N-dagur    mfr 16% | metno 15% | ecmwf 14%
-    att     S-dagur    ukmo 15% | gfs 14% | mfr 14%
-    att     S-nott     ecmwf 15% | metno 15% | mfr 14%
-    sky     N-dagur    ukmo 13% | icon 13% | knmi 13%
-    sky     S-dagur    knmi 14% | ukmo 14% | metno 13%
-    sky     S-nott     knmi 13% | metno 13% | icon 13%
+    hiti    N-dagur    dmi 13% | harmonie 13% | ukmo 12%
+    hiti    S-dagur    ukmo 13% | harmonie 13% | dmi 12%
+    hiti    S-nott     ukmo 12% | harmonie 12% | icon 12%
+    vindur  N-dagur    icon 13% | knmi 12% | ukmo 11%
+    vindur  S-dagur    icon 13% | gfs 12% | ukmo 12%
+    vindur  S-nott     icon 13% | ukmo 12% | knmi 11%
+    att     N-dagur    mfr 16% | metno 15% | dmi 14%
+    att     S-dagur    ukmo 14% | mfr 14% | gfs 14%
+    att     S-nott     mfr 15% | metno 15% | ecmwf 15%
+    sky     N-dagur    icon 12% | ukmo 12% | knmi 11%
+    sky     S-dagur    ukmo 13% | knmi 13% | icon 12%
+    sky     S-nott     icon 12% | knmi 12% | metno 12%
 SANNLEIKSMAELIR (hraar tolur, sidustu 24 klst, @1klst)
   gjafi             hiti   vindur      att      sky   (leidrett eins og spain gerir)
-  dmi              1.58     1.50    49.20    34.00   (1.58 1.26 44.58 29.20)
-  knmi             1.32     1.04    37.80    38.00   (1.32 0.91 36.80 25.00)
-  ecmwf            2.04     1.84    26.60    29.20   (2.04 1.10 27.85 22.20)
-  icon             1.30     0.99    13.60    27.00   (1.30 0.81 16.07 25.20)
-  ukmo             2.12     1.54    17.60    21.60   (2.12 0.85 20.85 24.80)
-  mfr              1.60     1.27    28.00    19.60   (1.60 1.30 27.61 24.40)
-  gfs              1.12     1.22    37.40    37.40   (1.12 1.63 33.19 24.60)
-  harmonie         2.17     1.60    33.75    25.83   (2.17 1.04 34.87 28.17)
-  metno            1.80     1.63    27.80    13.60   (1.80 1.14 27.48 23.50)
+  dmi              1.44     1.70    52.80    44.20   (1.44 1.07 52.68 34.20)
+  knmi             1.06     1.60    37.60    47.80   (1.06 1.03 34.99 29.20)
+  ecmwf            1.30     1.90    18.60    25.40   (1.30 0.94 19.57 22.40)
+  icon             1.04     1.26    12.00    26.00   (1.04 0.83 21.37 21.60)
+  ukmo             1.66     1.82    18.80    25.40   (1.66 0.81 20.20 24.00)
+  mfr              1.08     1.26    26.00    21.20   (1.08 1.09 25.73 25.80)
+  gfs              0.86     1.26    29.60    40.80   (0.86 1.86 23.50 25.00)
+  harmonie         2.00     1.95    29.17    25.83   (2.00 1.06 27.69 28.00)
+  metno            1.23     1.82    16.38    13.60   (1.23 1.03 14.65 22.67)
   ----------------------------------------------
-  JOLLY            1.39     1.06    13.00    22.60   (1.39 1.06 13.00 22.60)
+  JOLLY            1.17     0.88     8.48    22.20   (1.17 0.88 8.48 22.20)
   n = 6 por
-    hiti    Jolly   1.39 | hrair   1.67 (+17%) | leidrettir   1.67 (+17%) | besti   1.12 (-24%)
-    vindur  Jolly   1.06 | hrair   1.40 (+24%) | leidrettir   1.11 (+5%) | besti   0.81 (-31%)
-    att     Jolly  13.00 | hrair  30.19 (+57%) | leidrettir  29.92 (+57%) | besti  16.07 (+19%)
-    sky     Jolly  22.60 | hrair  27.36 (+17%) | leidrettir  25.23 (+10%) | besti  22.20 (-2%)
+    hiti    Jolly   1.17 | hrair   1.30 (+10%) | leidrettir   1.30 (+10%) | besti   0.86 (-36%)
+    vindur  Jolly   0.88 | hrair   1.62 (+46%) | leidrettir   1.08 (+19%) | besti   0.81 (-9%)
+    att     Jolly   8.48 | hrair  26.77 (+68%) | leidrettir  26.71 (+68%) | besti  14.65 (+42%)
+    sky     Jolly  22.20 | hrair  30.03 (+26%) | leidrettir  25.87 (+14%) | besti  21.60 (-3%)
   EFTIR REIT (leidrett MAE, vindatt x dagur/nott):
     reitur           hiti   vindur      att      sky     n
-    A-dagur          1.81     1.27    23.45    28.50     2
-    N-dagur          1.10     0.92     6.03    18.67     3
+    A-dagur          1.22     1.56    23.00    28.00     1
+    N-dagur          1.16     0.70     4.85    20.75     4
   FALLIN LIKON @1klst (0 vaegi, enn maeld, geta komid aftur):
     sky: dmi, harmonie, knmi
   FALLIN LIKON @3klst (0 vaegi, enn maeld, geta komid aftur):
@@ -347,40 +360,43 @@ SANNLEIKSMAELIR (hraar tolur, sidustu 24 klst, @1klst)
     sky: dmi, knmi
   FALLIN LIKON @48klst (0 vaegi, enn maeld, geta komid aftur):
     att: icon
-    sky: harmonie
 VISTAD
 
 ════════════════════════════════════════════════════════════
   24-48 KLST REKJARI (ofur-ahersla spalengdir, allar breytur)
 ════════════════════════════════════════════════════════════
   --- @24klst ---  member_bias(hiti)=ovirk  CELLW_LEAD_TRUST=0.55
-    hiti    (C   ): 08-29:2.27 -> 08-30:1.82 -> 08-31:1.65 -> 09-01:1.65
-    vindur  (m/s ): 08-29:1.35 -> 08-30:1.34 -> 08-31:1.03 -> 09-01:1.03
-    att     (gr  ): 08-29:41.23 -> 08-30:42.90 -> 08-31:33.81 -> 09-01:33.81
+    hiti    (C   ): 08-29:2.27 -> 08-30:1.82 -> 08-31:1.65 -> 09-01:1.49
+      ✓ batnar 3 daga i rod (1.82 -> 1.65 -> 1.49)
+    vindur  (m/s ): 08-29:1.35 -> 08-30:1.34 -> 08-31:1.03 -> 09-01:0.92
+      ✓ batnar 3 daga i rod (1.34 -> 1.03 -> 0.92)
+    att     (gr  ): 08-29:41.23 -> 08-30:42.90 -> 08-31:33.81 -> 09-01:32.36
+      ✓ batnar 3 daga i rod (42.90 -> 33.81 -> 32.36)
     urkoma  (mm  ): (engin saga enn)
-    sky     (%   ): 08-29:32.41 -> 08-30:32.24 -> 08-31:28.10 -> 09-01:28.10
+    sky     (%   ): 08-29:32.41 -> 08-30:32.24 -> 08-31:28.10 -> 09-01:26.89
+      ✓ batnar 3 daga i rod (32.24 -> 28.10 -> 26.89)
   --- @48klst ---  member_bias(hiti)=ovirk  CELLW_LEAD_TRUST=0.45
-    hiti    (C   ): 08-29:3.02 -> 08-30:3.10 -> 08-31:2.21 -> 09-01:2.08
-      ✓ batnar 3 daga i rod (3.10 -> 2.21 -> 2.08)
-    vindur  (m/s ): 08-29:1.61 -> 08-30:1.73 -> 08-31:1.61 -> 09-01:1.53
-      ✓ batnar 3 daga i rod (1.73 -> 1.61 -> 1.53)
-    att     (gr  ): 08-29:41.46 -> 08-30:41.13 -> 08-31:31.05 -> 09-01:30.58
-      ✓ batnar 3 daga i rod (41.13 -> 31.05 -> 30.58)
+    hiti    (C   ): 08-29:3.02 -> 08-30:3.10 -> 08-31:2.21 -> 09-01:1.89
+      ✓ batnar 3 daga i rod (3.10 -> 2.21 -> 1.89)
+    vindur  (m/s ): 08-29:1.61 -> 08-30:1.73 -> 08-31:1.61 -> 09-01:1.39
+      ✓ batnar 3 daga i rod (1.73 -> 1.61 -> 1.39)
+    att     (gr  ): 08-29:41.46 -> 08-30:41.13 -> 08-31:31.05 -> 09-01:28.85
+      ✓ batnar 3 daga i rod (41.13 -> 31.05 -> 28.85)
     urkoma  (mm  ): (engin saga enn)
-    sky     (%   ): 08-29:32.68 -> 08-30:31.51 -> 08-31:26.93 -> 09-01:28.98
+    sky     (%   ): 08-29:32.68 -> 08-30:31.51 -> 08-31:26.93 -> 09-01:27.54
 ════════════════════════════════════════════════════════════
 ================================================================
-Thyngdir hiti    @6klst: dmi 15% | harmonie 13% | knmi 12% | icon 11%
-Thyngdir vindur  @6klst: knmi 14% | dmi 14% | gfs 12% | harmonie 12%
-Thyngdir att     @6klst: icon 12% | gfs 12% | mfr 12% | harmonie 11%
+Thyngdir hiti    @6klst: dmi 14% | harmonie 14% | knmi 11% | icon 11%
+Thyngdir vindur  @6klst: knmi 14% | dmi 13% | gfs 12% | harmonie 12%
+Thyngdir att     @6klst: harmonie 12% | icon 12% | metno 12% | gfs 11%
 Thyngdir urkoma  @6klst: dmi 21% | knmi 19% | ecmwf 14% | mfr 13%
-Thyngdir sky     @6klst: metno 17% | ukmo 15% | icon 14% | gfs 12%
+Thyngdir sky     @6klst: metno 15% | ukmo 15% | icon 14% | harmonie 13%
 
 STADA  OK - ekkert athugavert
 
-Keyrslur 680 | stadfest por 120354
-Jolly hiti    a moti besta likani: 1kl -33% | 3kl -52% | 6kl -45% | 12kl -74% | 24kl -100% | 48kl -100%
-Jolly vindur  a moti besta likani: 1kl -30% | 3kl -14% | 6kl -12% | 12kl -19% | 24kl -23% | 48kl -62%
-Jolly att     a moti besta likani: 1kl +2% | 3kl -47% | 6kl -12% | 12kl -55% | 24kl -34% | 48kl -12%
-Jolly sky     a moti besta likani: 1kl -100% | 3kl -100% | 6kl -98% | 12kl -100% | 24kl -100% | 48kl -54%
+Keyrslur 681 | stadfest por 120602
+Jolly hiti    a moti besta likani: 1kl -36% | 3kl -38% | 6kl -45% | 12kl -77% | 24kl -93% | 48kl -100%
+Jolly vindur  a moti besta likani: 1kl -20% | 3kl -13% | 6kl -12% | 12kl -35% | 24kl -6% | 48kl -67%
+Jolly att     a moti besta likani: 1kl +8% | 3kl -49% | 6kl -16% | 12kl -48% | 24kl -33% | 48kl -20%
+Jolly sky     a moti besta likani: 1kl -100% | 3kl -100% | 6kl -82% | 12kl -100% | 24kl -100% | 48kl -66%
 ================================================================
