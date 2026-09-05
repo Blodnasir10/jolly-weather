@@ -63,6 +63,18 @@ SAGA I STUTTU MALI:
         + KRUFNING: synir EINA stadfestingu i heild (hver medlimur, thyngd,
         reiknud blanda, geymd Jolly-spa) svo se haegt ad sja hvort geymda
         gildid passi vid blonduna. Vornin greip a skyi og vindi 19.ag.
+  v6.2  SKY FAER SOMU VARNIR OG HITI/VINDUR/ATT: djup rannsokn (notandi
+        bad um allar naudsynlegar breytingar) fann ad correct_cloud() var
+        eina leidrettingin an spalengdar-deyfingar OG an thaks - hun beitti
+        fullum shift oheft, oad thvi hve langt var spad. Liklega skyring a
+        thvi ad sky hefur verid versta breytan vid ALLAR spalengdir samtimis.
+        Lagfaert: (1) CLOUD_LEAD_TRUST - deyfing eins og member_bias.
+        (2) CLOUD_SHIFT_CAP (35 stig) sem oryggisnet. (3) SKYJAKORT prentun,
+        fyrsta sinn synilegt hvada flokkar/likon eru ad leidretta hvad.
+        Profad: stutt lead nanast oskert, langt lead verulega deyft,
+        utlagi rett gripinn af thaki.
+        AUK THESS: cron faerdur ur '5' i '17' eftir hverja klst svo minni
+        likur seu a ad GitHub sleppi keyrslum a toppalagstima.
 """
 
 
@@ -99,7 +111,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "6.1"
+JOLLY_VERSION = "6.2"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -836,11 +848,29 @@ def apply_precip(raw, scale, thr):
 #  total_cloud() = HAMARKSSKORUN: lasky 10% + hasky 50% er 50%, ekki 60%.
 # ═══════════════════════════════════════════════════════════════════════
 
+# [v6.2] SKY-LEIÐRÉTTING FÆR SÖMU VARNIR OG HITI/VINDUR/ÁTT HAFA.
+#
+# Djúp rannsókn á vindi (v6.0-6.1) og hita (v5.9) fann ad ský var EINA
+# breytan sem hafdi HVORKI spalengdar-deyfingu NE thak a leidrettingunni -
+# `shift = obs_mean - fc_mean` var beitt AD FULLU, oháð thvi hve langt var
+# spad eda hve mörg (en yfir MIN_CLOUD_N) pör lágu ad baki. Sky hefur verid
+# versta breytan allan timann (-100% vid ALLAR spalengdir samtimis, ekki
+# bara sumar eins og hiti/vindur) - thetta strukturlega gap er trúverdug
+# skýring, sannreynt með sömu röksemd og virkadi fyrir member_bias:
+CLOUD_LEAD_TRUST = {"1": 1.00, "3": 1.00, "6": 0.90,
+                     "12": 0.65, "24": 0.40, "48": 0.20}
+CLOUD_SHIFT_CAP  = 35.0   # prósentustig - hærra en nokkurt núverandi gildi
+
 def correct_cloud(raw, model, m, bs):
     """
     Leidrettir skyjahulu med flokkabundnu viki. Fellur aftur a flata
     bias-leidrettingu ef flokkurinn hefur ekki nog gogn, og klemmir
     nidurstoduna i 0-100.
+
+    [v6.2] shift er nu (1) DEYFT eftir spalengd - somu rök og fyrir
+    member_bias: flokkurinn er valinn ur EIGIN SPA likansins, sem verdur
+    ovissari eftir thvi sem lengra er spad - og (2) THAKID vid
+    CLOUD_SHIFT_CAP sem oryggisnet gegn utlogum i thunnum flokkum.
     """
     if raw is None:
         return None
@@ -850,9 +880,10 @@ def correct_cloud(raw, model, m, bs):
     if e and e.get("n", 0) >= MIN_CLOUD_N:
         fc_mean  = e["fc_sum"]  / e["n"]
         obs_mean = e["obs_sum"] / e["n"]
-        shift    = obs_mean - fc_mean
+        shift    = (obs_mean - fc_mean) * CLOUD_LEAD_TRUST.get(bs, 0.5)
     else:
         shift = flat
+    shift = max(-CLOUD_SHIFT_CAP, min(CLOUD_SHIFT_CAP, shift))
     return int(round(min(100.0, max(0.0, raw + shift))))
 
 
@@ -3198,6 +3229,32 @@ def print_coverage(model, fc, extras):
                         shown = True
                 if not shown:
                     print("    (reitir enn ad byggjast upp - tharf fleiri stadfestingar)")
+
+    # [v6.2] SKYJAKORT - fyrsta sinn synilegt. Sky notar ALLT ANNAD
+    # kerfi en hiti/vindur/att: flokkabundid eftir EIGIN SPA (ekki
+    # vindatt x dagur/nott), i cloud_map i stad cond_bias. Synum NAFNVIRDI
+    # (fyrir lead-deyfingu) svo ver sjaum hratt gagnasafnad segir, og
+    # merkjum hvada flokkar ná MIN_CLOUD_N.
+    cm = model.get("cloud_map", {})
+    if cm:
+        for _bs in [str(b) for b in LEAD_BUCKETS]:
+            print(f"  SKYJAKORT (@{_bs} klst, flokkar med >= "
+                  f"{MIN_CLOUD_N} por, nafnvirdi fyrir spalengdar-deyfingu):")
+            shown = False
+            for m in ALL_KEYS:
+                flokkar = (cm.get(m, {}) or {}).get(_bs, {})
+                parts = []
+                for fk in ["heidskirt","lettskyjad","skyjad_hluta",
+                          "halfskyjad","mestu_skyjad","alskyjad"]:
+                    e = flokkar.get(fk)
+                    if e and e.get("n", 0) >= MIN_CLOUD_N:
+                        shift = e["obs_sum"]/e["n"] - e["fc_sum"]/e["n"]
+                        parts.append(f"{fk} {shift:+.1f}(n{e['n']})")
+                if parts:
+                    print(f"    {m:9s} " + "  ".join(parts))
+                    shown = True
+            if not shown:
+                print("    (flokkar enn ad byggjast upp - tharf fleiri stadfestingar)")
     print("  ('--gogn' = gjafinn skilar ekki breytunni | "
           "'bid' = of fair samanburdir enn)")
 
