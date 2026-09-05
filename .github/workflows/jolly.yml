@@ -3,7 +3,12 @@ name: Jolly - Klukkustundarlærdómur
 on:
   schedule:
     # Keyrir 5 mínútum eftir hvern heilan tíma - 24x á dag
-    - cron: '5 * * * *'
+    - cron: '17 * * * *'
+    # [v2] Fært úr '5 * * * *' í '17 * * * *' - GitHub mælir sjálft með að
+    # forðast fyrstu mínúturnar eftir heilan tíma, þar sem tugþúsundir
+    # verkflæða um allan heim reyna að keyra samtímis og áætlaðar keyrslur
+    # geta dottið niður án viðvörunar. Þetta minnkar líkur á því, tryggir
+    # það ekki (GitHub-hlið, ekki á okkar valdi).
   push:
     branches: [main]
   workflow_dispatch:
