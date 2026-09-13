@@ -75,6 +75,21 @@ SAGA I STUTTU MALI:
         utlagi rett gripinn af thaki.
         AUK THESS: cron faerdur ur '5' i '17' eftir hverja klst svo minni
         likur seu a ad GitHub sleppi keyrslum a toppalagstima.
+  v6.3  HITI FAER SITT ANNAD LAG - ENDURTEKNING A v5.6, I THETTA SINN RETT.
+        Vikuleg samanburdur (6.->13.sept) synir sky og att bata gifurlega
+        (-100%->-2/-7%, -100%->-22/-10%) eftir ad hafa fengid BAEDI login
+        (skilyrt bias OG restleidretting). Hiti var eina breytan an
+        skilyrts bias - SKILYRT HITABIAS hefur reiknad gognin allan
+        timann an thess ad theim se beitt (APPLY_MEMBER_BIAS['hiti']=False).
+        member_bias(hiti) ENDURVIRKJUD vid 24/48klst.
+        LYKILMUNUR FRA v5.6: tha var BIL milli thess ad kveikja a
+        member_bias og ad nullstilla restbias - restbias helt afram ad
+        beita STORRI leidrettingu sem miðadist vid oleidretta medlimi,
+        OFAN A nyju skilyrtu leidretinguna, i marga daga - tvofeldun.
+        NUNA: HREINSUN v6.3 a jolly_bias(hiti) vid 24/48klst keyrir i
+        SOMU utgafu og virkjunin - ENGINN gluggi fyrir tvofeldingu.
+        Profad: virkjun rett afmorkud vid 24/48 (1-12klst osnert),
+        hreinsun og virkjun gerast SAMTIMIS i somu keyrslu.
 """
 
 
@@ -111,7 +126,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "6.2"
+JOLLY_VERSION = "6.3"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -312,7 +327,23 @@ MEMBER_BIAS_CAP = {"hiti": 5.0, "vindur": 4.0, "att": 30.0, "sky": 30.0}
 # ranga att. Sama EÐLI og tvöfalda leidrettingin i agust (v3.4) - tvaer
 # ohaðar leidrettingar, laerdar a olikum tima, sem vita ekki hvor af
 # annarri. AFTURKALLAD i thekkt, MAELT ASTAND fra 19.agust.
-APPLY_MEMBER_BIAS = {"hiti": False, "vindur": True, "att": True,
+#
+# [v6.3] ENDURTEKID VID 24/48KLST - i thetta sinn RETT. Sky og att bata
+# bædi verulega (-100%->-2/-7%, -100%->-22/-10%) eftir ad hafa fengid
+# BAEDI login (skilyrt bias OG restleidretting). Hiti er nu EINA breytan
+# an skilyrts bias - SKILYRT HITABIAS taflan hefur reiknad gognin allan
+# timann, an thess ad theim se nokkru sinni beitt. Sama strukturlega
+# handicap og sky hafdi (vantar eitt lag), liklega skyring a thvi ad
+# hiti er nu eina breytan enn föst i -100% vid 24/48klst.
+#
+# LYKILMUNUR FRA v5.6-TILRAUNINNI: tha var kveikt her ADEINS - restbias
+# hafdi thegar laert i marga daga UNDIR "engin skilyrt leidretting"
+# astandi, svo hun helt afram ad beita STORRI leidrettingu sem miðadist
+# vid odaerdrettar spar, OFAN A nyju skilyrtu leidretinguna - tvöfeldun.
+# Nu er NULLSTILLING A jolly_bias(hiti) VID 24/48KLST GERD i SOMU utgafu
+# (sja hreinsunarblokk nedar, v63_hiti_2448_reset) svo ekkert bil myndast
+# thar sem tvaer leidrettingar geta stangast a.
+APPLY_MEMBER_BIAS = {"hiti": {"24", "48"}, "vindur": True, "att": True,
                      "urkoma": True, "sky": True}
 
 def _member_bias_on(var, bs):
@@ -1609,6 +1640,24 @@ def load_model():
             print("  HREINSUN v5.9: jolly_bias(hiti) vid 24/48klst")
             print("  nullstillt - grunur um tvofalda leidrettingu eftir")
             print("  ad member_bias(hiti) var kveikt thar i v5.6.")
+
+        # [v6.3] SAMA HREINSUN AFTUR, I SOMU UTGAFU OG member_bias(hiti)
+        # er endurvirkjud vid 24/48klst (sja APPLY_MEMBER_BIAS ad ofan).
+        # Thetta er lykilmunurinn fra v5.6: nu er ENGINN GLUGGI thar sem
+        # restbias getur lært RANGA (of stora) leidrettingu miðada vid
+        # oleidretta medlimi, thvi buid er ad kveikja a skilyrta biasinu
+        # A SAMA AUGNABLIKI og restbias er nullstillt - bædi i thessari
+        # somu keyrslu, ekki tveimur aðskildum utgafum með bil a milli.
+        if not raw.get("v63_hiti_2448_reset"):
+            for _b in ("24", "48"):
+                _jb = raw.get("jolly_bias", {}).get(_b)
+                if _jb is not None:
+                    _jb["hiti"] = 0.0
+            raw["v63_hiti_2448_reset"] = True
+            print("  HREINSUN v6.3: jolly_bias(hiti) vid 24/48klst")
+            print("  nullstillt AFTUR, samtimis og member_bias(hiti) er")
+            print("  endurvirkjud thar - ENGINN gluggi fyrir tvofeldingu")
+            print("  thetta sinn, ólíkt v5.6.")
 
         if not raw.get("v49_skill_reset"):
             for b in LEAD_BUCKETS:
