@@ -125,6 +125,11 @@ SAGA I STUTTU MALI:
         @3klst 1.28 -> 1.02. Aldrei verra a neinni spalengd.
         Kyrrar/heidskirar naetur einnig profadar: of fa tilvik (5-17) til ad
         daema - endurtaka i vetur.
+  v6.7  URKOMA LOKSINS MAELD. Sjalfvirka stodin 4271 (api.vedur.is) skilar
+        r=null - hun hefur engan urkomumaeli. Langtimasafnid: 0% skrad urkoma
+        i 26.586 linum, urkomuspain aldrei sannreynd, urkomuthyngdir byggdu
+        a engu. Nu sott ur stod 571 (sami stadur, xmlweather, R = mm sidustu
+        klst). 4271 skrifar ekki lengur yfir urkomu med tomu gildi.
 """
 
 
@@ -161,7 +166,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "6.6"
+JOLLY_VERSION = "6.7"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -1139,7 +1144,10 @@ def fetch_and_store_observations(metar_obs):
                         "windspeed": _num(row, "f"),
                         "windgust": _num(row, "fg"),
                         "winddirection": wd,
-                        "precipitation": _num(row, "r"),
+                        # [v6.7] 4271 maelir EKKI urkomu (r=null) - ekki skrifa
+                        # yfir urkomu fra stod 571 med tomu gildi
+                        "precipitation": (_num(row, "r") if _num(row, "r") is not None
+                                          else by_t.get(t, {}).get("precipitation")),
                         "humidity": _num(row, "rh"),
                         "pressure": _num(row, "p"),
                         "temp_max": _num(row, "tx"),
@@ -1155,6 +1163,33 @@ def fetch_and_store_observations(metar_obs):
             print("  Engar nidurstodur fra api.vedur.is")
     except Exception as e:
         print(f"  VILLA api.vedur.is: {e}")
+
+    # [v6.7] URKOMA FRA STOD 571 (xmlweather). Sjalfvirka stodin 4271 skilar
+    # r=null - hun hefur ENGAN urkomumaeli. Langtimasafnid syndi 0% skrada
+    # urkomu i 26.586 linum: urkomuspain hafdi ALDREI verid sannreynd. Sami
+    # stadur (Egilsstadaflugvollur) skilar urkomu sidustu klst (R) i
+    # athuganakerfi Vedurstofunnar undir numeri 571.
+    try:
+        _u = ("https://xmlweather.vedur.is/?op_w=xml&type=obs&lang=is"
+              "&view=xml&ids=571&params=R&time=1h&anytime=1")
+        with urllib.request.urlopen(_u, timeout=20) as _r:
+            _root = ET.fromstring(_r.read())
+        _st = _root.find("station")
+        _tm = (_st.findtext("time") or "").strip() if _st is not None else ""
+        _rv = (_st.findtext("R") or "").strip().replace(",", ".") if _st is not None else ""
+        if _tm and _rv:
+            _t = fmt_t(datetime.strptime(_tm, "%Y-%m-%d %H:%M:%S")
+                       .replace(tzinfo=timezone.utc))
+            _rec = by_t.get(_t, {"time": _t})
+            _rec["precipitation"] = float(_rv)
+            _rec["precip_source"] = "vedur.is-571"
+            by_t[_t] = _rec
+            if _t not in fresh: fresh.append(_t)
+            print(f"  URKOMA stod 571: {_t} | {float(_rv):.1f} mm/klst")
+        else:
+            print("  URKOMA stod 571: engin gogn")
+    except Exception as e:
+        print(f"  VILLA urkoma stod 571: {e}")
 
     if not got_aws:
         print("  (nota METAR skyjagogn eingongu thennan hringinn)")
