@@ -90,6 +90,23 @@ SAGA I STUTTU MALI:
         SOMU utgafu og virkjunin - ENGINN gluggi fyrir tvofeldingu.
         Profad: virkjun rett afmorkud vid 24/48 (1-12klst osnert),
         hreinsun og virkjun gerast SAMTIMIS i somu keyrslu.
+  v6.4  ROTIN AD 48KLST HITA FUNDIN: restbias var LOKUD LYKKJA MED TOF.
+        Hun laerdi af villu BIRTU spárinnar (b <- b + a(-err)) - en vid 48klst
+        var spain sem sannreyndist nuna gefin ut fyrir 48 klst med GOMLU b.
+        Reglan ser ekki ahrif eigin breytinga fyrr en 48 uppfaerslum sidar,
+        skytur yfir og sveiflast. Hermun med nakvaemri reglu: rett gildi vid
+        1-6klst, sveifla milli -4 og +4 vid 24/48klst. Passar vid logga:
+        +2.44 -> -3.85, og Jolly 2.47 medan HVER medlimur var 0.72-0.96.
+        Hreinsanir v5.9/v6.3 gatu aldrei lagad thetta - thaer settu hana
+        bara a byrjunarreit sveiflunnar.
+        LAGFAERT: restbias(hiti) sem var BEITT er skrad vid utgafu (rb_hiti ->
+        forecast_archive slot["rb"]) og restbias laerir nu af villu
+        BLONDUNNAR (birt villa - rb) - fast mark, opin lykkja, sama form og
+        medlima-bias. Hermun: rett gildi vid ALLAR tofur. Ovirkar breytur
+        (vindur/att/sky) nota somu opnu reglu - gamla reglan lagdi villuna
+        saman endalaust, sem var orsok "a thakinu" vidvarananna thar.
+        Eldri faerslur an rb: hiti-restbias bidur (<= 48 klst).
+        Einskiptis: jolly_bias(hiti) vid 12/24/48klst nullstillt (sveifluleif).
 """
 
 
@@ -126,7 +143,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "6.3"
+JOLLY_VERSION = "6.4"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -1457,6 +1474,11 @@ def archive_jolly(arch, fcast):
         uw = H.get("used_weights", [])
         if i < len(uw) and uw[i]:
             slot["weights"] = uw[i]
+        # [v6.4] restbias(hiti) sem var BEITT vid utgafu - svo restbias
+        # geti laert af villu blondunnar sjalfrar (opin lykkja, engin tof).
+        rbh = H.get("rb_hiti", [])
+        if i < len(rbh) and rbh[i] is not None:
+            slot["rb"] = rbh[i]
         n += 1
     save_json(DATA_DIR / "forecast_archive.json", arch)
     print(f"  Jolly skrad i safnid: {n} spalengdir")
@@ -1658,6 +1680,19 @@ def load_model():
             print("  nullstillt AFTUR, samtimis og member_bias(hiti) er")
             print("  endurvirkjud thar - ENGINN gluggi fyrir tvofeldingu")
             print("  thetta sinn, ólíkt v5.6.")
+
+        # [v6.4] Restbias(hiti) vid 12/24/48klst var SVEIFLULEIF ur lokudu
+        # lykkjunni (hermun: +/-4 vid 24/48klst). Ny opin regla bidur eftir
+        # faerslum med geymdu rb (<= 48 klst) - an nullstillingar myndi
+        # -3.85 standa a spanni alla thá bid. 1-6klst satu rett, haldast.
+        if not raw.get("v64_rb_openloop_reset"):
+            for _b in ("12", "24", "48"):
+                _jb = raw.get("jolly_bias", {}).get(_b)
+                if _jb is not None:
+                    _jb["hiti"] = 0.0
+            raw["v64_rb_openloop_reset"] = True
+            print("  HREINSUN v6.4: jolly_bias(hiti) vid 12/24/48klst")
+            print("  nullstillt - sveifluleif ur lokadri lykkju med tof.")
 
         if not raw.get("v49_skill_reset"):
             for b in LEAD_BUCKETS:
@@ -2103,6 +2138,9 @@ def verify_and_train(arch, obs_history, model):
     # pairs[spalengd][likan][breyta] = [(maeling, spa), ...]
     pairs = {str(b): {m: {v: [] for v, _, _ in VAR_MAP} for m in VERIFY_KEYS}
              for b in LEAD_BUCKETS}
+    # [v6.4] restbias(hiti) sem var beitt vid utgafu hvers Jolly-hitapars,
+    # i sömu röð og pairs[bs][JOLLY_KEY]["hiti"]. None = eldri faersla.
+    jolly_rb = {str(b): [] for b in LEAD_BUCKETS}
     n_pairs = 0
     verified_times = set()
     csv_rows = []          # fer i langtimasafnid
@@ -2157,6 +2195,8 @@ def verify_and_train(arch, obs_history, model):
                     ov, fv = o.get(okey), fcv.get(fkey)
                     if ov is not None and fv is not None:
                         pairs[lead_s][m][var].append((ov, fv))
+                        if m == JOLLY_KEY and var == "hiti":
+                            jolly_rb[lead_s].append(entry.get("rb"))
                         var_pairs.append((var, ov, fv))
                         # Sannleiksmaelir: geyma MED REIT svo haegt se ad
                         # sundurlida eftir vindatt x dagur/nott
@@ -2383,12 +2423,35 @@ def verify_and_train(arch, obs_history, model):
                         ("sky",    bias,      JOLLY_BIAS_CAP["sky"])):
                     if not pv[var]: continue
                     err = fn(pv[var]) or 0.0
-                    a = adaptive_lr(model, f"jolly|{bs}|{var}", err)
-                    step = a * (-err)
+                    # [v6.4] OPIN LYKKJA. Adur: b <- b + a(-err) thar sem err
+                    # er villa BIRTU spárinnar (med b thegar alogdu). Thad er
+                    # lokud lykkja med TOF = spalengd: vid 48klst ser reglan
+                    # ekki ahrif eigin breytinga fyrr en 48 uppfaerslum sidar,
+                    # skytur yfir og sveiflast milli thaka (hermun: +/-4.0 vid
+                    # 24/48klst, rett gildi vid 1-6klst). Nu laerir hun af
+                    # villu BLONDUNNAR SJALFRAR (birt villa - rb vid utgafu),
+                    # sem er FAST mark oháð b - sama form og medlima-bias:
+                    #     b <- (1-a) b + a (-villa_blondu)   =>   b -> -T
+                    if APPLY_JOLLY_RESIDUAL.get(var):
+                        if var != "hiti":
+                            continue   # rb aðeins skrad fyrir hita
+                        rbs = jolly_rb.get(bs, [])
+                        if len(rbs) != len(pv[var]) or any(r is None for r in rbs):
+                            continue   # eldri faerslur an rb - bida (<= 48 klst)
+                        err_blend = err - sum(rbs) / len(rbs)
+                    else:
+                        # Ovirk breyta: engin restbias i birtri spa, svo birt
+                        # villa ER villa blondunnar. (Gamla reglan lagdi hana
+                        # saman endalaust -> "a thakinu" vidvaranirnar.)
+                        err_blend = err
+                    b_old = jb.get(var, 0.0)
+                    a = adaptive_lr(model, f"jolly|{bs}|{var}", err_blend + b_old)
+                    target = max(-cap, min(cap, -err_blend))
+                    b_new = (1 - a) * b_old + a * target
                     # Takmarka eitt skref svo einn afbrigdilegur timi
                     # kippi ekki leidrettingunni til
-                    step = max(-cap * 0.15, min(cap * 0.15, step))
-                    jb[var] = max(-cap, min(cap, jb.get(var, 0.0) + step))
+                    b_new = max(b_old - cap * 0.15, min(b_old + cap * 0.15, b_new))
+                    jb[var] = max(-cap, min(cap, b_new))
                 # (throskuldur laerdur nedar fyrir medlimi)
             # Urkoma er margfoldun: heildarkvardi sem tharf er s*r,
                 # thar sem r = maeling/spa a THEGAR kvardadri spa.
@@ -2763,6 +2826,7 @@ def make_forecast(fc, extras, model):
                     "cloud_cover": [], "cloud_low": [], "cloud_mid": [],
                     "cloud_high": [], "visibility": [], "is_day": [],
                     "cell": [],  # [v5.1] reiturinn (spadri att) sem RED thyngdum/bias
+                    "rb_hiti": [],       # [v6.4] restbias(hiti) sem var BEITT vid utgafu
                     "used_weights": [],  # [v5.2] raunveruleg thyngd HVERS gjafa,
                                           # HVERRAR breytu, thessa klukkustund
                     "icon": [], "condition": [], "beaufort": [],
@@ -2985,6 +3049,14 @@ def make_forecast(fc, extras, model):
                 prec = round(max(0.0, prec * jb.get("urkoma_scale", 1.0)), 2)
             if cloud is not None and APPLY_JOLLY_RESIDUAL.get("sky"):
                 cloud = min(100.0, max(0.0, cloud + jb.get("sky", 0.0)))
+
+        # [v6.4] Skra restbias(hiti) sem RAUNVERULEGA var lagt a thessa
+        # klukkustund (0 ef ekkert). Stadfesting notar thad til ad laera af
+        # villu BLONDUNNAR, ekki birtu spárinnar - rýfur endurgjafarlykkjuna.
+        _rb = 0.0
+        if jb and temp is not None and APPLY_JOLLY_RESIDUAL.get("hiti"):
+            _rb = round(jb.get("hiti", 0.0), 3)
+        J["hourly"]["rb_hiti"].append(_rb)
 
         # --- GREINING: syna blondu OG restbias fyrir ALLAR breytur ---
         # Adeins fyrir NUVERANDI stund (lead 0-1) svo haegt se ad bera
