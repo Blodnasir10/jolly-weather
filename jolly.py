@@ -117,6 +117,14 @@ SAGA I STUTTU MALI:
         fyrir hita. Vindur/att/sky obreytt - thar hjalpar leidrettingin.
         Einnig fundid: MAELD URKOMA er 0% skrad i ollu safninu - urkomuspain
         hefur aldrei verid sannreynd. Naesta verk.
+  v6.6  NOWCASTING (profad med endurspilun adur en thad for i loftid).
+        Fravik nyjustu hitamaelingar fra HRAU medaltali likana a maelitima er
+        lagt a spalengdir < 6 klst og dvinar med exp(-aldur/6 klst). Maeling
+        eldri en 3 klst er ekki notud. Endurspilun (225-266 por per spalengd):
+        @1klst 1.31 -> 0.63 (ny maeling), 1.27 -> 0.87 (1 klst gomul),
+        @3klst 1.28 -> 1.02. Aldrei verra a neinni spalengd.
+        Kyrrar/heidskirar naetur einnig profadar: of fa tilvik (5-17) til ad
+        daema - endurtaka i vetur.
 """
 
 
@@ -153,7 +161,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "6.5"
+JOLLY_VERSION = "6.6"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -2811,7 +2819,14 @@ def verify_and_train(arch, obs_history, model):
 #  restleidrettingu, byggir klukkustunda- og dagaspa fyrir vefinn.
 # ═══════════════════════════════════════════════════════════════════════
 
-def make_forecast(fc, extras, model):
+# [v6.6] NOWCASTING - prófað með endurspilun (26.586 pör): frávik mælingar
+# frá hrárri blöndu á mælitíma er lagt á fyrstu klst og dvínar með aldri.
+# @1klst: 1.31 -> 0.63 (ný mæling), 1.27 -> 0.87 (1 klst gömul). Aldrei verra.
+NOWCAST_TAU      = 6.0   # klst - dvínunartími (tau 4 og 6 prófuð, 6 best)
+NOWCAST_MAX_LEAD = 6     # aðeins spálengdir < 6 klst
+NOWCAST_MAX_AGE  = 3     # ekki nota mælingu eldri en 3 klst
+
+def make_forecast(fc, extras, model, obs=None):
     print("SPA:")
     if fc is None:
         print("  Engin gogn"); return None
@@ -2819,6 +2834,31 @@ def make_forecast(fc, extras, model):
     ft  = fc["hourly"]["time"]
     et  = {k: (v["hourly"]["time"] if v else []) for k, v in extras.items()}
     now = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
+    # [v6.6] Frávik nýjustu hitamælingar frá HRÁU meðaltali líkana á mælitíma
+    _nc_anom, _nc_tobs = None, None
+    try:
+        _cand = [o for o in (obs or []) if o.get("temperature") is not None]
+        if _cand:
+            _last = max(_cand, key=lambda o: o["time"])
+            _tobs = parse_t(_last["time"])
+            _age = (datetime.now(timezone.utc) - _tobs).total_seconds() / 3600
+            _ft = fc["hourly"].get("time", [])
+            if _age <= NOWCAST_MAX_AGE and _last["time"] in _ft:
+                _i0 = _ft.index(_last["time"])
+                _v = []
+                for _api in MODELS.values():
+                    _a = fc["hourly"].get(f"temperature_2m_{_api}", [])
+                    if _i0 < len(_a) and _a[_i0] is not None:
+                        _v.append(_a[_i0])
+                if len(_v) >= 5:
+                    _nc_anom = _last["temperature"] - sum(_v) / len(_v)
+                    _nc_tobs = _tobs
+                    print(f"  NOWCAST: mæling {_last['temperature']:.1f}° kl "
+                          f"{_last['time'][11:16]} á móti blöndu "
+                          f"{sum(_v)/len(_v):.1f}° -> frávik {_nc_anom:+.2f}° "
+                          f"(aldur {_age:.1f} klst)")
+    except Exception as _e:
+        print(f"  (nowcast sleppt: {_e})")
     all_t = set(ft)
     for v in et.values(): all_t |= set(v)
     fut = [t for t in sorted(all_t) if t >= fmt_t(now)]
@@ -3077,6 +3117,12 @@ def make_forecast(fc, extras, model):
         if jb and temp is not None and APPLY_JOLLY_RESIDUAL.get("hiti"):
             _rb = round(jb.get("hiti", 0.0), 3)
         J["hourly"]["rb_hiti"].append(_rb)
+
+        # [v6.6] Nowcast á fyrstu klukkustundirnar, dvínar með aldri frávíksins
+        if _nc_anom is not None and temp is not None and lead < NOWCAST_MAX_LEAD:
+            _ag = (parse_t(t) - _nc_tobs).total_seconds() / 3600
+            if _ag >= 0:
+                temp = round(temp + _nc_anom * math.exp(-_ag / NOWCAST_TAU), 2)
 
         # --- GREINING: syna blondu OG restbias fyrir ALLAR breytur ---
         # Adeins fyrir NUVERANDI stund (lead 0-1) svo haegt se ad bera
@@ -3601,7 +3647,7 @@ def _run():
 
     arch  = archive_forecast(fc, extras)
     model = verify_and_train(arch, obs, model)
-    fcast = make_forecast(fc, extras, model)
+    fcast = make_forecast(fc, extras, model, obs)
     arch  = archive_jolly(arch, fcast)      # eftir spa - Jolly er nidurstadan
     print_coverage(model, fc, extras)
     save(model, fcast)
