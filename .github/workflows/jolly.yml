@@ -2,13 +2,12 @@ name: Jolly - Klukkustundarlærdómur
 
 on:
   schedule:
-    # Keyrir 5 mínútum eftir hvern heilan tíma - 24x á dag
-    - cron: '17 * * * *'
-    # [v2] Fært úr '5 * * * *' í '17 * * * *' - GitHub mælir sjálft með að
-    # forðast fyrstu mínúturnar eftir heilan tíma, þar sem tugþúsundir
-    # verkflæða um allan heim reyna að keyra samtímis og áætlaðar keyrslur
-    # geta dottið niður án viðvörunar. Þetta minnkar líkur á því, tryggir
-    # það ekki (GitHub-hlið, ekki á okkar valdi).
+    # [v3] REYNT Á 10 MÍN FRESTI, KEYRT MEST EINU SINNI Á KLST.
+    # Langtímasafnið sýndi að GitHub sleppti ~75% af áætluðum keyrslum
+    # (5-6 keyrslur/sólarhring af 24, sept 2026) - þegjandi. Nú eru 6
+    # tækifæri á klst; "Athuga klukkustund" hér að neðan stöðvar keyrsluna
+    # strax ef Jolly hefur þegar keyrt á þessari klukkustund (engin vistun).
+    - cron: '7,17,27,37,47,57 * * * *'
   push:
     branches: [main]
   workflow_dispatch:
@@ -33,19 +32,37 @@ jobs:
           # Sækja alla söguna svo rebase virki
           fetch-depth: 0
 
+      # Áætluð keyrsla hættir ef Jolly hefur þegar keyrt á þessari
+      # UTC-klukkustund. Handvirkar keyrslur og push keyra alltaf.
+      - name: ⏱️ Athuga klukkustund
+        id: guard
+        run: |
+          now=$(date -u +%Y%m%d%H)
+          last=$(TZ=UTC git log -1 --author="Jolly Bot" --format=%cd --date=format-local:%Y%m%d%H -- docs/data/jolly_forecast.json || true)
+          echo "Núna: $now | síðasta Jolly-keyrsla: ${last:-engin}"
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "$last" = "$now" ]; then
+            echo "Þegar keyrt á þessari klukkustund - sleppi."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: 🐍 Setja upp Python
+        if: steps.guard.outputs.run == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
       - name: 📦 Setja upp pakka
+        if: steps.guard.outputs.run == 'true'
         run: pip install requests
 
       - name: 🌦️ Keyra Jolly
+        if: steps.guard.outputs.run == 'true'
         run: python jolly.py
 
       - name: 📋 Yfirlit
-        if: always()
+        if: always() && steps.guard.outputs.run == 'true'
         run: |
           if [ -f docs/data/last_run.log ]; then
             {
@@ -61,6 +78,7 @@ jobs:
       # með "non-fast-forward" og ÖLL keyrslan tapast. Hér sækjum við
       # nýjustu útgáfu, setjum okkar gögn ofan á, og reynum aftur.
       - name: 💾 Vista gögn í GitHub
+        if: steps.guard.outputs.run == 'true'
         run: |
           set -e
           git config user.name  "Jolly Bot"
