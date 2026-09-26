@@ -107,6 +107,16 @@ SAGA I STUTTU MALI:
         saman endalaust, sem var orsok "a thakinu" vidvarananna thar.
         Eldri faerslur an rb: hiti-restbias bidur (<= 48 klst).
         Einskiptis: jolly_bias(hiti) vid 12/24/48klst nullstillt (sveifluleif).
+  v6.5  FYRSTA BREYTINGIN SEM ER PROFUD A FORTIDINNI ADUR EN HUN FER I LOFTID.
+        Nytt verkfaeri: backtest.py endurspilar blondunaradferdir a
+        langtimasafninu (verify/*.csv) med ORSAKASAMHENGI - til ad spa fyrir
+        (t, L) eru adeins notud por sannreynd fyrir utgafutima t-L.
+        Nidurstada: einfalt medaltal HRAU likananna slaer birta Jolly-spa i
+        hita a ollum spalengdum (sidustu 2 vikur @24klst: 1.14 a moti 1.53).
+        Bæði restbias og medlima-bias gera hitablonduna VERRI. Bædi slokkt
+        fyrir hita. Vindur/att/sky obreytt - thar hjalpar leidrettingin.
+        Einnig fundid: MAELD URKOMA er 0% skrad i ollu safninu - urkomuspain
+        hefur aldrei verid sannreynd. Naesta verk.
 """
 
 
@@ -143,7 +153,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "6.4"
+JOLLY_VERSION = "6.5"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -292,7 +302,13 @@ FAIL_RATIO   = {"hiti": 3.5, "vindur": 3.5, "att": 3.0,
 #     kolnun i logni/heidskiru kvoldi let hitann falla hratt en modelin
 #     (og thvi Jolly-blandan) elta ekki. Kveikt a hita, thak RYMKAD ur
 #     1.5 i 4.0 thvi 1.5 dugdi audsjaanlega ekki vid theim adstaedum.
-APPLY_JOLLY_RESIDUAL = {"hiti": True, "vindur": False,
+# [v6.5] HITI SLOKKT - SANNAD MED ENDURSPILUN (backtest.py) a 26.586 porum.
+# Restbias a hitablondu gerir spana VERRI a naestum ollum spalengdum, med
+# ollum gluggum (2/7/14 dagar), og thvi styttri gluggi thvi verra: hitaskekkja
+# her er vedurlagshad, ekki kerfisbundin, svo leidrettingin eltir gaerdaginn.
+# Allt timabilid @24klst: hratt medaltal 1.26 | +restbias(14d) 1.32 | (2d) 1.41.
+# Restbias Jolly (LR 0.12 a klst) samsvarar STUTTUM glugga = versti flokkurinn.
+APPLY_JOLLY_RESIDUAL = {"hiti": False, "vindur": False,
                         "att": False, "sky": False}
 
 # Thok a restleidrettingu. Voru adur hardkodud inni i lykkjunni svo
@@ -360,7 +376,11 @@ MEMBER_BIAS_CAP = {"hiti": 5.0, "vindur": 4.0, "att": 30.0, "sky": 30.0}
 # Nu er NULLSTILLING A jolly_bias(hiti) VID 24/48KLST GERD i SOMU utgafu
 # (sja hreinsunarblokk nedar, v63_hiti_2448_reset) svo ekkert bil myndast
 # thar sem tvaer leidrettingar geta stangast a.
-APPLY_MEMBER_BIAS = {"hiti": {"24", "48"}, "vindur": True, "att": True,
+# [v6.5] HITI SLOKKT ALLS STADAR - endurspilun synir ad bias-leidretting
+# medlima i hita gerir blonduna VERRI yfir allt timabilid a ollum
+# spalengdum (medaltal leidrett 1.25-1.42 a moti hratt 1.20-1.38). Stadfestir
+# sannleiksmaelinn 19.ag. v6.3-tilraunin (24/48klst) afturkollud.
+APPLY_MEMBER_BIAS = {"hiti": False, "vindur": True, "att": True,
                      "urkoma": True, "sky": True}
 
 def _member_bias_on(var, bs):
