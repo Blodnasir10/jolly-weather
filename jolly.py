@@ -130,6 +130,13 @@ SAGA I STUTTU MALI:
         i 26.586 linum, urkomuspain aldrei sannreynd, urkomuthyngdir byggdu
         a engu. Nu sott ur stod 571 (sami stadur, xmlweather, R = mm sidustu
         klst). 4271 skrifar ekki lengur yfir urkomu med tomu gildi.
+  v6.8  SKY - profad med endurspilun (390-403 por per spalengd) adur en inn.
+        (1) Flokkaleidretting (cloud_map) SLOKKT: flöt bias per likan er betri
+        a OLLUM spalengdum. (2) SKYJA-NOWCAST: fravik nyjustu METAR-hulu fra
+        leidrettri blondu, dvinar exp(-aldur/6), spalengdir < 12 klst.
+        Endurspilun, birt Jolly -> ny adferd (MAE %):
+          1kl 30.7->19.8 | 3kl 32.2->24.7 | 6kl 32.4->27.8
+          12kl 34.6->31.0 | 24kl 34.4->32.2 | 48kl 33.7->28.9
 """
 
 
@@ -166,7 +173,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "6.7"
+JOLLY_VERSION = "6.8"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -941,6 +948,10 @@ def apply_precip(raw, scale, thr):
 CLOUD_LEAD_TRUST = {"1": 1.00, "3": 1.00, "6": 0.90,
                      "12": 0.65, "24": 0.40, "48": 0.20}
 CLOUD_SHIFT_CAP  = 35.0   # prósentustig - hærra en nokkurt núverandi gildi
+# [v6.8] Flokkaleiðrétting SLÖKKT - endurspilun (390-403 pör/spálengd): flöt
+# bias-leiðrétting per líkan er betri á ÖLLUM spálengdum (29-32% á móti
+# 30-34% fyrir birta Jolly). correct_cloud notar því aðeins flata bias.
+CLOUD_USE_CATEGORY = False
 
 def correct_cloud(raw, model, m, bs):
     """
@@ -958,7 +969,7 @@ def correct_cloud(raw, model, m, bs):
     flat = model["bias"][m][bs].get("sky", 0.0)
     fk   = cloud_class(raw)
     e    = (model.get("cloud_map", {}).get(m, {}).get(bs, {}) or {}).get(fk)
-    if e and e.get("n", 0) >= MIN_CLOUD_N:
+    if CLOUD_USE_CATEGORY and e and e.get("n", 0) >= MIN_CLOUD_N:
         fc_mean  = e["fc_sum"]  / e["n"]
         obs_mean = e["obs_sum"] / e["n"]
         shift    = (obs_mean - fc_mean) * CLOUD_LEAD_TRUST.get(bs, 0.5)
@@ -2860,6 +2871,7 @@ def verify_and_train(arch, obs_history, model):
 NOWCAST_TAU      = 6.0   # klst - dvínunartími (tau 4 og 6 prófuð, 6 best)
 NOWCAST_MAX_LEAD = 6     # aðeins spálengdir < 6 klst
 NOWCAST_MAX_AGE  = 3     # ekki nota mælingu eldri en 3 klst
+SKY_NOWCAST_MAX_LEAD = 12   # [v6.8] ský: < 12 klst (endurspilun, tau 6 best)
 
 def make_forecast(fc, extras, model, obs=None):
     print("SPA:")
@@ -2894,6 +2906,35 @@ def make_forecast(fc, extras, model, obs=None):
                           f"(aldur {_age:.1f} klst)")
     except Exception as _e:
         print(f"  (nowcast sleppt: {_e})")
+    # [v6.8] SKÝJA-NOWCAST: frávik nýjustu METAR-skýjahulu frá leiðréttri
+    # blöndu á mælitíma. Endurspilun: @1klst 29.5 -> 19.8, @3klst 29.9 -> 24.7.
+    _ncs_anom, _ncs_tobs = None, None
+    try:
+        _cc = [o for o in (obs or []) if o.get("cloud_cover") is not None]
+        if _cc:
+            _lc = max(_cc, key=lambda o: o["time"])
+            _tc = parse_t(_lc["time"])
+            _agec = (datetime.now(timezone.utc) - _tc).total_seconds() / 3600
+            _ft = fc["hourly"].get("time", [])
+            if _agec <= NOWCAST_MAX_AGE and _lc["time"] in _ft:
+                _i0 = _ft.index(_lc["time"])
+                def _gv(key, api):
+                    a = fc["hourly"].get(f"{key}_{api}", [])
+                    return a[_i0] if _i0 < len(a) else None
+                _vs = []
+                for _m, _api in MODELS.items():
+                    _rc = total_cloud(_gv("cloud_cover_low", _api), _gv("cloud_cover_mid", _api),
+                                      _gv("cloud_cover_high", _api), _gv("cloud_cover", _api))
+                    _c = correct_cloud(_rc, model, _m, "1")
+                    if _c is not None: _vs.append(_c)
+                if len(_vs) >= 5:
+                    _base = sum(_vs) / len(_vs)
+                    _ncs_anom, _ncs_tobs = _lc["cloud_cover"] - _base, _tc
+                    print(f"  NOWCAST SKY: METAR {_lc['cloud_cover']:.0f}% kl "
+                          f"{_lc['time'][11:16]} á móti blöndu {_base:.0f}% -> "
+                          f"frávik {_ncs_anom:+.0f} (aldur {_agec:.1f} klst)")
+    except Exception as _e:
+        print(f"  (skýja-nowcast sleppt: {_e})")
     all_t = set(ft)
     for v in et.values(): all_t |= set(v)
     fut = [t for t in sorted(all_t) if t >= fmt_t(now)]
@@ -3158,6 +3199,10 @@ def make_forecast(fc, extras, model, obs=None):
             _ag = (parse_t(t) - _nc_tobs).total_seconds() / 3600
             if _ag >= 0:
                 temp = round(temp + _nc_anom * math.exp(-_ag / NOWCAST_TAU), 2)
+        if _ncs_anom is not None and cloud is not None and lead < SKY_NOWCAST_MAX_LEAD:
+            _agc = (parse_t(t) - _ncs_tobs).total_seconds() / 3600
+            if _agc >= 0:
+                cloud = min(100.0, max(0.0, cloud + _ncs_anom * math.exp(-_agc / NOWCAST_TAU)))
 
         # --- GREINING: syna blondu OG restbias fyrir ALLAR breytur ---
         # Adeins fyrir NUVERANDI stund (lead 0-1) svo haegt se ad bera
