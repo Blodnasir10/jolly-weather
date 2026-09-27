@@ -137,6 +137,12 @@ SAGA I STUTTU MALI:
         Endurspilun, birt Jolly -> ny adferd (MAE %):
           1kl 30.7->19.8 | 3kl 32.2->24.7 | 6kl 32.4->27.8
           12kl 34.6->31.0 | 24kl 34.4->32.2 | 48kl 33.7->28.9
+  v6.9  SKYJALOG SKRAD (engin breyting a spa). Lag/mid/ha sky hvers likans
+        vistud i spasafn og langtimasafn (cl/cm/ch_fc), auk skyjahaedar
+        (cb_ob) og hvort METAR se sjalfvirkt (auto_ob) eda NCD (ncd_ob).
+        Grunur: sjalfvirkur maelir ser ekki há sky, svo likan sem spair
+        bliku rettilega faer refsingu. Eftir ~2 vikur profar endurspilun
+        adrar samlagningar (an hárra skýja, vegin há sky).
 """
 
 
@@ -173,7 +179,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "6.8"
+JOLLY_VERSION = "6.9"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -212,7 +218,9 @@ VERIFY_DIR = DATA_DIR / "verify"
 VERIFY_COLS = ["valid_time", "lead", "src", "month", "hour",
                "wd_ob", "ws_ob",
                "t_fc", "t_ob", "w_fc", "w_ob",
-               "d_fc", "d_ob", "p_fc", "p_ob", "c_fc", "c_ob"]
+               "d_fc", "d_ob", "p_fc", "p_ob", "c_fc", "c_ob",
+               # [v6.9] skýjalög (spá) og METAR-samhengi (mæling)
+               "cl_fc", "cm_fc", "ch_fc", "cb_ob", "auto_ob", "ncd_ob"]
 ARCHIVE_HORIZON   = 48      # hversu langt fram vid geymum spa til stadfestingar
 LEAD_BUCKETS      = [1, 3, 6, 12, 24, 48]
 LR                = 0.12    # grunn-laerdomshraedi
@@ -1064,6 +1072,10 @@ def parse_metar(line):
             wkt  = int(wm.group(2))
 
         return {"time": fmt_t(dt), "cloud_cover": cover, "cloud_base_ft": base,
+                # [v6.9] sjalfvirkt skeyti? NCD = "no cloud detected" (aðeins AUTO):
+                # maelirinn ser yfirleitt ekki ofar en ~3-4 km
+                "metar_auto": bool(re.search(r"\bAUTO\b", line)),
+                "metar_ncd": bool(re.search(r"\bNCD\b", line)),
                 "cloud_layers": layers, "visibility": vis, "temperature": temp,
                 "dewpoint": dew,
                 "windspeed": round(wkt * 0.514444, 1) if wkt is not None else None,
@@ -1211,8 +1223,8 @@ def fetch_and_store_observations(metar_obs):
         t   = m["time"]
         rec = by_t.get(t, {"time": t})
         for k in ("cloud_cover", "cloud_base_ft", "cloud_layers",
-                  "visibility", "dewpoint"):
-            rec[k] = m[k]
+                  "visibility", "dewpoint", "metar_auto", "metar_ncd"):
+            rec[k] = m.get(k)
         for k in ("temperature", "windspeed", "winddirection"):
             if rec.get(k) is None: rec[k] = m[k]
         rec["has_metar"] = True
@@ -1457,7 +1469,11 @@ def archive_forecast(fc, extras):
                        "c": total_cloud(g("cloud_cover_low"),
                                         g("cloud_cover_mid"),
                                         g("cloud_cover_high"),
-                                        g("cloud_cover"))}
+                                        g("cloud_cover")),
+                       # [v6.9] LOG SER - svo endurspilun geti borid saman
+                       # adrar samlagningar (t.d. an hárra skýja)
+                       "cl": g("cloud_cover_low"), "cm": g("cloud_cover_mid"),
+                       "ch": g("cloud_cover_high")}
                 if any(v is not None for v in rec.values()):
                     models[m] = rec
 
@@ -1471,7 +1487,8 @@ def archive_forecast(fc, extras):
                    "d": ge("winddirection"),
                    "p": ge("precipitation"),
                    "c": total_cloud(ge("cloud_low"), ge("cloud_mid"),
-                                    ge("cloud_high"), ge("cloud_cover"))}
+                                    ge("cloud_high"), ge("cloud_cover")),
+                   "cl": ge("cloud_low"), "cm": ge("cloud_mid"), "ch": ge("cloud_high")}
             if any(v is not None for v in rec.values()):
                 models[k] = rec
 
@@ -1927,6 +1944,23 @@ def append_verify_rows(rows):
     for month, rs in by_month.items():
         path = VERIFY_DIR / f"{month}.csv"
         exists = path.exists()
+        # [v6.9] Eldri skra med faerri dalkum: baeta tomum dalkum aftan vid
+        # hverja linu svo haus og linur passi (gomlu dalkarnir eru forskeyti)
+        if exists:
+            try:
+                with open(path) as f:
+                    _lines = f.read().splitlines()
+                _hdr = _lines[0].split(",") if _lines else []
+                if _hdr and _hdr != VERIFY_COLS and VERIFY_COLS[:len(_hdr)] == _hdr:
+                    _pad = "," * (len(VERIFY_COLS) - len(_hdr))
+                    with open(path, "w") as f:
+                        f.write(",".join(VERIFY_COLS) + "\n")
+                        for _l in _lines[1:]:
+                            if _l: f.write(_l + _pad + "\n")
+                    print(f"  Langtimasafn {path.name}: haus uppfaerdur "
+                          f"({len(_hdr)} -> {len(VERIFY_COLS)} dalkar)")
+            except Exception as _e:
+                print(f"  (hausuppfaersla {path.name}: {_e})")
         # Forðast tvitekningu ef keyrsla er endurtekin
         seen = set()
         if exists:
@@ -2312,6 +2346,12 @@ def verify_and_train(arch, obs_history, model):
                         "d_fc": fcv.get("d"), "d_ob": o.get("winddirection"),
                         "p_fc": fcv.get("p"), "p_ob": o.get("precipitation"),
                         "c_fc": fcv.get("c"), "c_ob": o.get("cloud_cover"),
+                        "cl_fc": fcv.get("cl"), "cm_fc": fcv.get("cm"),
+                        "ch_fc": fcv.get("ch"), "cb_ob": o.get("cloud_base_ft"),
+                        "auto_ob": (None if o.get("metar_auto") is None
+                                    else int(bool(o.get("metar_auto")))),
+                        "ncd_ob": (None if o.get("metar_ncd") is None
+                                   else int(bool(o.get("metar_ncd")))),
                     })
             if done:
                 entry["done"] = done
