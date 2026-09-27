@@ -147,6 +147,14 @@ SAGA I STUTTU MALI:
         stod 4271 maeldi thaer (fg), en thetta tvennt var ALDREI borid saman.
         Nu vistud i spasafn og langtimasafn (g_fc, g_ob) fyrir hvert likan og
         Jolly. Engin breyting a spa - endurspilun eftir ~2 vikur.
+  v7.1  THRYSTINGUR. (1) VILLA: thrystithroun (dp_h) var TOM i 100% faerslna -
+        leitad var ad 'surface_pressure' en lyklarnir heita t.d.
+        'surface_pressure_ecmwf'. Urkomureitirnir (att x fall/jafn/ris) hafa
+        thvi aldrei virkad. Nu reiknad ur medaltali likana (pressure_msl).
+        (2) Skrad i langtimasafn: spa per likan (pm/ps_fc), maeling stodvar
+        (pr_ob), spad og maelt thrystiþroun (dp_fc, dp_ob).
+        (3) Jolly spair thrystingi sjalf (tilraun 1): medaltal likana + fravik
+        nyjustu maelingar, dvinar a ~24 klst. Sannreynt fra fyrsta degi.
 """
 
 
@@ -183,7 +191,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "7.0"
+JOLLY_VERSION = "7.1"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -226,7 +234,9 @@ VERIFY_COLS = ["valid_time", "lead", "src", "month", "hour",
                # [v6.9] skýjalög (spá) og METAR-samhengi (mæling)
                "cl_fc", "cm_fc", "ch_fc", "cb_ob", "auto_ob", "ncd_ob",
                # [v7.0] vindkvida: spa og maeling (stod 4271, fg)
-               "g_fc", "g_ob"]
+               "g_fc", "g_ob",
+               # [v7.1] thrystingur: spa (sjavarmal/yfirbord), maeling, throun
+               "pm_fc", "ps_fc", "pr_ob", "dp_fc", "dp_ob"]
 ARCHIVE_HORIZON   = 48      # hversu langt fram vid geymum spa til stadfestingar
 LEAD_BUCKETS      = [1, 3, 6, 12, 24, 48]
 LR                = 0.12    # grunn-laerdomshraedi
@@ -604,7 +614,25 @@ HOURLY_VARS = ",".join([
     "cloud_cover", "cloud_cover_low", "cloud_cover_mid", "cloud_cover_high",
     "visibility", "cape", "is_day",
     "surface_pressure",          # fyrir thrystiþroun (urkomuskilyrding)
+    "pressure_msl",              # [v7.1] sjavarmalsthrystingur - sambaerilegur milli likana
 ])
+
+def mean_series(fc, key):
+    """[v7.1] Medaltal likana fyrir breytu, per timapunkt. Lyklar Open-Meteo
+    heita t.d. 'pressure_msl_ecmwf' thegar morg likon eru sott - adur var
+    leitad ad 'surface_pressure' an vidskeytis, sem var ALDREI til:
+    thrystithroun var tom i 100% faerslna."""
+    H = fc.get("hourly", {}); out = []
+    for i in range(len(H.get("time", []))):
+        v = []
+        for api in MODELS.values():
+            a = H.get(f"{key}_{api}", [])
+            if i < len(a) and a[i] is not None: v.append(a[i])
+        if not v:
+            a = H.get(key, [])
+            if i < len(a) and a[i] is not None: v.append(a[i])
+        out.append(sum(v) / len(v) if v else None)
+    return out
 
 # --- LOGGUN ----------------------------------------------------------------
 # ═══════════════════════════════════════════════════════════════════════
@@ -1444,6 +1472,7 @@ def archive_forecast(fc, extras):
     Uppbygging:
       { valid_time: { lead: { issue: str, models: { m: {t,w,p,c} } } } }
     """
+    _pmsl_series = mean_series(fc, "pressure_msl")
     print("SPASAFN:")
     path = DATA_DIR / "forecast_archive.json"
     arch = load_json(path, {})
@@ -1481,7 +1510,9 @@ def archive_forecast(fc, extras):
                        "cl": g("cloud_cover_low"), "cm": g("cloud_cover_mid"),
                        "ch": g("cloud_cover_high"),
                        # [v7.0] vindkvida - spad en aldrei sannreynt fyrr
-                       "g": g("windgusts_10m")}
+                       "g": g("windgusts_10m"),
+                       # [v7.1] thrystingur: sjavarmal og vid yfirbord likans
+                       "pm": g("pressure_msl"), "ps": g("surface_pressure")}
                 if any(v is not None for v in rec.values()):
                     models[m] = rec
 
@@ -1515,7 +1546,7 @@ def archive_forecast(fc, extras):
                 # Thrystithroun (hPa/klst yfir 3 klst) fyrir urkomureitinn.
                 # Geymt VID UTGAFU svo stadfestingin viti hvada adstaedur
                 # spain att vid - alveg eins og is_day.
-                pa = fc["hourly"].get("surface_pressure", [])
+                pa = _pmsl_series            # [v7.1] medaltal likana, rett lyklad
                 if idx - 3 >= 0 and idx < len(pa) \
                    and pa[idx] is not None and pa[idx - 3] is not None:
                     slot["dp_h"] = round((pa[idx] - pa[idx - 3]) / 3.0, 3)
@@ -1551,7 +1582,8 @@ def archive_jolly(arch, fcast):
         rec = {"t": H["temperature"][i], "w": H["windspeed"][i],
                "d": H["winddirection"][i],
                "p": H["precipitation"][i], "c": H["cloud_cover"][i],
-               "g": H["windgust"][i]}
+               "g": H["windgust"][i],
+               "pm": (H.get("pressure") or [None] * (i + 1))[i]}
         # is_day er skilyrding - geymt a gildistima svo stadfesting viti thad
         arch.setdefault(t, {}).setdefault(str(lead), {}) \
             ["is_day"] = H["is_day"][i]
@@ -2253,6 +2285,15 @@ def verify_and_train(arch, obs_history, model):
     print("STADFESTING:")
     obs_by_t = {o["time"]: o for o in obs_history}
 
+    def _dp_obs(vt):
+        """[v7.1] Mæld þrýstingsþróun (hPa/klst) síðustu 3 klst við gildistíma."""
+        try:
+            a = obs_by_t.get(vt, {}).get("pressure")
+            b = obs_by_t.get(fmt_t(parse_t(vt) - timedelta(hours=3)), {}).get("pressure")
+            return round((a - b) / 3.0, 3) if a is not None and b is not None else None
+        except Exception:
+            return None
+
     # pairs[spalengd][likan][breyta] = [(maeling, spa), ...]
     pairs = {str(b): {m: {v: [] for v, _, _ in VAR_MAP} for m in VERIFY_KEYS}
              for b in LEAD_BUCKETS}
@@ -2363,6 +2404,9 @@ def verify_and_train(arch, obs_history, model):
                         "ncd_ob": (None if o.get("metar_ncd") is None
                                    else int(bool(o.get("metar_ncd")))),
                         "g_fc": fcv.get("g"), "g_ob": o.get("windgust"),
+                        "pm_fc": fcv.get("pm"), "ps_fc": fcv.get("ps"),
+                        "pr_ob": o.get("pressure"), "dp_fc": entry.get("dp_h"),
+                        "dp_ob": _dp_obs(vt),
                     })
             if done:
                 entry["done"] = done
@@ -2957,6 +3001,22 @@ def make_forecast(fc, extras, model, obs=None):
                           f"(aldur {_age:.1f} klst)")
     except Exception as _e:
         print(f"  (nowcast sleppt: {_e})")
+    # [v7.1] Thrystingur: medaltal likana + fravik nyjustu maelingar
+    _pm_series = mean_series(fc, "pressure_msl")
+    _pr_off, _pr_tobs = None, None
+    try:
+        _pc = [o for o in (obs or []) if o.get("pressure") is not None]
+        if _pc:
+            _lp = max(_pc, key=lambda o: o["time"])
+            _ft = fc["hourly"].get("time", [])
+            if _lp["time"] in _ft:
+                _bp = _pm_series[_ft.index(_lp["time"])]
+                if _bp is not None:
+                    _pr_off, _pr_tobs = _lp["pressure"] - _bp, parse_t(_lp["time"])
+                    print(f"  THRYSTINGUR: maeldur {_lp['pressure']:.1f} hPa kl "
+                          f"{_lp['time'][11:16]} | likon {_bp:.1f} | fravik {_pr_off:+.1f}")
+    except Exception as _e:
+        print(f"  (thrystingur sleppt: {_e})")
     # [v6.8] SKÝJA-NOWCAST: frávik nýjustu METAR-skýjahulu frá leiðréttri
     # blöndu á mælitíma. Endurspilun: @1klst 29.5 -> 19.8, @3klst 29.9 -> 24.7.
     _ncs_anom, _ncs_tobs = None, None
@@ -3010,6 +3070,7 @@ def make_forecast(fc, extras, model, obs=None):
                          "NOAA aviationweather.gov METAR"],
          "hourly": {"time": [], "lead_hours": [], "temperature": [], "windspeed": [],
                     "winddirection": [], "windgust": [], "precipitation": [],
+                    "pressure": [],      # [v7.1] thrystispa Jolly (tilraun 1)
                     "cloud_cover": [], "cloud_low": [], "cloud_mid": [],
                     "cloud_high": [], "visibility": [], "is_day": [],
                     "cell": [],  # [v5.1] reiturinn (spadri att) sem RED thyngdum/bias
@@ -3068,7 +3129,7 @@ def make_forecast(fc, extras, model, obs=None):
         # Urkomureitur: att x THRYSTITHROUN (spad thrystifall/ris)
         _dp = None
         if i is not None:
-            _pa = fc["hourly"].get("surface_pressure", [])
+            _pa = _pm_series             # [v7.1] medaltal likana, rett lyklad
             if 0 <= i - 3 and i < len(_pa) and _pa[i] is not None \
                and _pa[i - 3] is not None:
                 _dp = (_pa[i] - _pa[i - 3]) / 3.0
@@ -3300,6 +3361,13 @@ def make_forecast(fc, extras, model, obs=None):
         J["hourly"]["windspeed"].append(wind)
         J["hourly"]["winddirection"].append(wdir)
         J["hourly"]["windgust"].append(round(gust, 1) if gust is not None else None)
+        # [v7.1] THRYSTISPA JOLLY, tilraun 1: medaltal likana (sjavarmal) +
+        # fravik maelingar fra blondu a maelitima, dvinar a ~24 klst.
+        _pv = _pm_series[i] if (i is not None and i < len(_pm_series)) else None
+        if _pv is not None and _pr_off is not None and lead >= 0:
+            _pv = _pv + _pr_off * math.exp(-max(0.0, (parse_t(t) - _pr_tobs)
+                                                .total_seconds() / 3600) / 24.0)
+        J["hourly"]["pressure"].append(round(_pv, 1) if _pv is not None else None)
         J["hourly"]["precipitation"].append(prec)
         J["hourly"]["cloud_cover"].append(round(cloud) if cloud is not None else None)
         J["hourly"]["cloud_low"].append(round(c_low) if c_low is not None else None)
