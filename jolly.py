@@ -143,6 +143,10 @@ SAGA I STUTTU MALI:
         Grunur: sjalfvirkur maelir ser ekki há sky, svo likan sem spair
         bliku rettilega faer refsingu. Eftir ~2 vikur profar endurspilun
         adrar samlagningar (an hárra skýja, vegin há sky).
+  v7.0  VINDKVIDUR SKRADAR. Jolly spadi kvidum (medaltal hrárra likana) og
+        stod 4271 maeldi thaer (fg), en thetta tvennt var ALDREI borid saman.
+        Nu vistud i spasafn og langtimasafn (g_fc, g_ob) fyrir hvert likan og
+        Jolly. Engin breyting a spa - endurspilun eftir ~2 vikur.
 """
 
 
@@ -179,7 +183,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "6.9"
+JOLLY_VERSION = "7.0"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -220,7 +224,9 @@ VERIFY_COLS = ["valid_time", "lead", "src", "month", "hour",
                "t_fc", "t_ob", "w_fc", "w_ob",
                "d_fc", "d_ob", "p_fc", "p_ob", "c_fc", "c_ob",
                # [v6.9] skýjalög (spá) og METAR-samhengi (mæling)
-               "cl_fc", "cm_fc", "ch_fc", "cb_ob", "auto_ob", "ncd_ob"]
+               "cl_fc", "cm_fc", "ch_fc", "cb_ob", "auto_ob", "ncd_ob",
+               # [v7.0] vindkvida: spa og maeling (stod 4271, fg)
+               "g_fc", "g_ob"]
 ARCHIVE_HORIZON   = 48      # hversu langt fram vid geymum spa til stadfestingar
 LEAD_BUCKETS      = [1, 3, 6, 12, 24, 48]
 LR                = 0.12    # grunn-laerdomshraedi
@@ -1473,7 +1479,9 @@ def archive_forecast(fc, extras):
                        # [v6.9] LOG SER - svo endurspilun geti borid saman
                        # adrar samlagningar (t.d. an hárra skýja)
                        "cl": g("cloud_cover_low"), "cm": g("cloud_cover_mid"),
-                       "ch": g("cloud_cover_high")}
+                       "ch": g("cloud_cover_high"),
+                       # [v7.0] vindkvida - spad en aldrei sannreynt fyrr
+                       "g": g("windgusts_10m")}
                 if any(v is not None for v in rec.values()):
                     models[m] = rec
 
@@ -1488,7 +1496,8 @@ def archive_forecast(fc, extras):
                    "p": ge("precipitation"),
                    "c": total_cloud(ge("cloud_low"), ge("cloud_mid"),
                                     ge("cloud_high"), ge("cloud_cover")),
-                   "cl": ge("cloud_low"), "cm": ge("cloud_mid"), "ch": ge("cloud_high")}
+                   "cl": ge("cloud_low"), "cm": ge("cloud_mid"), "ch": ge("cloud_high"),
+                   "g": ge("windgust")}
             if any(v is not None for v in rec.values()):
                 models[k] = rec
 
@@ -1541,7 +1550,8 @@ def archive_jolly(arch, fcast):
         if lead not in LEAD_BUCKETS: continue
         rec = {"t": H["temperature"][i], "w": H["windspeed"][i],
                "d": H["winddirection"][i],
-               "p": H["precipitation"][i], "c": H["cloud_cover"][i]}
+               "p": H["precipitation"][i], "c": H["cloud_cover"][i],
+               "g": H["windgust"][i]}
         # is_day er skilyrding - geymt a gildistima svo stadfesting viti thad
         arch.setdefault(t, {}).setdefault(str(lead), {}) \
             ["is_day"] = H["is_day"][i]
@@ -2352,6 +2362,7 @@ def verify_and_train(arch, obs_history, model):
                                     else int(bool(o.get("metar_auto")))),
                         "ncd_ob": (None if o.get("metar_ncd") is None
                                    else int(bool(o.get("metar_ncd")))),
+                        "g_fc": fcv.get("g"), "g_ob": o.get("windgust"),
                     })
             if done:
                 entry["done"] = done
