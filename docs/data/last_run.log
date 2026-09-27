@@ -1,12 +1,13 @@
-STADA  2 ATRIDI (2 ALVARLEG):
+STADA  3 ATRIDI (3 ALVARLEG):
   !! sky @24klst VERSNAR 3 daga i rod (27.39 -> 31.29 -> 35.97)
   !! sky @48klst VERSNAR 3 daga i rod (19.23 -> 27.78 -> 34.92)
+  !! engin ny por i 7 keyrslur - laerir ekki
 ================================================================
-JOLLY v6.9  2026-09-27 13:35 UTC
+JOLLY v6.9  2026-09-27 13:40 UTC
 Eiginleg spastadfesting eftir spalengd | 9 gjafar | stod 571 + BIEG
 ================================================================
 METAR BIEG:
-  OK 24 faerslur | nyjust 2026-09-27T13:00 sky=75% botn=3300ft | aldur 0.6 klst
+  OK 24 faerslur | nyjust 2026-09-27T13:00 sky=75% botn=3300ft | aldur 0.7 klst
 MAELING stod 4271 (Egilsstadaflugvollur):
   OK 2026-09-27T12:00 | hiti=8.1 vindur=1.8 att=16.0
   URKOMA stod 571: 2026-09-27T13:00 | 0.0 mm/klst
@@ -24,9 +25,9 @@ OPEN-METEO:
 HARMONIE (Vedurstofa):
   OK 109 timapunktar (109 med skyjahulu ur vedurtexta - grof)
 MET NORWAY (api.met.no):
-  304 obreytt - skyndiminni (88 timapunktar)
+  OK 93 timapunktar (93 med skyjahulu)
 LIKAN:
-  Hladid v2.x - 868 keyrslur, 153818 stadfest por
+  Hladid v2.x - 869 keyrslur, 153818 stadfest por
 SPASAFN:
   Geymdi 6 spalengdir fyrir utgafu 2026-09-27T13:00
   Safnid: 81 gildistimar (hreinsadi 0)
@@ -34,24 +35,24 @@ STADFESTING:
   Ekkert nytt til stadfestingar
   (safnid: 81 gildistimar, 105 thegar stadfest, maelingar: 720)
 SPA:
-  NOWCAST: mæling 8.0° kl 13:00 á móti blöndu 8.4° -> frávik -0.43° (aldur 0.6 klst)
-  NOWCAST SKY: METAR 75% kl 13:00 á móti blöndu 63% -> frávik +12 (aldur 0.6 klst)
+  NOWCAST: mæling 8.0° kl 13:00 á móti blöndu 8.4° -> frávik -0.41° (aldur 0.7 klst)
+  NOWCAST SKY: METAR 75% kl 13:00 á móti blöndu 63% -> frávik +12 (aldur 0.7 klst)
   [SPA-GREINING @0klst - berid saman vid maelingu ofar]
-    hiti  : blanda 8.39 -0.01 -> 7.96
-    vindur: blanda 3.48 -1.13 -> 3.48
-    att   : blanda 360.0 +8.4 -> 360.0
-    sky   : blanda 63.42 +4.8 -> 75
+    hiti  : blanda 8.36 -0.01 -> 7.95
+    vindur: blanda 3.45 -1.13 -> 3.45
+    att   : blanda 358.8 +8.4 -> 358.8
+    sky   : blanda 63.32 +4.8 -> 75
     medlimir i blondu: hiti=9 vindur=9 sky=9 att=9 (af 9)
-    leidrettir medlimir hiti: [7.5, 7.2, 8.5, 9.4, 8.1, 8.5, 9.8, 8.0, 9.5]
-    leidrettir medlimir vind: [4.2, 3.8, 3.1, 2.6, 3.7, 3.4, 3.1, 4.3, 2.9]
+    leidrettir medlimir hiti: [7.5, 7.8, 8.5, 9.4, 7.4, 8.5, 9.8, 8.0, 8.9]
+    leidrettir medlimir vind: [4.2, 4.0, 3.1, 2.6, 3.5, 3.4, 3.1, 4.3, 2.6]
   [SPA-GREINING @1klst - berid saman vid maelingu ofar]
-    hiti  : blanda 8.63 -0.01 -> 8.27
-    vindur: blanda 4.18 -1.13 -> 4.18
-    att   : blanda 3.3 +8.4 -> 3.3
-    sky   : blanda 66.03 +4.8 -> 76
+    hiti  : blanda 8.63 -0.01 -> 8.28
+    vindur: blanda 4.13 -1.13 -> 4.13
+    att   : blanda 2.6 +8.4 -> 2.6
+    sky   : blanda 66.64 +4.8 -> 77
     medlimir i blondu: hiti=9 vindur=9 sky=9 att=9 (af 9)
-    leidrettir medlimir hiti: [7.5, 7.6, 8.7, 9.9, 8.7, 8.6, 10.3, 8.0, 9.6]
-    leidrettir medlimir vind: [4.6, 5.2, 3.6, 3.1, 4.3, 4.0, 3.7, 5.3, 3.5]
+    leidrettir medlimir hiti: [7.5, 8.5, 8.7, 9.9, 8.2, 8.6, 10.3, 8.0, 8.7]
+    leidrettir medlimir vind: [4.6, 5.3, 3.6, 3.1, 3.9, 4.0, 3.7, 5.3, 3.2]
   OK 120 klst | 6 dagar | 20 timaraufir fylltar
   Jolly skrad i safnid: 6 spalengdir
 YFIRLIT (@6 klst):
@@ -417,11 +418,12 @@ Thyngdir att     @6klst: mfr 13% | harmonie 13% | ecmwf 12% | dmi 12%
 Thyngdir urkoma  @6klst: dmi 21% | knmi 19% | ecmwf 14% | mfr 13%
 Thyngdir sky     @6klst: harmonie 14% | dmi 13% | gfs 11% | metno 11%
 
-STADA  2 ATRIDI (2 ALVARLEG):
+STADA  3 ATRIDI (3 ALVARLEG):
   !! sky @24klst VERSNAR 3 daga i rod (27.39 -> 31.29 -> 35.97)
   !! sky @48klst VERSNAR 3 daga i rod (19.23 -> 27.78 -> 34.92)
+  !! engin ny por i 7 keyrslur - laerir ekki
 
-Keyrslur 869 | stadfest por 153818
+Keyrslur 870 | stadfest por 153818
 Jolly hiti    a moti besta likani: 1kl -8% | 3kl -35% | 6kl -50% | 12kl -77% | 24kl -100% | 48kl -100%
 Jolly vindur  a moti besta likani: 1kl -30% | 3kl -12% | 6kl -50% | 12kl -27% | 24kl -3% | 48kl -15%
 Jolly att     a moti besta likani: 1kl -51% | 3kl -32% | 6kl -17% | 12kl -34% | 24kl -100% | 48kl -49%
