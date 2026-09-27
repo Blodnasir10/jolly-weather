@@ -73,10 +73,12 @@
   .hcell{flex:0 0 auto;width:58px;text-align:center;padding:5px 0}
   .hcell .h{font-size:12px;color:var(--sub);margin-bottom:10px}
   .hcell.now .h{color:var(--ink);font-weight:600}
-  .hcell .ic{height:38px;display:flex;align-items:center;justify-content:center;margin-bottom:9px}
+  .hcell .cc{font-size:10px;color:var(--faint);height:12px;margin-bottom:2px}
+  .hcell .ic{height:38px;display:flex;align-items:center;justify-content:center}
+  .hcell .p{font-size:10px;color:var(--chill);height:12px;margin-bottom:6px;opacity:.85}
   .hcell .t{font-size:16px;font-weight:400}
-  .hcell .wa{display:flex;justify-content:center;margin-top:6px;height:12px}
-  .hcell .p{font-size:10px;color:var(--chill);margin-top:4px;height:12px;opacity:.85}
+  .hcell .wa{display:flex;justify-content:center;align-items:center;gap:3px;margin-top:6px;height:12px}
+  .hcell .wa .ws{font-size:11px;color:var(--sub)}
 
   .days{padding:5px}
   .day{border-radius:19px;overflow:hidden;transition:background .2s}
@@ -511,12 +513,17 @@ function render(FC){
     const hr=fmtHour(times[i]);
     const kind=wxKind(C[i],P[i]||0,Math.round(T[i]??0));
     const night=isNightHour(new Date(times[i]).getHours());
+    // Skýjahula námunduð að næstu 5%; úrkoma aðeins ef hún námundast í ≥0.1 mm
+    const cc=C[i]!=null?Math.round(C[i]/5)*5:null;
+    const pm=P[i]||0, pTxt=Math.round(pm*10)>=1?pm.toFixed(1):'';
+    const ws=W[i]!=null?Math.round(W[i]):null;
     hh+=`<div class="hcell${i===0?' now':''}">
       <div class="h">${i===0?'núna':hr}</div>
+      <div class="cc">${cc!=null?cc+'%':''}</div>
       <div class="ic">${wxIcon(36,kind,P[i]||0,night,C[i])}</div>
+      <div class="p">${pTxt}</div>
       <div class="t">${Math.round(T[i]??0)}°</div>
-      <div class="wa">${windArrow(D[i]??0,11)}</div>
-      <div class="p">${(P[i]||0)>0?(P[i]).toFixed(1):''}</div>
+      <div class="wa">${windArrow(D[i]??0,11)}${ws!=null?`<span class="ws">${ws}</span>`:''}</div>
     </div>`;
   }
   document.getElementById('hrow').innerHTML=hh;
