@@ -155,6 +155,15 @@ SAGA I STUTTU MALI:
         (pr_ob), spad og maelt thrystiþroun (dp_fc, dp_ob).
         (3) Jolly spair thrystingi sjalf (tilraun 1): medaltal likana + fravik
         nyjustu maelingar, dvinar a ~24 klst. Sannreynt fra fyrsta degi.
+  v7.2  KRUFNING THEKKIR SKYJA-NOWCAST. Hun bar geymda Jolly-spa saman vid
+        blonduna, en sidan v6.8 faerir METAR-nowcast birta spa visvitandi fra
+        blondunni (t.d. blanda 89%, METAR 75% -> birt 74%). Folsk vidvorun.
+        Nu skrad (nc_sky -> slot "ncs") og dregid fra i krufningu.
+        + VINDATT I LOGNI EKKI LAERD: langtimasafnid syndi attarvillu 78° vid
+        <1 m/s og 52° vid 1-2 m/s (tilviljun), 20° vid >5 m/s. Att nu adeins
+        sannreynd/laerd vid maeldan vind >= 2 m/s (ATT_MIN_WS, WMO-venja).
+        + 7 DAGA TAFLA: raunverulegt MAE (Jolly / medaltal / besta) beint ur
+        langtimasafni, thvi hlaupandi medaltolin voru ordin villandi.
 """
 
 
@@ -191,7 +200,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "7.1"
+JOLLY_VERSION = "7.2"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -227,6 +236,7 @@ ARCHIVE_KEEP_PAST = 72
 # Manadarskrar i stad einnar: adeins skra thessa manadar breytist i hverri
 # keyrslu, svo git-vidbaeturnar eru smaar og eldri manudir frjosa.
 VERIFY_DIR = DATA_DIR / "verify"
+ATT_MIN_WS = 2.0   # [v7.2] vindatt adeins sannreynd/laerd vid maeldan vind >= 2 m/s
 VERIFY_COLS = ["valid_time", "lead", "src", "month", "hour",
                "wd_ob", "ws_ob",
                "t_fc", "t_ob", "w_fc", "w_ob",
@@ -1612,6 +1622,9 @@ def archive_jolly(arch, fcast):
         rbh = H.get("rb_hiti", [])
         if i < len(rbh) and rbh[i] is not None:
             slot["rb"] = rbh[i]
+        ncs = H.get("nc_sky", [])
+        if i < len(ncs) and ncs[i] is not None:
+            slot["ncs"] = ncs[i]
         n += 1
     save_json(DATA_DIR / "forecast_archive.json", arch)
     print(f"  Jolly skrad i safnid: {n} spalengdir")
@@ -2300,6 +2313,7 @@ def verify_and_train(arch, obs_history, model):
     # [v6.4] restbias(hiti) sem var beitt vid utgafu hvers Jolly-hitapars,
     # i sömu röð og pairs[bs][JOLLY_KEY]["hiti"]. None = eldri faersla.
     jolly_rb = {str(b): [] for b in LEAD_BUCKETS}
+    jolly_ncs = {str(b): [] for b in LEAD_BUCKETS}   # [v7.2] sky-nowcast vid utgafu
     n_pairs = 0
     verified_times = set()
     csv_rows = []          # fer i langtimasafnid
@@ -2352,10 +2366,17 @@ def verify_and_train(arch, obs_history, model):
                 var_pairs = []
                 for var, fkey, okey in VAR_MAP:
                     ov, fv = o.get(okey), fcv.get(fkey)
+                    # [v7.2] Vindatt i logni er tilviljun (MAE 78° vid <1 m/s,
+                    # 52° vid 1-2 m/s). Ekki laera af henni - WMO-venja.
+                    if var == "att" and (o.get("windspeed") is None
+                                         or o.get("windspeed") < ATT_MIN_WS):
+                        continue
                     if ov is not None and fv is not None:
                         pairs[lead_s][m][var].append((ov, fv))
                         if m == JOLLY_KEY and var == "hiti":
                             jolly_rb[lead_s].append(entry.get("rb"))
+                        if m == JOLLY_KEY and var == "sky":
+                            jolly_ncs[lead_s].append(entry.get("ncs") or 0.0)
                         var_pairs.append((var, ov, fv))
                         # Sannleiksmaelir: geyma MED REIT svo haegt se ad
                         # sundurlida eftir vindatt x dagur/nott
@@ -2496,6 +2517,11 @@ def verify_and_train(arch, obs_history, model):
                       f"  x thyngd {_w*100:4.1f}%")
             if _den > 0:
                 _blend = _num / _den
+                # [v7.2] nowcast (METAR) faerir birta spa vísvitandi fra blondunni
+                _nc = (jolly_ncs.get(_bs) or [0.0])[0] or 0.0
+                if abs(_nc) > 0.05:
+                    print(f"    NOWCAST vid utgafu    {_nc:+6.1f}  (METAR-leidretting)")
+                    _jf = _jf - _nc
                 print(f"    REIKNUD BLANDA        {_blend:6.1f}")
                 print(f"    GEYMD JOLLY-SPA       {_jf:6.1f}"
                       f"   mismunur {_jf - _blend:+.1f}")
@@ -3075,6 +3101,7 @@ def make_forecast(fc, extras, model, obs=None):
                     "cloud_high": [], "visibility": [], "is_day": [],
                     "cell": [],  # [v5.1] reiturinn (spadri att) sem RED thyngdum/bias
                     "rb_hiti": [],       # [v6.4] restbias(hiti) sem var BEITT vid utgafu
+                    "nc_sky": [],        # [v7.2] sky-nowcast leidretting vid utgafu
                     "used_weights": [],  # [v5.2] raunveruleg thyngd HVERS gjafa,
                                           # HVERRAR breytu, thessa klukkustund
                     "icon": [], "condition": [], "beaufort": [],
@@ -3311,10 +3338,14 @@ def make_forecast(fc, extras, model, obs=None):
             _ag = (parse_t(t) - _nc_tobs).total_seconds() / 3600
             if _ag >= 0:
                 temp = round(temp + _nc_anom * math.exp(-_ag / NOWCAST_TAU), 2)
+        _c_pre = cloud
         if _ncs_anom is not None and cloud is not None and lead < SKY_NOWCAST_MAX_LEAD:
             _agc = (parse_t(t) - _ncs_tobs).total_seconds() / 3600
             if _agc >= 0:
                 cloud = min(100.0, max(0.0, cloud + _ncs_anom * math.exp(-_agc / NOWCAST_TAU)))
+        # [v7.2] skrá hve mikið nowcast færði skýin - krufning dregur það frá
+        J["hourly"]["nc_sky"].append(round(cloud - _c_pre, 2)
+                                     if (cloud is not None and _c_pre is not None) else 0.0)
 
         # --- GREINING: syna blondu OG restbias fyrir ALLAR breytur ---
         # Adeins fyrir NUVERANDI stund (lead 0-1) svo haegt se ad bera
@@ -3711,6 +3742,68 @@ def save_log(tee):
 
 
 
+def print_recent_skill(days=7):
+    """[v7.2] RAUNVERULEGT MAE sidustu daga beint ur langtimasafninu.
+    Hlaupandi medaltolin (lead_mae) draga med ser gamla sogu og geta verid
+    villandi; thessi tafla er reiknud beint ur sannreyndum porum."""
+    import csv as _csv
+    rows = []
+    for f in sorted(VERIFY_DIR.glob("*.csv"))[-2:]:
+        with open(f) as fh:
+            rows += list(_csv.DictReader(fh))
+    if not rows:
+        return
+    def fl(x):
+        try: return float(x)
+        except (TypeError, ValueError): return None
+    tmax = max(r["valid_time"] for r in rows)
+    cut = fmt_t(parse_t(tmax) - timedelta(days=days))
+    rows = [r for r in rows if r["valid_time"] >= cut]
+    V = [("hiti", "t_fc", "t_ob", "°C"), ("vindur", "w_fc", "w_ob", "m/s"),
+         ("att", "d_fc", "d_ob", "gr"), ("sky", "c_fc", "c_ob", "%"),
+         ("urkoma", "p_fc", "p_ob", "mm")]
+    by = {}
+    for r in rows:
+        by.setdefault((r["valid_time"], r["lead"]), {})[r["src"]] = r
+    print("=" * 64)
+    print(f"  SIDUSTU {days} DAGAR - raunverulegt MAE ur langtimasafni")
+    print(f"  (att adeins vid vind >= {ATT_MIN_WS:.0f} m/s)")
+    print(f"  {'breyta':8}{'':10}" + "".join(f"{str(L)+'kl':>8}" for L in LEAD_BUCKETS))
+    for var, fk, ok, unit in V:
+        acc = {L: {"j": [], "m": [], "each": {}} for L in LEAD_BUCKETS}
+        for (vt, L), srcs in by.items():
+            L = int(L)
+            if L not in acc or JOLLY_KEY not in srcs: continue
+            ob = fl(srcs[JOLLY_KEY].get(ok))
+            if ob is None: continue
+            if var == "att" and (fl(srcs[JOLLY_KEY].get("ws_ob")) or 0) < ATT_MIN_WS:
+                continue
+            err = (lambda f: abs(ang_diff(f, ob))) if var == "att" else (lambda f: abs(f - ob))
+            jf = fl(srcs[JOLLY_KEY].get(fk))
+            mv = [fl(srcs[m].get(fk)) for m in ALL_KEYS if m in srcs]
+            mv = [x for x in mv if x is not None]
+            if jf is None or len(mv) < 5: continue
+            acc[L]["j"].append(err(jf))
+            if var == "att":
+                _sx = sum(math.sin(math.radians(x)) for x in mv)
+                _cx = sum(math.cos(math.radians(x)) for x in mv)
+                mean = math.degrees(math.atan2(_sx, _cx)) % 360
+            else:
+                mean = sum(mv) / len(mv)
+            acc[L]["m"].append(err(mean))
+            for m in ALL_KEYS:
+                x = fl(srcs.get(m, {}).get(fk)) if m in srcs else None
+                if x is not None: acc[L]["each"].setdefault(m, []).append(err(x))
+        def cell(v): return f"{sum(v)/len(v):8.2f}" if v else f"{'-':>8}"
+        print(f"  {var:8}{'Jolly':10}" + "".join(cell(acc[L]["j"]) for L in LEAD_BUCKETS))
+        print(f"  {'':8}{'medaltal':10}" + "".join(cell(acc[L]["m"]) for L in LEAD_BUCKETS))
+        best = []
+        for L in LEAD_BUCKETS:
+            e = {m: sum(v)/len(v) for m, v in acc[L]["each"].items() if len(v) >= 5}
+            best.append(f"{min(e.values()):8.2f}" if e else f"{'-':>8}")
+        print(f"  {'':8}{'besta':10}" + "".join(best))
+        print(f"  {'':8}{'n':10}" + "".join(f"{len(acc[L]['j']):8d}" for L in LEAD_BUCKETS))
+
 def print_2448_tracker():
     """
     [v5.6] SÉRSTAKUR REKJARI FYRIR 24 OG 48 KLST - "ofur ahersla" spalengdir.
@@ -3854,6 +3947,10 @@ def _run():
         print_2448_tracker()
     except Exception as _e:
         print(f"  (24-48 rekjari: {_e})")
+    try:
+        print_recent_skill(7)
+    except Exception as _e:
+        print(f"  (7 daga tafla: {_e})")
 
     print("=" * 64)
     for var in WEIGHT_VARS:
