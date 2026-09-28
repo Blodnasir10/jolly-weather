@@ -164,6 +164,12 @@ SAGA I STUTTU MALI:
         sannreynd/laerd vid maeldan vind >= 2 m/s (ATT_MIN_WS, WMO-venja).
         + 7 DAGA TAFLA: raunverulegt MAE (Jolly / medaltal / besta) beint ur
         langtimasafni, thvi hlaupandi medaltolin voru ordin villandi.
+  v7.3  SANNREYNT MED NAKVAEMU MAELINGUNNI. Gildistimi var sannreyndur um
+        leid og METAR birtist og merktur buinn; 4271-maelingin (aukastafir,
+        thrystingur, kvidur) kom ~1 klst sidar og var aldrei notud. Afleidingar:
+        82% sannreyndra hitamaelinga voru HEILAR GRADUR (+-0.3° sud i allan
+        laerdom), og pr_ob / dp_ob / g_ob voru 0% fyllt. Nu er bedid eftir
+        4271 i allt ad 3 klst (OBS_WAIT_HOURS), svo METAR ef stodin dettur ut.
 """
 
 
@@ -200,7 +206,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "7.2"
+JOLLY_VERSION = "7.3"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -237,6 +243,7 @@ ARCHIVE_KEEP_PAST = 72
 # keyrslu, svo git-vidbaeturnar eru smaar og eldri manudir frjosa.
 VERIFY_DIR = DATA_DIR / "verify"
 ATT_MIN_WS = 2.0   # [v7.2] vindatt adeins sannreynd/laerd vid maeldan vind >= 2 m/s
+OBS_WAIT_HOURS = 3 # [v7.3] bida svo lengi eftir nakvaemri maelingu stodvar 4271
 VERIFY_COLS = ["valid_time", "lead", "src", "month", "hour",
                "wd_ob", "ws_ob",
                "t_fc", "t_ob", "w_fc", "w_ob",
@@ -2322,9 +2329,23 @@ def verify_and_train(arch, obs_history, model):
     truth_rows = []        # fyrir sannleiksmaelinn, med reit
     cell_rows  = []        # (breyta, spalengd, reitur, likan, skekkja)
 
+    _now_v = datetime.now(timezone.utc)
+    n_wait = 0
     for vt, leads in arch.items():
         o = obs_by_t.get(vt)
         if not o: continue
+        # [v7.3] BIDA EFTIR STOD 4271. METAR kemur fyrst (hiti i HEILUM
+        # gradum, enginn thrystingur/kvidur); 4271 ~1 klst sidar med aukastof,
+        # thrysting og kvidum. Adur var stadfest strax med METAR og merkt
+        # "buid" - 82% sannreyndra hitamaelinga voru namundadar og
+        # thrystingur/kvidur aldrei sannreynd. Bidum i allt ad OBS_WAIT_HOURS.
+        if o.get("source") != "vedur.is-4271":
+            try:
+                if (_now_v - parse_t(vt)).total_seconds() / 3600 < OBS_WAIT_HOURS:
+                    n_wait += 1
+                    continue
+            except Exception:
+                pass
         for lead_s, entry in leads.items():
             if lead_s not in pairs: continue
             # Hver gjafi er adeins laerdur EINU SINNI a hverjum gildistima.
@@ -2433,6 +2454,8 @@ def verify_and_train(arch, obs_history, model):
                 entry["done"] = done
                 entry["verified_at"] = fmt_t(datetime.now(timezone.utc))
 
+    if n_wait:
+        print(f"  Bid eftir stod 4271: {n_wait} gildistimar (METAR eitt, < {OBS_WAIT_HOURS} klst)")
     if n_pairs == 0:
         n_done = sum(1 for l in arch.values() for e in l.values() if e.get("done"))
         print("  Ekkert nytt til stadfestingar")
