@@ -1,9 +1,9 @@
 STADA  3 ATRIDI (3 ALVARLEG):
   !! att @24klst VERSNAR 3 daga i rod (22.19 -> 24.02 -> 32.40)
   !! att @48klst VERSNAR 3 daga i rod (24.32 -> 34.84 -> 42.30)
-  !! engin ny por i 8 keyrslur - laerir ekki
+  !! engin ny por i 9 keyrslur - laerir ekki
 ================================================================
-JOLLY v7.1  2026-09-28 18:45 UTC
+JOLLY v7.2  2026-09-28 18:48 UTC
 Eiginleg spastadfesting eftir spalengd | 9 gjafar | stod 571 + BIEG
 ================================================================
 METAR BIEG:
@@ -25,9 +25,9 @@ OPEN-METEO:
 HARMONIE (Vedurstofa):
   OK 107 timapunktar (107 med skyjahulu ur vedurtexta - grof)
 MET NORWAY (api.met.no):
-  304 obreytt - skyndiminni (88 timapunktar)
+  OK 88 timapunktar (88 med skyjahulu)
 LIKAN:
-  Hladid v2.x - 1210 keyrslur, 159608 stadfest por
+  Hladid v2.x - 1211 keyrslur, 159608 stadfest por
 SPASAFN:
   Geymdi 6 spalengdir fyrir utgafu 2026-09-28T18:00
   Safnid: 111 gildistimar (hreinsadi 0)
@@ -429,6 +429,30 @@ VISTAD
     sky     (%   ): 09-22:27.21 -> 09-23:26.67 -> 09-24:24.88 -> 09-25:19.23 -> 09-26:27.78 -> 09-27:32.41 -> 09-28:25.68
 ════════════════════════════════════════════════════════════
 ================================================================
+  SIDUSTU 7 DAGAR - raunverulegt MAE ur langtimasafni
+  (att adeins vid vind >= 2 m/s)
+  breyta                 1kl     3kl     6kl    12kl    24kl    48kl
+  hiti    Jolly         0.64    0.69    0.71    0.87    1.25    2.84
+          medaltal      0.74    0.77    0.70    0.81    0.95    1.05
+          besta         0.67    0.63    0.59    0.66    0.94    1.01
+          n               57      55      54      48      39      36
+  vindur  Jolly         1.15    1.07    1.22    1.14    1.25    1.63
+          medaltal      1.38    1.28    1.25    1.16    1.39    1.59
+          besta         1.20    1.21    1.28    1.19    1.33    1.67
+          n               57      55      54      48      39      36
+  att     Jolly        22.19   17.99   25.70   22.88   23.77   29.52
+          medaltal     20.09   16.83   23.12   21.80   20.64   31.14
+          besta        20.69   18.01   22.36   25.38   19.97   27.56
+          n               45      44      40      34      32      32
+  sky     Jolly        17.12   20.80   20.65   20.98   31.38   28.25
+          medaltal     19.39   21.71   17.36   18.04   28.36   28.45
+          besta        21.40   20.98   20.25   20.79   31.41   29.31
+          n               57      55      54      48      39      36
+  urkoma  Jolly         0.22    0.24    0.19    0.15    0.15    0.06
+          medaltal      0.18    0.20    0.16    0.15    0.15    0.09
+          besta         0.10    0.11    0.11    0.10    0.02    0.03
+          n               28      27      25      21      12       6
+================================================================
 Thyngdir hiti    @6klst: dmi 13% | knmi 12% | mfr 12% | harmonie 12%
 Thyngdir vindur  @6klst: knmi 13% | dmi 12% | harmonie 12% | ecmwf 11%
 Thyngdir att     @6klst: ukmo 16% | mfr 16% | dmi 13% | ecmwf 12%
@@ -438,9 +462,9 @@ Thyngdir sky     @6klst: ecmwf 18% | icon 17% | knmi 16% | metno 14%
 STADA  3 ATRIDI (3 ALVARLEG):
   !! att @24klst VERSNAR 3 daga i rod (22.19 -> 24.02 -> 32.40)
   !! att @48klst VERSNAR 3 daga i rod (24.32 -> 34.84 -> 42.30)
-  !! engin ny por i 8 keyrslur - laerir ekki
+  !! engin ny por i 9 keyrslur - laerir ekki
 
-Keyrslur 1211 | stadfest por 159608
+Keyrslur 1212 | stadfest por 159608
 Jolly hiti    a moti besta likani: 1kl -16% | 3kl -70% | 6kl -100% | 12kl -75% | 24kl -100% | 48kl -100%
 Jolly vindur  a moti besta likani: 1kl -4% | 3kl +6% | 6kl +0% | 12kl +7% | 24kl -2% | 48kl -27%
 Jolly att     a moti besta likani: 1kl -52% | 3kl -40% | 6kl -19% | 12kl -44% | 24kl -63% | 48kl -40%
