@@ -170,6 +170,12 @@ SAGA I STUTTU MALI:
         82% sannreyndra hitamaelinga voru HEILAR GRADUR (+-0.3° sud i allan
         laerdom), og pr_ob / dp_ob / g_ob voru 0% fyllt. Nu er bedid eftir
         4271 i allt ad 3 klst (OBS_WAIT_HOURS), svo METAR ef stodin dettur ut.
+  v7.4  VINDUR - profad med endurspilun. (1) Medlima-leidretting a vindi
+        SLOKKT: ostodug (+-0.05 m/s eftir timabili), og birt Jolly var VERST
+        allra adferda vid 6-48 klst. (2) VIND-NOWCAST: fravik maelingar fra
+        hrau medaltali, tau 3 klst, spalengdir < 12 klst. Sidan 15.sept:
+          Jolly -> ny: 1kl 1.16->1.08 | 6kl 1.19->1.09 | 24kl 1.35->1.18 | 48kl 1.56->1.41
+        (3) "restbias VEX" vidvorun adeins fyrir VIRKAR leidrettingar.
 """
 
 
@@ -206,7 +212,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "7.3"
+JOLLY_VERSION = "7.4"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -441,7 +447,10 @@ MEMBER_BIAS_CAP = {"hiti": 5.0, "vindur": 4.0, "att": 30.0, "sky": 30.0}
 # medlima i hita gerir blonduna VERRI yfir allt timabilid a ollum
 # spalengdum (medaltal leidrett 1.25-1.42 a moti hratt 1.20-1.38). Stadfestir
 # sannleiksmaelinn 19.ag. v6.3-tilraunin (24/48klst) afturkollud.
-APPLY_MEMBER_BIAS = {"hiti": False, "vindur": True, "att": True,
+# [v7.4] VINDUR SLOKKT - endurspilun (sept): leidretting eftir vindatt x
+# dag/nott hjalpar 0.03-0.07 m/s yfir allt timabilid en SKADAR jafn mikid
+# sidustu 2 vikur - ostodug. Birt Jolly var VERST allra adferda vid 6-48 klst.
+APPLY_MEMBER_BIAS = {"hiti": False, "vindur": False, "att": True,
                      "urkoma": True, "sky": True}
 
 def _member_bias_on(var, bs):
@@ -529,6 +538,8 @@ def health_history(cur):
     # Restbias sem VEX jafnt og thett er merki um jakvaeda afturvirkni -
     # nakvaemlega thad sem tvofalda leidrettingin olli. Grip thad snemma.
     for var in ("hiti", "vindur", "att", "sky"):
+        if not APPLY_JOLLY_RESIDUAL.get(var):   # [v7.4] ovirk = engin ahrif a spa
+            continue
         seq = [r.get("rb", {}).get(var) for r in prev[-3:]]
         seq = [abs(x) for x in seq if x is not None]
         now_v = abs(cur.get("rb", {}).get(var) or 0.0)
@@ -3016,6 +3027,8 @@ NOWCAST_TAU      = 6.0   # klst - dvínunartími (tau 4 og 6 prófuð, 6 best)
 NOWCAST_MAX_LEAD = 6     # aðeins spálengdir < 6 klst
 NOWCAST_MAX_AGE  = 3     # ekki nota mælingu eldri en 3 klst
 SKY_NOWCAST_MAX_LEAD = 12   # [v6.8] ský: < 12 klst (endurspilun, tau 6 best)
+WIND_NOWCAST_MAX_LEAD = 12  # [v7.4] vindur: < 12 klst
+WIND_NOWCAST_TAU = 3.0      # [v7.4] endurspilun: tau 3 best (1kl 1.20 -> 1.08)
 
 def make_forecast(fc, extras, model, obs=None):
     print("SPA:")
@@ -3066,6 +3079,29 @@ def make_forecast(fc, extras, model, obs=None):
                           f"{_lp['time'][11:16]} | likon {_bp:.1f} | fravik {_pr_off:+.1f}")
     except Exception as _e:
         print(f"  (thrystingur sleppt: {_e})")
+    # [v7.4] VIND-NOWCAST: frávik nýjustu vindmælingar frá hráu meðaltali
+    _ncw_anom, _ncw_tobs = None, None
+    try:
+        _cw = [o for o in (obs or []) if o.get("windspeed") is not None]
+        if _cw:
+            _lw = max(_cw, key=lambda o: o["time"])
+            _tw = parse_t(_lw["time"])
+            _agw = (datetime.now(timezone.utc) - _tw).total_seconds() / 3600
+            _ft = fc["hourly"].get("time", [])
+            if _agw <= NOWCAST_MAX_AGE and _lw["time"] in _ft:
+                _i0 = _ft.index(_lw["time"])
+                _vw = []
+                for _api in MODELS.values():
+                    _a = fc["hourly"].get(f"windspeed_10m_{_api}", [])
+                    if _i0 < len(_a) and _a[_i0] is not None: _vw.append(_a[_i0])
+                if len(_vw) >= 5:
+                    _bw = sum(_vw) / len(_vw)
+                    _ncw_anom, _ncw_tobs = _lw["windspeed"] - _bw, _tw
+                    print(f"  NOWCAST VINDUR: maeling {_lw['windspeed']:.1f} m/s kl "
+                          f"{_lw['time'][11:16]} a moti likonum {_bw:.1f} -> "
+                          f"fravik {_ncw_anom:+.1f} (aldur {_agw:.1f} klst)")
+    except Exception as _e:
+        print(f"  (vind-nowcast sleppt: {_e})")
     # [v6.8] SKÝJA-NOWCAST: frávik nýjustu METAR-skýjahulu frá leiðréttri
     # blöndu á mælitíma. Endurspilun: @1klst 29.5 -> 19.8, @3klst 29.9 -> 24.7.
     _ncs_anom, _ncs_tobs = None, None
@@ -3361,6 +3397,10 @@ def make_forecast(fc, extras, model, obs=None):
             _ag = (parse_t(t) - _nc_tobs).total_seconds() / 3600
             if _ag >= 0:
                 temp = round(temp + _nc_anom * math.exp(-_ag / NOWCAST_TAU), 2)
+        if _ncw_anom is not None and wind is not None and lead < WIND_NOWCAST_MAX_LEAD:
+            _agw2 = (parse_t(t) - _ncw_tobs).total_seconds() / 3600
+            if _agw2 >= 0:
+                wind = round(max(0.0, wind + _ncw_anom * math.exp(-_agw2 / WIND_NOWCAST_TAU)), 2)
         _c_pre = cloud
         if _ncs_anom is not None and cloud is not None and lead < SKY_NOWCAST_MAX_LEAD:
             _agc = (parse_t(t) - _ncs_tobs).total_seconds() / 3600
