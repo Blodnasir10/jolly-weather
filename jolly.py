@@ -176,6 +176,15 @@ SAGA I STUTTU MALI:
         hrau medaltali, tau 3 klst, spalengdir < 12 klst. Sidan 15.sept:
           Jolly -> ny: 1kl 1.16->1.08 | 6kl 1.19->1.09 | 24kl 1.35->1.18 | 48kl 1.56->1.41
         (3) "restbias VEX" vidvorun adeins fyrir VIRKAR leidrettingar.
+  v7.5  VINDATT - profad med endurspilun (adeins vindur >= 2 m/s).
+        + 7 daga tafla synir yr.no (metno) og vedur.is (harmonie) serstaklega.
+        (1) VILLA: attarblandan notadi flata b["att"] FRAMHJA APPLY_MEMBER_BIAS;
+        rettu, rofavirdu gildin (cd_) voru reiknud en ekki notud. Lagad.
+        (2) Leidretting per likan SLOKKT - ostodug eins og fyrir hita og vind.
+        (3) Hvert likan vegid med EIGIN spadum vindhrada: likan sem spair
+        8 m/s hefur areidanlegri att en likan sem spair 1 m/s.
+        Endurspilun, allt timabilid, Jolly -> ny (gradur):
+          1kl 23.4->22.4 | 6kl 26.0->22.7 | 24kl 26.6->22.0 | 48kl 31.3->26.2
 """
 
 
@@ -212,7 +221,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "7.4"
+JOLLY_VERSION = "7.5"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -249,6 +258,7 @@ ARCHIVE_KEEP_PAST = 72
 # keyrslu, svo git-vidbaeturnar eru smaar og eldri manudir frjosa.
 VERIFY_DIR = DATA_DIR / "verify"
 ATT_MIN_WS = 2.0   # [v7.2] vindatt adeins sannreynd/laerd vid maeldan vind >= 2 m/s
+ATT_SPEED_MIN = 0.3 # [v7.5] lagmarksvaegi likans i attarblondu (m/s) - logn fær litid vaegi
 OBS_WAIT_HOURS = 3 # [v7.3] bida svo lengi eftir nakvaemri maelingu stodvar 4271
 VERIFY_COLS = ["valid_time", "lead", "src", "month", "hour",
                "wd_ob", "ws_ob",
@@ -450,7 +460,9 @@ MEMBER_BIAS_CAP = {"hiti": 5.0, "vindur": 4.0, "att": 30.0, "sky": 30.0}
 # [v7.4] VINDUR SLOKKT - endurspilun (sept): leidretting eftir vindatt x
 # dag/nott hjalpar 0.03-0.07 m/s yfir allt timabilid en SKADAR jafn mikid
 # sidustu 2 vikur - ostodug. Birt Jolly var VERST allra adferda vid 6-48 klst.
-APPLY_MEMBER_BIAS = {"hiti": False, "vindur": False, "att": True,
+# [v7.5] ATT SLOKKT - endurspilun (vindur >= 2 m/s): leidretting per likan
+# ostodug (hjalpar sidustu vikur, skadar yfir allt timabilid).
+APPLY_MEMBER_BIAS = {"hiti": False, "vindur": False, "att": False,
                      "urkoma": True, "sky": True}
 
 def _member_bias_on(var, bs):
@@ -3290,8 +3302,11 @@ def make_forecast(fc, extras, model, obs=None):
             if ct is not None and wv["hiti"]   > 0: T.append((ct, wv["hiti"]))
             if cw is not None and wv["vindur"] > 0: W.append((cw, wv["vindur"]))
             # Vindatt hefur nu SINA eigin thyngd og sitt eigid bias
-            if rd is not None and wv["att"] > 0:
-                D.append((wrap360(rd + b.get("att", 0.0)), wv["att"]))
+            # [v7.5] (a) nota cd_ sem virdir APPLY_MEMBER_BIAS - adur var flot
+            # b["att"] logd a FRAMHJA rofanum. (b) vegid med spadum vindhrada
+            # likansins: sterkur vindur = areidanlegri att (endurspilun).
+            if cd_ is not None and wv["att"] > 0:
+                D.append((cd_, wv["att"] * max(ATT_SPEED_MIN, rw if rw is not None else 1.0)))
             if cc is not None and wv["sky"]    > 0: C.append((cc, wv["sky"]))
             if cp is not None and wv["urkoma"] > 0: P.append((cp, wv["urkoma"]))
 
@@ -3336,8 +3351,8 @@ def make_forecast(fc, extras, model, obs=None):
             J["hourly"]["model_clouds"][k].append(cc)
             if ct is not None and xv["hiti"]   > 0: T.append((ct, xv["hiti"]))
             if cw is not None and xv["vindur"] > 0: W.append((cw, xv["vindur"]))
-            if xD is not None and xv["att"] > 0:
-                D.append((wrap360(xD + xb.get("att", 0.0)), xv["att"]))
+            if cd_ is not None and xv["att"] > 0:
+                D.append((cd_, xv["att"] * max(ATT_SPEED_MIN, xW if xW is not None else 1.0)))
             if cc is not None and xv["sky"]    > 0: C.append((cc, xv["sky"]))
             if cp is not None and xv["urkoma"] > 0: P.append((cp, xv["urkoma"]))
 
@@ -3860,6 +3875,11 @@ def print_recent_skill(days=7):
         def cell(v): return f"{sum(v)/len(v):8.2f}" if v else f"{'-':>8}"
         print(f"  {var:8}{'Jolly':10}" + "".join(cell(acc[L]["j"]) for L in LEAD_BUCKETS))
         print(f"  {'':8}{'medaltal':10}" + "".join(cell(acc[L]["m"]) for L in LEAD_BUCKETS))
+        # [v7.5] Beinn samanburdur vid thad sem folk ser annars stadar
+        for _src, _lbl in (("metno", "yr.no"), ("harmonie", "vedur.is")):
+            print(f"  {'':8}{_lbl:10}" + "".join(
+                cell(acc[L]["each"].get(_src, [])) if len(acc[L]["each"].get(_src, [])) >= 5
+                else f"{'-':>8}" for L in LEAD_BUCKETS))
         best = []
         for L in LEAD_BUCKETS:
             e = {m: sum(v)/len(v) for m, v in acc[L]["each"].items() if len(v) >= 5}
