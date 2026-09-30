@@ -38,13 +38,17 @@
     -webkit-backdrop-filter:blur(24px) saturate(1.5);overflow:hidden}
 
   .hero{display:flex;align-items:center;gap:6px;padding:22px 24px;margin-bottom:12px}
-  .hero .icon{width:120px;height:120px;flex-shrink:0;margin-left:-6px}
+  .hero .icon{width:120px;height:120px;flex-shrink:0;margin-left:-6px;position:relative}
+  .hero .icon .hwind{position:absolute;right:-10px;bottom:4px;pointer-events:none;
+    filter:drop-shadow(0 2px 4px rgba(0,0,0,.45))}
+  .stat .gust{margin-top:8px;font-size:12px;color:#f0b35a;text-align:center;line-height:1.35}
+  .stat .gust b{font-weight:600}
   .hero .right{margin-left:auto;text-align:right}
   .hero .temp{font-size:84px;font-weight:200;line-height:.92;letter-spacing:-.03em}
   .hero .temp::after{content:"°";font-weight:200;color:var(--chill);opacity:.7}
   .hero .desc{font-size:14px;color:var(--sub);margin-top:4px}
 
-  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;
+  .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:11px;
     margin-bottom:12px;align-items:stretch}
   .stat{padding:16px 12px 13px;display:flex;flex-direction:column}
   /* Dauda plassid nedst nytt fyrir naestu 6 klst */
@@ -59,7 +63,8 @@
   .stat .val{font-size:18px;font-weight:400;margin-top:11px;text-align:center}
   .stat .val .u{font-size:12px;color:var(--sub);margin-left:2px}
 
-  .compass{width:58px;height:58px}
+  .compass{width:128px;height:128px}
+  .stat .mid.cmid{height:132px}
   .cnow{font-size:18px;font-weight:400;text-align:center;margin-top:11px}
   .clater{font-size:11px;color:var(--faint);text-align:center;margin-top:2px}
 
@@ -142,16 +147,12 @@
 
     <div class="stats">
       <div class="card stat">
-        <div class="lbl">Vindur</div>
-        <div class="mid" id="windIcon"></div>
-        <div class="val" id="windVal">–</div>
-        <div class="n6" id="windNext6"></div>
-      </div>
-      <div class="card stat">
         <div class="lbl">Vindátt</div>
-        <div class="mid"><div class="compass" id="compass"></div></div>
+        <div class="mid cmid"><div class="compass" id="compass"></div></div>
         <div class="cnow" id="cNow">–</div>
         <div class="clater" id="cLater"></div>
+        <div class="clater" id="cLater12"></div>
+        <div class="gust" id="cGust"></div>
       </div>
       <div class="card stat">
         <div class="lbl">Úrkoma</div>
@@ -183,6 +184,11 @@ const WDEG={N:0,NNA:22.5,NA:45,ANA:67.5,A:90,ASA:112.5,SA:135,SSA:157.5,
   S:180,SSV:202.5,SV:225,VSV:247.5,V:270,VNV:292.5,NV:315,NNV:337.5};
 function degToDir(d){const n=['N','NNA','NA','ANA','A','ASA','SA','SSA','S','SSV','SV','VSV','V','VNV','NV','NNV'];
   return n[Math.round(((d%360)/22.5))%16];}
+// Námundað að næsta hálfa: 1 · 1,5 · 2 (aldrei "1,0")
+function fmtHalf(x){ const r=Math.round((x||0)*2)/2; return (r%1===0?String(r):String(r).replace('.',',')); }
+// Úrkoma: einn aukastafur, en aldrei "0.0" (sýnt sem 0)
+function fmtRain(x){ const r=Math.round((x||0)*10)/10; return r===0?'0':r.toFixed(1); }
+
 function windArrow(deg,size){
   const s=size||11;const ang=(deg+180)%360;
   return `<svg width="${s}" height="${s}" viewBox="0 0 24 24"
@@ -434,8 +440,7 @@ function buildCompass(nowDeg, laterDeg){
     <text x="${cx}" y="176" fill="#646d82" font-size="12" text-anchor="middle">S</text>
     <text x="18" y="${cy+4}" fill="#646d82" font-size="12" text-anchor="middle">V</text>
     <text x="172" y="${cy+4}" fill="#646d82" font-size="12" text-anchor="middle">A</text>
-    ${laterDeg!=null?arrow(laterDeg,R-22,'#8b93a7',2.6,0.5,13):''}
-    ${arrow(nowDeg,R-16,'#ffffff',3.2,1,16)}
+    ${nowDeg!=null?arrow(nowDeg,R-16,'#ffffff',3.2,1,16):''}
     <circle cx="${cx}" cy="${cy}" r="3.5" fill="#fff"/></svg>`;
 }
 
@@ -480,32 +485,41 @@ function render(FC){
   const t0=Math.round(T[0]??0);
   const c0=C[0], p0=P[0]||0, w0=W[0]||0, d0=D[0]??0;
   const kind0=wxKind(c0,p0,t0);
-  document.getElementById('heroIcon').innerHTML=wxIcon(120,kind0,p0,isNightHour(nowH),c0);
+  // Vindtákn ofan á skýjamyndinni - sömu reglur og áður (windSvg eftir styrk)
+  document.getElementById('heroIcon').innerHTML=wxIcon(120,kind0,p0,isNightHour(nowH),c0)
+    + `<div class="hwind">${windSvg(w0,54)}</div>`;
   document.getElementById('heroTemp').textContent=t0;
   const descMap={clear:'Heiðskírt',partly:'Léttskýjað',cloudy:'Skýjað',
     rain:'Rigning',sleet:'Slydda',snow:'Snjókoma'};
   document.getElementById('heroDesc').textContent=
     `${descMap[kind0]||'Skýjað'}${c0!=null?' · '+Math.round(c0)+'% ský':''}`;
 
-  // ── VINDUR ──
-  document.getElementById('windIcon').innerHTML=windSvg(w0,44);
-  document.getElementById('windVal').innerHTML=`${w0.toFixed(1)}<span class="u">m/s</span>`;
-  document.getElementById('windNext6').innerHTML=next6Wind(W,times,1);
 
   // ── ÁTTAVITI: núna + 6 klst ──
   const d6=D[6]??d0, w6=W[6]??w0;
-  document.getElementById('compass').innerHTML=buildCompass(d0,d6);
-  document.getElementById('cNow').textContent=`${degToDir(d0)} ${w0.toFixed(1)} m/s`;
-  document.getElementById('cLater').textContent=`+6 klst · ${degToDir(d6)} ${w6.toFixed(1)} m/s`;
+  // Ein ör: áttin eftir 6 klst. Núna og +12 klst sem texti.
+  const d12=D[12]??d6, w12=W[12]??w6;
+  document.getElementById('compass').innerHTML=buildCompass(d6,null);
+  document.getElementById('cNow').textContent=`${degToDir(d0)} ${fmtHalf(w0)} m/s`;
+  document.getElementById('cLater').textContent=`+6 klst · ${degToDir(d6)} ${fmtHalf(w6)} m/s`;
+  document.getElementById('cLater12').textContent=`+12 klst · ${degToDir(d12)} ${fmtHalf(w12)} m/s`;
+  // Kviður: aðeins sýndar ef hámark næstu 24 klst fer yfir 8 m/s
+  const G=H.windgust||[]; let gmx=-1, gi=-1;
+  for(let k=0;k<Math.min(24,G.length);k++){ if(G[k]!=null && G[k]>gmx){ gmx=G[k]; gi=k; } }
+  document.getElementById('cGust').innerHTML = gmx>8
+    ? `Kviður allt að <b>${fmtHalf(gmx)} m/s</b> kl. ${String(new Date(times[gi]).getHours()).padStart(2,'0')}`
+    : '';
 
   // ── ÚRKOMA ──
+  // Samtala næstu 6 og 12 klst
+  const _sum=(a,b)=>{let x=0; for(let k=a;k<Math.min(b,P.length);k++) x+=P[k]||0; return x;};
+  const r6=_sum(1,7), r12=_sum(1,13);
   document.getElementById('precipIcon').innerHTML=
-    p0>0 ? wxIcon(50,kind0,p0,isNightHour(nowH),c0) : wxIcon(50,'dry',0,isNightHour(nowH),c0);
-  document.getElementById('precipVal').innerHTML=`${p0.toFixed(1)}<span class="u">mm</span>`;
-  const _r6=next6Rain(P,times,1);
+    Math.round(r6*10)/10>0 ? wxIcon(50,wxKind(c0,r6,t0),r6,isNightHour(nowH),c0) : wxIcon(50,'dry',0,isNightHour(nowH),c0);
+  document.getElementById('precipVal').innerHTML=`${fmtRain(r6)}<span class="u">mm</span>`;
   const _pn=document.getElementById('precipNext6');
-  _pn.innerHTML=_r6.html;
-  _pn.className='n6'+(_r6.empty?' empty':'');
+  _pn.innerHTML=`næstu 6 klst<br>næstu 12 klst: <b>${fmtRain(r12)} mm</b>`;
+  _pn.className='n6'+(Math.round(r12*10)/10===0?' empty':'');
 
   // ── KLUKKUSTUNDASPÁ (24 klst) ──
   let hh='';
