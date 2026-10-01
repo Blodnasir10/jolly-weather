@@ -185,6 +185,13 @@ SAGA I STUTTU MALI:
         8 m/s hefur areidanlegri att en likan sem spair 1 m/s.
         Endurspilun, allt timabilid, Jolly -> ny (gradur):
           1kl 23.4->22.4 | 6kl 26.0->22.7 | 24kl 26.6->22.0 | 48kl 31.3->26.2
+  v7.6  URKOMUSTUDLAR SLOKKTIR. Laerdir af ~2 dogum af maelingum, allt ad x6.7,
+        og foru FRAMHJA APPLY_MEMBER_BIAS. Spain fyrir 1. okt: 56 mm, likonin
+        10-25 mm, hamark klst 10.8 mm a moti 6.6 hja blautasta likaninu.
+        Nu studull 1 (hra likon); ef endurvirkjad seinna, thak [0.5, 2.0].
+        + Restbias-studull a blonduna (merktur "alltaf notadur", allt ad
+        x1.47) og laerdur throskuldur einnig slokktir - TVOFOLD margfoldun.
+        Studlarnir laera afram i bakgrunni; endurspilun thegar gogn leyfa.
 """
 
 
@@ -221,7 +228,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "7.5"
+JOLLY_VERSION = "7.6"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -463,7 +470,7 @@ MEMBER_BIAS_CAP = {"hiti": 5.0, "vindur": 4.0, "att": 30.0, "sky": 30.0}
 # [v7.5] ATT SLOKKT - endurspilun (vindur >= 2 m/s): leidretting per likan
 # ostodug (hjalpar sidustu vikur, skadar yfir allt timabilid).
 APPLY_MEMBER_BIAS = {"hiti": False, "vindur": False, "att": False,
-                     "urkoma": True, "sky": True}
+                     "urkoma": False, "sky": True}   # [v7.6] urkoma slokkt
 
 def _member_bias_on(var, bs):
     """Er member_bias virk fyrir thessa breytu VID THESSA spalengd."""
@@ -1005,9 +1012,22 @@ def precip_threshold(model, m, bs):
             best_f1, best_t = f1, float(k)
     return best_t if best_f1 >= 0 else 0.0
 
+# [v7.6] Urkomustudlar per likan voru laerdir af ~2 dogum af maelingum (fyrir
+# v6.7 var urkoma aldrei maeld) og nadu allt ad x6.7 - spain fyrir 1. okt var
+# 56 mm thegar likonin sogdu 10-25 mm. Studullinn for FRAMHJA APPLY_MEMBER_BIAS.
+# Nu: studull = 1 nema rofinn se virkur, og tha adeins innan [0.5, 2.0].
+PRECIP_SCALE_CAP = (0.5, 2.0)
+def _precip_scale(sc):
+    if not APPLY_MEMBER_BIAS.get("urkoma"):
+        return 1.0
+    lo, hi = PRECIP_SCALE_CAP
+    return max(lo, min(hi, sc if sc is not None else 1.0))
+
 def apply_precip(raw, scale, thr):
     """Setur i null undir throskuldi, kvardar annars."""
     if raw is None: return None
+    if not APPLY_MEMBER_BIAS.get("urkoma"):   # [v7.6] ekki laerdur throskuldur heldur
+        return round(max(0.0, raw), 2)
     if raw < thr:   return 0.0
     return round(max(0.0, raw * scale), 2)
 
@@ -3271,7 +3291,7 @@ def make_forecast(fc, extras, model, obs=None):
                 member_bias(model, m, b_lo, cur_cell, "att", bl.get("att",0.0)),
                 member_bias(model, m, b_hi, cur_cell, "att", bh.get("att",0.0)),
                 b_f, angle=False)
-            cb_scale = blend2(bl["urkoma_scale"], bh["urkoma_scale"], b_f)
+            cb_scale = _precip_scale(blend2(bl["urkoma_scale"], bh["urkoma_scale"], b_f))
             cb_thr   = blend2(precip_threshold(model, m, b_lo),
                               precip_threshold(model, m, b_hi), b_f)
 
@@ -3324,7 +3344,7 @@ def make_forecast(fc, extras, model, obs=None):
             xcb_att = blend2(
                 member_bias(model, k, b_lo, cur_cell, "att", xl.get("att",0.0)),
                 member_bias(model, k, b_hi, cur_cell, "att", xh.get("att",0.0)), b_f)
-            xcb_scale = blend2(xl["urkoma_scale"], xh["urkoma_scale"], b_f)
+            xcb_scale = _precip_scale(blend2(xl["urkoma_scale"], xh["urkoma_scale"], b_f))
             xcb_thr   = blend2(precip_threshold(model, k, b_lo),
                                precip_threshold(model, k, b_hi), b_f)
             j  = et[k].index(t) if (src and t in et[k]) else None
@@ -3394,7 +3414,7 @@ def make_forecast(fc, extras, model, obs=None):
                 wind = round(max(0.0, wind + jb.get("vindur", 0.0)), 2)
             if wdir is not None and APPLY_JOLLY_RESIDUAL.get("att"):
                 wdir = round(wrap360(wdir + jb.get("att", 0.0)), 1)
-            if prec is not None:      # urkoma-skali alltaf notadur (v2.x)
+            if prec is not None and APPLY_JOLLY_RESIDUAL.get("urkoma"):  # [v7.6] var "alltaf notadur"
                 prec = round(max(0.0, prec * jb.get("urkoma_scale", 1.0)), 2)
             if cloud is not None and APPLY_JOLLY_RESIDUAL.get("sky"):
                 cloud = min(100.0, max(0.0, cloud + jb.get("sky", 0.0)))
