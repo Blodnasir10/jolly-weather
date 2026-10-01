@@ -192,6 +192,12 @@ SAGA I STUTTU MALI:
         + Restbias-studull a blonduna (merktur "alltaf notadur", allt ad
         x1.47) og laerdur throskuldur einnig slokktir - TVOFOLD margfoldun.
         Studlarnir laera afram i bakgrunni; endurspilun thegar gogn leyfa.
+  v7.7  VAEGI - endurspilun a 6 vaegisadferdum. (1) Ekkert likan hent alveg
+        ut (MODEL_DROP_ENABLED=False): "besta likanid eitt" var alltaf verst,
+        og skyjathyngdir hofdu hrunid i 3 likon. (2) Hiti: thyngdir i 5. veldi
+        (skarpt). Sidustu vikur: 6kl 1.20->1.07 | 24kl 1.32->1.19 | 48kl
+        1.23->1.17 - gatid a moti vedur.is. Vindur/att/sky: vaegi skiptir
+        engu marki, haldast mild (1/MAE).
 """
 
 
@@ -228,7 +234,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "7.6"
+JOLLY_VERSION = "7.7"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -361,6 +367,13 @@ MIN_N_BY_VAR = {"hiti": 4, "vindur": 4, "att": 6, "urkoma": 12, "sky": 6}
 # Throskuldar stilltir a RAUNGOGNUM (16.ag): 2.8x a skyi fellir 3 verstu
 # (dmi/ukmo/knmi) en heldur 6 likonum - nog fjolbreytni. Haerri throskuldur
 # a hita/vindi thvi thar eru likonin thett saman og fall vaeri of hart.
+# [v7.7] VAEGISPROF (endurspilun, 32.000 por): ad henda likani alveg ut
+# skadar (besta likanid eitt var ALLTAF verst; skyjathyngdir hrundu i 3 likon
+# og Jolly vard verri en jafnt medaltal). Likon fa litid vaegi, aldrei null.
+MODEL_DROP_ENABLED = False
+# Skarpt vaegi fyrir hita: thyngd^5 (~ 1/MAE^5). Hiti @6klst 1.20 -> 1.07,
+# @24klst 1.32 -> 1.19 (sidustu vikur); vindur/sky: engin bót, haldast mild.
+WEIGHT_POWER = {"hiti": 5.0}
 FAIL_RATIO   = {"hiti": 3.5, "vindur": 3.5, "att": 3.0,
                 "urkoma": 4.0, "sky": 2.8}   # x MAE besta likans
 
@@ -2890,13 +2903,14 @@ def verify_and_train(arch, obs_history, model):
                         rec["streak"] = 0
                 elif nv >= FAIL_MIN_N and ratio > ratio_lim:
                     rec = {"out": True, "streak": 0}
-                    print(f"    {m} FELLUR UT ur {var} @{bs}klst "
-                          f"(MAE {v:.1f} = {ratio:.1f}x besta {best_mae:.1f})")
+                    print(f"    {m} {'FELLUR UT ur' if MODEL_DROP_ENABLED else 'slakt i'} {var} @{bs}klst "
+                          f"(MAE {v:.1f} = {ratio:.1f}x besta {best_mae:.1f})"
+                          f"{'' if MODEL_DROP_ENABLED else ' - vaegi haldid'}")
                 fail[m] = rec
 
             # Fjarlaegja fallin likon UR THYNGDUM (en their eru afram maeld)
             active = {m: v for m, v in usable.items()
-                      if not (fail.get(m) or {}).get("out")}
+                      if not MODEL_DROP_ENABLED or not (fail.get(m) or {}).get("out")}
             if not active:          # oryggisventill: aldrei tomt
                 active = dict(usable)
 
@@ -2923,13 +2937,15 @@ def verify_and_train(arch, obs_history, model):
                 usable_c = {m: st["mae"] for m, st in per_m.items()
                             if st.get("mae") is not None
                             and st.get("n", 0) >= CELLW_MIN_N
-                            and not (fail.get(m) or {}).get("out")}
+                            and (not MODEL_DROP_ENABLED
+                                 or not (fail.get(m) or {}).get("out"))}
                 if len(usable_c) < 2:
                     continue
                 best_c = min(usable_c.values())
                 # Fall-einkunn INNAN reits
                 keep = {m: v for m, v in usable_c.items()
-                        if best_c <= 0 or v / best_c <= ratio_lim}
+                        if not MODEL_DROP_ENABLED or best_c <= 0
+                        or v / best_c <= ratio_lim}
                 if len(keep) < 2:
                     keep = dict(usable_c)
                 inv_c = {m: 1.0 / (v + eps) for m, v in keep.items()}
@@ -3261,9 +3277,8 @@ def make_forecast(fc, extras, model, obs=None):
             c = cur_cell_p if var == "urkoma" else cur_cell
             wc = ((model.get("weights_cell", {}).get(var, {})
                        .get(bs, {}) or {}).get(c) or {})
-            if m in wc:
-                return wc[m]
-            return model["weights"][var][bs].get(m, 0.0)
+            w = wc[m] if m in wc else model["weights"][var][bs].get(m, 0.0)
+            return (w or 0.0) ** WEIGHT_POWER.get(var, 1.0)   # [v7.7]
 
         # [v5.2] Safna RAUNVERULEGUM thyngdum allra gjafa, allra breyta,
         # thessa klukkustund - svo haegt se ad geyma their NAKVAEMLEGA
