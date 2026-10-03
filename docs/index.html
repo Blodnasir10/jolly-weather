@@ -108,6 +108,40 @@
   .dstat .k{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)}
   .dstat .v{font-size:15px;font-weight:400;display:flex;align-items:center;gap:7px}
 
+
+  /* ── Næstu dagar v2 ── */
+  .days{padding:6px}
+  .dcard{border-radius:18px;background:rgba(255,255,255,0.03);padding:10px 8px 8px;margin-bottom:7px}
+  .dcard:last-child{margin-bottom:0}
+  .dtop{display:grid;grid-template-columns:54px 1fr 24px;align-items:start;cursor:pointer}
+  .dn{padding-top:16px}
+  .dname{font-size:16px;font-weight:600;color:var(--ink)}
+  .ddate{font-size:11px;color:var(--sub);margin-top:2px}
+  .pcols,.pxrow{display:grid;grid-template-columns:repeat(4,1fr)}
+  .pc{text-align:center}
+  .pc.past,.px.past{opacity:.42}
+  .pl{font-size:10px;color:var(--faint);white-space:nowrap;height:13px}
+  .pi{height:42px;display:flex;align-items:center;justify-content:center;margin:2px 0}
+  .pt{font-size:15px;font-weight:500;font-variant-numeric:tabular-nums}
+  .chev{color:var(--faint);display:flex;justify-content:center;padding-top:18px;transition:transform .25s}
+  .dcard.open .chev{transform:rotate(180deg)}
+  .dcurve{margin-left:54px;margin-right:24px;height:26px}
+  .tcurve{width:100%;height:26px;display:block}
+  .dopen{max-height:0;overflow:hidden;transition:max-height .3s ease}
+  .dcard.open .dopen{max-height:420px}
+  .pxrow{margin-left:54px;margin-right:24px;padding-top:4px}
+  .px{text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px}
+  .pp{font-size:11px;color:var(--faint)}
+  .pp.wet{color:#7fb3ff;font-weight:600}
+  .pw{display:flex;align-items:center;gap:3px;font-size:11px;color:var(--sub)}
+  .gst{font-size:10px;padding:2px 6px;border-radius:9px;background:rgba(240,179,90,.16);color:#f0b35a;white-space:nowrap}
+  .gst.red{background:rgba(255,95,85,.18);color:#ff7a70}
+  .dsum{margin:10px 6px 2px;border-top:1px solid rgba(255,255,255,0.06)}
+  .sr{display:flex;justify-content:space-between;align-items:center;padding:8px 2px;
+    border-bottom:1px solid rgba(255,255,255,0.05);font-size:13px;color:var(--sub)}
+  .sr:last-child{border-bottom:0}
+  .sr b{font-weight:600;color:var(--ink)} .sr b i{font-style:normal}
+  .sr b.wet{color:#7fb3ff} .sr b.gor{color:#f0b35a} .sr b.gred{color:#ff7a70}
   .foot{text-align:center;font-size:11px;color:rgba(255,255,255,0.22);
     margin-top:26px;line-height:1.7}
   .foot span{color:var(--faint)}
@@ -552,82 +586,104 @@ function render(FC){
 }
 
 function renderDays(FC){
-  // Nota daily_slots ef til, annars reikna úr klukkustundum
-  const daily=FC.daily||{};
-  const dates=daily.date||[];
-  const slots=FC.daily_slots||[];
-  const H=FC.hourly||{};
-
-  // Safna klst per dag fyrir min/max vind, ríkjandi átt, heildarúrkomu
-  const byDay={};
-  (H.time||[]).forEach((t,i)=>{
-    const day=t.slice(0,10);
-    (byDay[day]=byDay[day]||[]).push(i);
+  // [Næstu dagar v2] Fjögur föst tímabil + hitakúrfa. Liðin tímabil í dag
+  // koma úr FC.hourly_past (eins og þeim var spáð) og birtast dauf.
+  const H=FC.hourly||{}, HP=FC.hourly_past||{};
+  const byT={};
+  const add=(S,past)=>(S.time||[]).forEach((t,i)=>{
+    if(byT[t] && !past) {} else if(byT[t]) return;
+    byT[t]={t,day:t.slice(0,10),hr:+t.slice(11,13),past,
+      T:(S.temperature||[])[i],W:(S.windspeed||[])[i],D:(S.winddirection||[])[i],
+      G:(S.windgust||[])[i],P:(S.precipitation||[])[i],C:(S.cloud_cover||[])[i]};
   });
+  add(HP,true); add(H,false);
+  const byDay={}; Object.values(byT).forEach(r=>(byDay[r.day]=byDay[r.day]||[]).push(r));
+  const PER=[[0,6,'Nótt'],[6,12,'Morgun'],[12,18,'Seinni partur'],[18,24,'Kvöld']];
+  const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+  const today=(H.time||[''])[0].slice(0,10);
+  let days=Object.keys(byDay).sort().map(day=>{
+    const rs=byDay[day];
+    const per=PER.map(([a,b,lbl])=>{
+      const r=rs.filter(x=>x.hr>=a&&x.hr<b&&x.T!=null);
+      if(!r.length) return null;
+      let sx=0,cx=0; r.forEach(x=>{const w=Math.max(.3,x.W||0);
+        sx+=w*Math.sin((x.D||0)*Math.PI/180); cx+=w*Math.cos((x.D||0)*Math.PI/180);});
+      return {lbl,T:avg(r.map(x=>x.T)),P:r.reduce((s,x)=>s+(x.P||0),0),
+        W:avg(r.map(x=>x.W||0)),D:(Math.atan2(sx,cx)*180/Math.PI+360)%360,
+        G:Math.max(...r.map(x=>x.G||0)),C:avg(r.map(x=>x.C||0)),
+        past:r.every(x=>x.past),mid:(a+b)/2};
+    });
+    const all=rs.filter(x=>x.T!=null);
+    return {day,per,tmin:Math.min(...all.map(x=>x.T)),tmax:Math.max(...all.map(x=>x.T)),
+      psum:rs.reduce((s,x)=>s+(x.P||0),0),gmax:Math.max(...rs.map(x=>x.G||0))};
+  }).filter(d=>d.day===today || d.per.every(p=>p)).slice(0,6);
 
-  let out='';
-  dates.slice(0,6).forEach((d,di)=>{
-    const idxs=byDay[d]||[];
-    const temps=idxs.map(i=>H.temperature[i]).filter(x=>x!=null);
-    const winds=idxs.map(i=>H.windspeed[i]).filter(x=>x!=null);
-    const precs=idxs.map(i=>H.precipitation[i]||0);
-    const dirs =idxs.map(i=>H.winddirection[i]).filter(x=>x!=null);
-    const clouds=idxs.map(i=>H.cloud_cover[i]).filter(x=>x!=null);
+  const temps=days.flatMap(d=>d.per.filter(p=>p).map(p=>p.T));
+  const gmin=Math.min(...temps), gmax=Math.max(...temps), span=Math.max(4,gmax-gmin);
+  const tcol=t=>{ // kalt=blátt, hlýtt=appelsínurautt (fíngert)
+    const f=Math.max(0,Math.min(1,(t-gmin)/span));
+    const c1=[127,179,255], c2=[255,138,92];
+    return `rgb(${c1.map((v,i)=>Math.round(v+(c2[i]-v)*f)).join(',')})`;};
+  const VD=['Sun.','Mán.','Þri.','Mið.','Fim.','Fös.','Lau.'];
+  const MN=['jan.','feb.','mar.','apr.','maí','jún.','júl.','ág.','sep.','okt.','nóv.','des.'];
+  const gustCls=g=>g>=20?'gst red':(g>=12?'gst':'');
 
-    const hi=daily.temp_max?.[di] ?? (temps.length?Math.max(...temps):null);
-    const lo=daily.temp_min?.[di] ?? (temps.length?Math.min(...temps):null);
-    const rain=daily.precipitation_total?.[di] ?? precs.reduce((a,b)=>a+b,0);
-    const wmin=winds.length?Math.min(...winds):0, wmax=winds.length?Math.max(...winds):0;
-    // ríkjandi átt: hringmeðaltal
-    let dirDeg=daily.wind_dir_dominant_deg?.[di];
-    if(dirDeg==null && dirs.length){
-      const ss=dirs.reduce((a,x)=>a+Math.sin(x*Math.PI/180),0);
-      const cc=dirs.reduce((a,x)=>a+Math.cos(x*Math.PI/180),0);
-      dirDeg=(Math.atan2(ss,cc)*180/Math.PI+360)%360;
-    }
-    dirDeg=dirDeg||0;
-
-    // 3 tákn: morgunn(9) / dagur(15) / kvöld(21) - úr slots eða klst
-    function slotKind(hh){
-      const key=`${d}T${String(hh).padStart(2,'0')}:00`;
-      const i=(H.time||[]).indexOf(key);
-      if(i<0) return {kind:'dry',mm:0,cover:0,night:hh<6||hh>=21};
-      return {kind:wxKind(H.cloud_cover[i],H.precipitation[i]||0,Math.round(H.temperature[i]??0)),
-        mm:H.precipitation[i]||0, cover:H.cloud_cover[i]||0, night:hh<6||hh>=21};
-    }
-    const evo=[slotKind(9),slotKind(15),slotKind(21)];
-
-    const dt=new Date(d+'T12:00:00');
-    const dname=di===0?'Í dag':di===1?'Á morgun':DAGAR[dt.getDay()];
-
-    out+=`<div class="day${di===0?' open':''}" onclick="this.classList.toggle('open')">
-      <div class="dhead">
-        <div><div class="dname">${dname}</div>
-          <div class="dp">${rain>0?rain.toFixed(1)+' mm':''}</div></div>
-        <div class="dicons">
-          ${wxIcon(28,evo[0].kind,evo[0].mm,evo[0].night,evo[0].cover)}
-          ${wxIcon(28,evo[1].kind,evo[1].mm,evo[1].night,evo[1].cover)}
-          ${wxIcon(28,evo[2].kind,evo[2].mm,evo[2].night,evo[2].cover)}
-        </div>
-        <div class="dwind">${windArrow(dirDeg,13)}</div>
-        <div class="dtemp"><b>${hi!=null?Math.round(hi):'–'}°</b>
-          <span class="lo">${lo!=null?Math.round(lo):'–'}°</span></div>
-        <div class="chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div>
+  let html='';
+  days.forEach((d,di)=>{
+    const dt=new Date(d.day+'T12:00');
+    const name=d.day===today?'Í dag':VD[dt.getDay()];
+    const date=`${dt.getDate()}. ${MN[dt.getMonth()]}`;
+    // hitakúrfa: punktar undir hitatölum, mjúk lína, litur eftir hita
+    const pts=d.per.map((p,i)=>p?{x:50+i*100,y:30-((p.T-gmin)/span)*22,c:tcol(p.T)}:null);
+    const ok=pts.filter(p=>p);
+    let path='';
+    ok.forEach((p,i)=>{ if(!i){path=`M${p.x},${p.y}`;return;}
+      const q=ok[i-1], mx=(q.x+p.x)/2; path+=` C${mx},${q.y} ${mx},${p.y} ${p.x},${p.y}`;});
+    const gid='tg'+di;
+    const stops=ok.map(p=>`<stop offset="${(p.x/400*100).toFixed(1)}%" stop-color="${p.c}"/>`).join('');
+    const curve=`<svg class="tcurve" viewBox="0 0 400 36" preserveAspectRatio="none">
+      <defs><linearGradient id="${gid}" x1="0" x2="400" gradientUnits="userSpaceOnUse">${stops}</linearGradient></defs>
+      <path d="M0,${ok[0]?ok[0].y:20} L${ok[0]?ok[0].x:0},${ok[0]?ok[0].y:20}" stroke="${ok[0]?ok[0].c:'#7fb3ff'}" stroke-width="1.6" opacity=".35" fill="none"/>
+      <path d="${path}" stroke="url(#${gid})" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <path d="M${ok.length?ok[ok.length-1].x:400},${ok.length?ok[ok.length-1].y:20} L400,${ok.length?ok[ok.length-1].y:20}" stroke="${ok.length?ok[ok.length-1].c:'#7fb3ff'}" stroke-width="1.6" opacity=".35" fill="none"/>
+      ${pts.map((p,i)=>p?`<circle cx="${p.x}" cy="${p.y}" r="4.2" fill="${p.c}" opacity="${d.per[i].past?.45:1}"/>`:'').join('')}
+    </svg>`;
+    const cols=d.per.map(p=>{
+      if(!p) return `<div class="pc empty"><div class="pl">–</div></div>`;
+      const kind=wxKind(p.C,p.P,p.T), night=isNightHour(Math.floor(p.mid));
+      return `<div class="pc${p.past?' past':''}">
+        <div class="pl">${p.lbl}</div>
+        <div class="pi">${wxIcon(40,kind,p.P,night,p.C)}</div>
+        <div class="pt" style="color:${tcol(p.T)}">${Math.round(p.T)}°</div>
+      </div>`;}).join('');
+    const ext=d.per.map(p=>{
+      if(!p) return `<div class="px"></div>`;
+      const wet=p.P>=0.05;
+      return `<div class="px${p.past?' past':''}">
+        <div class="pp${wet?' wet':''}">${fmtRain(p.P)} mm</div>
+        <div class="pw">${windArrow(p.D,12)}<span>${fmtHalf(p.W)} m/s</span></div>
+        ${p.G>=12?`<div class="${gustCls(p.G)}">Kviður ${fmtHalf(p.G)} m/s</div>`:''}
+      </div>`;}).join('');
+    const ws=d.per.filter(p=>p).map(p=>p.W), wlo=fmtHalf(Math.min(...ws)), whi=fmtHalf(Math.max(...ws));
+    html+=`<div class="dcard${di===0?' open':''}">
+      <div class="dtop" onclick="this.parentElement.classList.toggle('open')">
+        <div class="dn"><div class="dname">${name}</div><div class="ddate">${date}</div></div>
+        <div class="pcols">${cols}</div>
+        <div class="chev"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
-      <div class="ddetail"><div class="ddin">
-        <div class="dstat"><span class="k">Hiti</span>
-          <span class="v">${lo!=null?Math.round(lo):'–'}° – ${hi!=null?Math.round(hi):'–'}°</span></div>
-        <div class="dstat"><span class="k">Ríkjandi átt</span>
-          <span class="v">${windArrow(dirDeg,14)} ${degToDir(dirDeg)}</span></div>
-        <div class="dstat"><span class="k">Vindur</span>
-          <span class="v">${wmin.toFixed(1)} – ${wmax.toFixed(1)} m/s</span></div>
-        <div class="dstat"><span class="k">Úrkoma</span>
-          <span class="v">${rain>0?rain.toFixed(1)+' mm':'Þurrt'}</span></div>
-      </div></div>
+      <div class="dcurve">${curve}</div>
+      <div class="dopen">
+        <div class="pxrow">${ext}</div>
+        <div class="dsum">
+          <div class="sr"><span>Lágmark / Hámark</span><b><i style="color:${tcol(d.tmin)}">${Math.round(d.tmin)}°</i> / <i style="color:${tcol(d.tmax)}">${Math.round(d.tmax)}°</i></b></div>
+          <div class="sr"><span>Uppsöfnuð úrkoma</span><b class="${d.psum>=0.05?'wet':''}">${fmtRain(d.psum)} mm</b></div>
+          <div class="sr"><span>Vindur (meðal)</span><b>${wlo===whi?wlo:wlo+'–'+whi} m/s</b></div>
+          ${d.gmax>=12?`<div class="sr"><span>Kviður</span><b class="${d.gmax>=20?'gred':'gor'}">Allt að ${fmtHalf(d.gmax)} m/s</b></div>`:''}
+        </div>
+      </div>
     </div>`;
   });
-  document.getElementById('days').innerHTML=out;
+  document.getElementById('days').innerHTML=html;
 }
 
 load();
