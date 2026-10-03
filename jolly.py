@@ -198,6 +198,8 @@ SAGA I STUTTU MALI:
         (skarpt). Sidustu vikur: 6kl 1.20->1.07 | 24kl 1.32->1.19 | 48kl
         1.23->1.17 - gatid a moti vedur.is. Vindur/att/sky: vaegi skiptir
         engu marki, haldast mild (1/MAE).
+  v7.8  hourly_past: lidnar klst dagsins eins og theim var spad (ur spasafni,
+        stysta spalengd) - svo "Naestu dagar" geti synt lidin timabil daufar.
 """
 
 
@@ -234,7 +236,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "7.7"
+JOLLY_VERSION = "7.8"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -3855,6 +3857,31 @@ def save_log(tee):
 
 
 
+def build_hourly_past(arch, fcast):
+    """[v7.8] Lidnar klukkustundir dagsins EINS OG THEIM VAR SPAD, ur spasafninu
+    (stysta spalengd sem til er). "Naestu dagar" synir thaer daufar."""
+    times = (fcast.get("hourly") or {}).get("time") or []
+    if not times:
+        return {}
+    first = times[0]
+    day0 = first[:10] + "T00:00"
+    out = {k: [] for k in ("time", "temperature", "windspeed", "winddirection",
+                           "windgust", "precipitation", "cloud_cover")}
+    for vt in sorted(v for v in arch if day0 <= v < first):
+        best = None
+        for L, sl in (arch.get(vt) or {}).items():
+            jv = ((sl or {}).get("models") or {}).get(JOLLY_KEY)
+            if jv and jv.get("t") is not None and (best is None or int(L) < best[0]):
+                best = (int(L), jv)
+        if not best:
+            continue
+        jv = best[1]
+        out["time"].append(vt); out["temperature"].append(jv.get("t"))
+        out["windspeed"].append(jv.get("w")); out["winddirection"].append(jv.get("d"))
+        out["windgust"].append(jv.get("g")); out["precipitation"].append(jv.get("p"))
+        out["cloud_cover"].append(jv.get("c"))
+    return out
+
 def print_recent_skill(days=7):
     """[v7.2] RAUNVERULEGT MAE sidustu daga beint ur langtimasafninu.
     Hlaupandi medaltolin (lead_mae) draga med ser gamla sogu og geta verid
@@ -4059,6 +4086,10 @@ def _run():
     model = verify_and_train(arch, obs, model)
     fcast = make_forecast(fc, extras, model, obs)
     arch  = archive_jolly(arch, fcast)      # eftir spa - Jolly er nidurstadan
+    try:
+        fcast["hourly_past"] = build_hourly_past(arch, fcast)
+    except Exception as _e:
+        print(f"  (lidnar klst dagsins: {_e})")
     print_coverage(model, fc, extras)
     save(model, fcast)
     try:
