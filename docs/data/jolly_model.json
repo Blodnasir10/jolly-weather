@@ -1,8 +1,8 @@
 {
   "version": "2.0",
   "created": "2026-06-24T00:32:50.944399+00:00",
-  "runs": 1336,
-  "verified_pairs": 189537,
+  "runs": 1337,
+  "verified_pairs": 189542,
   "lead_buckets": [
     1,
     3,
@@ -887,18 +887,18 @@
         "urkoma": 0.011
       },
       "jolly": {
-        "hiti": 0.733,
-        "vindur": 0.687,
-        "att": 15.14,
-        "urkoma": 0.012,
-        "sky": 6.213,
-        "n": 399,
+        "hiti": 0.817,
+        "vindur": 0.779,
+        "att": 16.323,
+        "urkoma": 0.018,
+        "sky": 8.947,
+        "n": 400,
         "n_var": {
-          "hiti": 399,
-          "vindur": 399,
-          "att": 351,
-          "sky": 394,
-          "urkoma": 128
+          "hiti": 400,
+          "vindur": 400,
+          "att": 352,
+          "sky": 395,
+          "urkoma": 129
         }
       }
     },
@@ -1657,78 +1657,6 @@
     }
   },
   "verify_history": [
-    {
-      "time": "2026-08-03 12:00",
-      "n_pairs": 340,
-      "lead_mae": {
-        "1": {
-          "dmi": 0.696,
-          "knmi": 0.684,
-          "ecmwf": 0.809,
-          "icon": 1.274,
-          "ukmo": 1.015,
-          "mfr": 1.588,
-          "gfs": 1.32,
-          "harmonie": 0.715,
-          "metno": 0.806
-        },
-        "3": {
-          "dmi": 0.925,
-          "knmi": 0.935,
-          "ecmwf": 0.84,
-          "icon": 1.375,
-          "ukmo": 1.101,
-          "mfr": 1.666,
-          "gfs": 1.281,
-          "harmonie": 1.046,
-          "metno": 0.895
-        },
-        "6": {
-          "dmi": 0.879,
-          "knmi": 0.765,
-          "ecmwf": 0.954,
-          "icon": 1.31,
-          "ukmo": 1.149,
-          "mfr": 1.63,
-          "gfs": 1.304,
-          "harmonie": 0.874,
-          "metno": 0.944
-        },
-        "12": {
-          "dmi": 0.954,
-          "knmi": 0.851,
-          "ecmwf": 0.895,
-          "icon": 1.233,
-          "ukmo": 0.968,
-          "mfr": 1.334,
-          "gfs": 1.143,
-          "harmonie": 0.868,
-          "metno": 0.87
-        },
-        "24": {
-          "dmi": 1.143,
-          "knmi": 1.116,
-          "ecmwf": 1.168,
-          "icon": 1.643,
-          "ukmo": 1.291,
-          "mfr": 1.872,
-          "gfs": 1.613,
-          "harmonie": 0.88,
-          "metno": 1.163
-        },
-        "48": {
-          "dmi": 1.225,
-          "knmi": 1.169,
-          "ecmwf": 0.9,
-          "icon": 1.65,
-          "ukmo": 0.983,
-          "mfr": 1.84,
-          "gfs": 1.043,
-          "harmonie": 1.342,
-          "metno": 1.01
-        }
-      }
-    },
     {
       "time": "2026-08-03 15:00",
       "n_pairs": 240,
@@ -47787,20 +47715,32 @@
           "metno": 0.995
         }
       }
+    },
+    {
+      "time": "2026-10-03 13:00",
+      "n_pairs": 5,
+      "lead_mae": {
+        "1": {},
+        "3": {},
+        "6": {},
+        "12": {},
+        "24": {},
+        "48": {}
+      }
     }
   ],
-  "last_updated": "2026-10-03T12:28:44.946755+00:00",
+  "last_updated": "2026-10-03T13:05:35.645096+00:00",
   "migrated_from": "1.0",
   "skill": {
     "hiti": {
       "1": {
-        "jolly_mae": 0.733,
+        "jolly_mae": 0.817,
         "best_model": "harmonie",
         "best_mae": 0.744,
-        "skill": 0.0148,
+        "skill": -0.0981,
         "meaningful": true,
         "mean_member": 1.033,
-        "n": 399
+        "n": 400
       },
       "3": {
         "jolly_mae": 1.296,
@@ -47850,13 +47790,13 @@
     },
     "vindur": {
       "1": {
-        "jolly_mae": 0.687,
+        "jolly_mae": 0.779,
         "best_model": "icon",
         "best_mae": 0.471,
-        "skill": -0.4586,
+        "skill": -0.6539,
         "meaningful": true,
         "mean_member": 0.618,
-        "n": 399
+        "n": 400
       },
       "3": {
         "jolly_mae": 0.739,
@@ -47906,13 +47846,13 @@
     },
     "att": {
       "1": {
-        "jolly_mae": 15.14,
+        "jolly_mae": 16.323,
         "best_model": "knmi",
         "best_mae": 10.899,
-        "skill": -0.3891,
+        "skill": -0.4977,
         "meaningful": true,
         "mean_member": 14.65,
-        "n": 351
+        "n": 352
       },
       "3": {
         "jolly_mae": 17.746,
@@ -47980,13 +47920,13 @@
         "n": 124
       },
       "1": {
-        "jolly_mae": 0.012,
+        "jolly_mae": 0.018,
         "best_model": "icon",
         "best_mae": 0.008,
         "skill": 0.0,
         "meaningful": false,
         "mean_member": 0.012,
-        "n": 128
+        "n": 129
       },
       "24": {
         "jolly_mae": 0.015,
@@ -48018,13 +47958,13 @@
     },
     "sky": {
       "1": {
-        "jolly_mae": 6.213,
+        "jolly_mae": 8.947,
         "best_model": "metno",
         "best_mae": 7.45,
-        "skill": 0.166,
+        "skill": -0.2009,
         "meaningful": true,
         "mean_member": 16.584,
-        "n": 394
+        "n": 395
       },
       "3": {
         "jolly_mae": 11.73,
@@ -50181,11 +50121,11 @@
   },
   "jolly_bias": {
     "1": {
-      "hiti": -0.12996548030629176,
-      "vindur": -0.1818336870373066,
-      "att": 5.250625752011666,
-      "sky": -1.5513731604736747,
-      "urkoma_scale": 0.603789554226025
+      "hiti": 0.0572303773304632,
+      "vindur": 0.013986355407170165,
+      "att": 6.060550661770266,
+      "sky": -3.3513731604736745,
+      "urkoma_scale": 0.6
     },
     "3": {
       "hiti": -0.6527690897938494,
@@ -59042,19 +58982,19 @@
     },
     "jolly|1|hiti": {
       "run": 0,
-      "last": 1.0227664996519426
+      "last": -1.5599654803062915
     },
     "jolly|1|vindur": {
-      "run": 1,
-      "last": 0.16849550361304055
+      "run": 0,
+      "last": -1.6318336870373062
     },
     "jolly|1|att": {
-      "run": 1,
-      "last": 51.85062575201168
+      "run": 0,
+      "last": -19.749374247988335
     },
     "jolly|1|sky": {
-      "run": 0,
-      "last": 2.7825304994617333
+      "run": 1,
+      "last": 27.448626839526327
     },
     "dmi|3|hiti": {
       "run": 2,
@@ -60859,8 +60799,8 @@
       },
       "12": {
         "dmi": {
-          "out": true,
-          "streak": 2
+          "out": false,
+          "streak": 0
         },
         "knmi": {
           "out": true,
@@ -60879,8 +60819,8 @@
           "streak": 0
         },
         "mfr": {
-          "out": true,
-          "streak": 2
+          "out": false,
+          "streak": 0
         },
         "gfs": {
           "out": false,
