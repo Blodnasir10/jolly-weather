@@ -3,14 +3,14 @@ STADA  3 ATRIDI (2 ALVARLEG):
   !! vindur @24klst VERSNAR 3 daga i rod (0.81 -> 1.49 -> 1.56)
   !! att @24klst VERSNAR 3 daga i rod (24.46 -> 25.39 -> 34.28)
 ================================================================
-JOLLY v7.8  2026-10-05 10:05 UTC
+JOLLY v7.8  2026-10-05 11:05 UTC
 Eiginleg spastadfesting eftir spalengd | 9 gjafar | stod 571 + BIEG
 ================================================================
 METAR BIEG:
-  OK 23 faerslur | nyjust 2026-10-05T10:00 sky=75% botn=4100ft | aldur 0.1 klst
+  OK 23 faerslur | nyjust 2026-10-05T11:00 sky=100% botn=4100ft | aldur 0.1 klst
 MAELING stod 4271 (Egilsstadaflugvollur):
-  VILLA api.vedur.is: The read operation timed out
-  VILLA urkoma stod 571: The read operation timed out
+  VILLA api.vedur.is: HTTP Error 502: Bad Gateway
+  VILLA urkoma stod 571: HTTP Error 502: Bad Gateway
   (nota METAR skyjagogn eingongu thennan hringinn)
   METAR skyjagogn a 23 timapunkta
   720 maelingar geymdar (715 med skyjahulu)
@@ -21,42 +21,42 @@ OPEN-METEO:
     ecmwf   168 gildi
     icon    168 gildi
     ukmo    168 gildi
-    mfr     127 gildi
+    mfr     133 gildi
     gfs     168 gildi
 HARMONIE (Vedurstofa):
-  VILLA: The read operation timed out
+  VILLA: HTTP Error 502: Bad Gateway
 MET NORWAY (api.met.no):
-  OK 89 timapunktar (89 med skyjahulu)
+  OK 88 timapunktar (88 med skyjahulu)
 LIKAN:
-  Hladid v2.x - 1379 keyrslur, 201070 stadfest por
+  Hladid v2.x - 1380 keyrslur, 201070 stadfest por
 SPASAFN:
-  Geymdi 6 spalengdir fyrir utgafu 2026-10-05T10:00
+  Geymdi 6 spalengdir fyrir utgafu 2026-10-05T11:00
   Safnid: 120 gildistimar (hreinsadi 1)
 STADFESTING:
-  Bid eftir stod 4271: 1 gildistimar (METAR eitt, < 3 klst)
+  Bid eftir stod 4271: 2 gildistimar (METAR eitt, < 3 klst)
   Ekkert nytt til stadfestingar
-  (safnid: 120 gildistimar, 413 thegar stadfest, maelingar: 720)
+  (safnid: 120 gildistimar, 408 thegar stadfest, maelingar: 720)
 SPA:
-  NOWCAST: mæling 6.0° kl 10:00 á móti blöndu 4.5° -> frávik +1.47° (aldur 0.1 klst)
-  THRYSTINGUR: maeldur 991.2 hPa kl 09:00 | likon 992.0 | fravik -0.8
-  NOWCAST VINDUR: maeling 6.7 m/s kl 10:00 a moti likonum 2.8 -> fravik +3.9 (aldur 0.1 klst)
-  NOWCAST SKY: METAR 75% kl 10:00 á móti blöndu 89% -> frávik -14 (aldur 0.1 klst)
+  NOWCAST: mæling 6.0° kl 11:00 á móti blöndu 4.7° -> frávik +1.26° (aldur 0.1 klst)
+  THRYSTINGUR: maeldur 991.2 hPa kl 09:00 | likon 991.8 | fravik -0.6
+  NOWCAST VINDUR: maeling 5.7 m/s kl 11:00 a moti likonum 2.6 -> fravik +3.1 (aldur 0.1 klst)
+  NOWCAST SKY: METAR 100% kl 11:00 á móti blöndu 89% -> frávik +11 (aldur 0.1 klst)
   [SPA-GREINING @0klst - berid saman vid maelingu ofar]
-    hiti  : blanda 4.87 +0.25 -> 6.34
-    vindur: blanda 2.83 +0.18 -> 6.73
-    att   : blanda 280.9 +6.5 -> 280.9
-    sky   : blanda 88.99 -1.0 -> 75
+    hiti  : blanda 5.11 +0.25 -> 6.37
+    vindur: blanda 2.71 +0.18 -> 5.83
+    att   : blanda 278.0 +6.5 -> 278.0
+    sky   : blanda 89.46 -1.0 -> 100
     medlimir i blondu: hiti=8 vindur=8 sky=8 att=8 (af 9)
-    leidrettir medlimir hiti: [5.3, 5.3, 4.0, 4.2, 4.3, 4.9, 3.7, 4.0]
-    leidrettir medlimir vind: [2.6, 2.5, 2.4, 2.7, 3.9, 1.6, 3.9, 2.9]
+    leidrettir medlimir hiti: [5.5, 5.2, 4.4, 4.5, 4.6, 5.4, 3.6, 4.2]
+    leidrettir medlimir vind: [2.3, 0.6, 2.9, 2.8, 4.1, 1.5, 3.9, 3.2]
   [SPA-GREINING @1klst - berid saman vid maelingu ofar]
-    hiti  : blanda 5.09 +0.25 -> 6.34
-    vindur: blanda 2.72 +0.18 -> 5.51
-    att   : blanda 278.1 +6.5 -> 278.1
-    sky   : blanda 88.76 -1.0 -> 77
+    hiti  : blanda 5.3 +0.25 -> 6.36
+    vindur: blanda 2.91 +0.18 -> 5.15
+    att   : blanda 279.1 +6.5 -> 279.1
+    sky   : blanda 89.81 -1.0 -> 99
     medlimir i blondu: hiti=8 vindur=8 sky=8 att=8 (af 9)
-    leidrettir medlimir hiti: [5.5, 5.5, 4.4, 4.5, 4.6, 5.1, 3.6, 4.2]
-    leidrettir medlimir vind: [2.3, 1.6, 2.9, 2.8, 4.1, 0.6, 3.9, 3.2]
+    leidrettir medlimir hiti: [5.6, 5.5, 4.7, 4.8, 4.8, 5.5, 3.6, 4.6]
+    leidrettir medlimir vind: [2.2, 0.5, 3.3, 3.1, 4.3, 1.6, 3.9, 3.9]
   OK 120 klst | 6 dagar | 20 timaraufir fylltar
   Jolly skrad i safnid: 6 spalengdir
 YFIRLIT (@6 klst):
@@ -505,7 +505,7 @@ STADA  3 ATRIDI (2 ALVARLEG):
   !! vindur @24klst VERSNAR 3 daga i rod (0.81 -> 1.49 -> 1.56)
   !! att @24klst VERSNAR 3 daga i rod (24.46 -> 25.39 -> 34.28)
 
-Keyrslur 1380 | stadfest por 201070
+Keyrslur 1381 | stadfest por 201070
 Jolly hiti    a moti besta likani: 1kl -19% | 3kl -67% | 6kl -62% | 12kl -78% | 24kl -24% | 48kl -24%
 Jolly vindur  a moti besta likani: 1kl -31% | 3kl -55% | 6kl -15% | 12kl -27% | 24kl -84% | 48kl -50%
 Jolly att     a moti besta likani: 1kl -38% | 3kl -40% | 6kl -37% | 12kl -32% | 24kl -36% | 48kl -7%
