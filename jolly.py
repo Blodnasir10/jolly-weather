@@ -200,6 +200,14 @@ SAGA I STUTTU MALI:
         engu marki, haldast mild (1/MAE).
   v7.8  hourly_past: lidnar klst dagsins eins og theim var spad (ur spasafni,
         stysta spalengd) - svo "Naestu dagar" geti synt lidin timabil daufar.
+  v7.9  HITI EFTIR ADSTAEDUM. Greining: spadur vindhradi skyrir 17% af villu-
+        dreifni (logn: likon 1.0° of hly; >7 m/s: 0.9° of kold), kyrrar heid-
+        skirar naetur verstar (+1.25°). Ridge-leidretting (vindur, logn, ský,
+        nott, dagur, kyrr-heidskir-nott, thrystithroun) laerd i hverri keyrslu
+        ur langtimasafni. Nowcast midar vid leidretta blondu og nær <12 klst.
+        Endurspilun fra 26.sept (Jolly i dag -> ny):
+          1kl 0.54 | 6kl 1.05->0.90 | 12kl 1.11->0.97 | 24kl 1.08->1.00 | 48kl 1.07->0.98
+        Slaer vedur.is OG yr.no a ollum spalengdum i thessu urtaki.
 """
 
 
@@ -236,7 +244,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "7.8"
+JOLLY_VERSION = "7.9"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -3074,11 +3082,100 @@ def verify_and_train(arch, obs_history, model):
 # frá hrárri blöndu á mælitíma er lagt á fyrstu klst og dvínar með aldri.
 # @1klst: 1.31 -> 0.63 (ný mæling), 1.27 -> 0.87 (1 klst gömul). Aldrei verra.
 NOWCAST_TAU      = 6.0   # klst - dvínunartími (tau 4 og 6 prófuð, 6 best)
-NOWCAST_MAX_LEAD = 6     # aðeins spálengdir < 6 klst
+NOWCAST_MAX_LEAD = 12    # [v7.9] < 12 klst (var 6; endurspilun: 6kl 0.92->0.90, lengra skadar)
+# [v7.9] HITALEIDRETTING EFTIR ADSTAEDUM - laerd i hverri keyrslu ur langtima-
+# safninu (villa medaltals likana, sidustu 300 por per spalengd, ridge-adhvarf).
+# Vindhradi skyrir 17% af villudreifni: logn -> likon 1.0° of hly, >7 m/s ->
+# 0.9° of kold. Kyrrar heidskirar naetur: 1.66° -> 1.03°. Allar spalengdir betri.
+TEMP_REGIME_ON  = True
+TEMP_REGIME_N   = 300
+TEMP_REGIME_MIN = 120
+TEMP_REGIME_LAM = 3.0
 NOWCAST_MAX_AGE  = 3     # ekki nota mælingu eldri en 3 klst
 SKY_NOWCAST_MAX_LEAD = 12   # [v6.8] ský: < 12 klst (endurspilun, tau 6 best)
 WIND_NOWCAST_MAX_LEAD = 12  # [v7.4] vindur: < 12 klst
 WIND_NOWCAST_TAU = 3.0      # [v7.4] endurspilun: tau 3 best (1kl 1.20 -> 1.08)
+
+def temp_regime_feats(ws, cf, hour, dp):
+    """[v7.9] Breytur sem eru THEKKTAR vid utgafu (spad, ekki maelt)."""
+    ws = min(max(ws or 0.0, 0.0), 12.0)
+    cf = min(max(cf if cf is not None else 50.0, 0.0), 100.0)
+    night = 1.0 if (hour < 6 or hour >= 21) else 0.0
+    day = 1.0 if 12 <= hour < 18 else 0.0
+    clear = (100.0 - cf) / 100.0
+    calm = min(max((3.0 - ws) / 3.0, 0.0), 1.0)
+    dp = max(-2.0, min(2.0, dp or 0.0))
+    return [1.0, ws, math.log1p(ws), night, clear, night * clear * calm,
+            calm * night, day, dp]
+
+def _ridge(rows, ys, lam):
+    """Ridge-adhvarf an numpy (9x9 kerfi, Gauss-eyding). Fasti ekki refsadur."""
+    k = len(rows[0]); n = len(rows)
+    A = [[0.0] * k for _ in range(k)]; b = [0.0] * k
+    for x, y in zip(rows, ys):
+        for i in range(k):
+            b[i] += x[i] * y
+            for j in range(k):
+                A[i][j] += x[i] * x[j]
+    for i in range(1, k):
+        A[i][i] += lam * n / 100.0
+    for c in range(k):                       # Gauss-eyding med hlutvali
+        piv = max(range(c, k), key=lambda r: abs(A[r][c]))
+        A[c], A[piv] = A[piv], A[c]; b[c], b[piv] = b[piv], b[c]
+        if abs(A[c][c]) < 1e-12: return None
+        for r in range(c + 1, k):
+            f = A[r][c] / A[c][c]
+            for j in range(c, k): A[r][j] -= f * A[c][j]
+            b[r] -= f * b[c]
+    x = [0.0] * k
+    for i in range(k - 1, -1, -1):
+        x[i] = (b[i] - sum(A[i][j] * x[j] for j in range(i + 1, k))) / A[i][i]
+    return x
+
+def fit_temp_regime():
+    """[v7.9] Laerir hitaleidrettingu per spalengd ur langtimasafninu."""
+    import csv as _csv
+    rows = []
+    for f in sorted(VERIFY_DIR.glob("*.csv"))[-2:]:
+        with open(f) as fh:
+            rows += list(_csv.DictReader(fh))
+    def fl(x):
+        try: return float(x)
+        except (TypeError, ValueError): return None
+    grp = {}
+    for r in rows:
+        k = (r["valid_time"], int(r["lead"]))
+        g = grp.setdefault(k, {"t": [], "w": [], "c": [], "ob": None, "dp": None})
+        if r["src"] == JOLLY_KEY:
+            g["dp"] = fl(r.get("dp_fc"))
+            continue
+        for key, col in (("t", "t_fc"), ("w", "w_fc"), ("c", "c_fc")):
+            v = fl(r.get(col))
+            if v is not None: g[key].append(v)
+        if g["ob"] is None: g["ob"] = fl(r.get("t_ob"))
+    coefs = {}
+    for L in LEAD_BUCKETS:
+        data = sorted((vt, g) for (vt, l), g in grp.items()
+                      if l == L and g["ob"] is not None and len(g["t"]) >= 5
+                      and g["w"] and g["c"])[-TEMP_REGIME_N:]
+        if len(data) < TEMP_REGIME_MIN: continue
+        X = [temp_regime_feats(sum(g["w"]) / len(g["w"]), sum(g["c"]) / len(g["c"]),
+                               int(vt[11:13]), g["dp"]) for vt, g in data]
+        y = [sum(g["t"]) / len(g["t"]) - g["ob"] for vt, g in data]
+        b = _ridge(X, y, TEMP_REGIME_LAM)
+        if b: coefs[str(L)] = b
+    return coefs
+
+def temp_regime_corr(coefs, lead, feats):
+    """Leidretting (spa - maeling) a thessum spalengd; bruad milli spalengda."""
+    if not coefs: return 0.0
+    ls = sorted(int(k) for k in coefs)
+    lo = max([l for l in ls if l <= max(lead, ls[0])] or [ls[0]])
+    hi = min([l for l in ls if l >= min(lead, ls[-1])] or [ls[-1]])
+    v = lambda L: sum(a * x for a, x in zip(coefs[str(L)], feats))
+    if lo == hi: return v(lo)
+    f = (lead - lo) / (hi - lo)
+    return v(lo) * (1 - f) + v(hi) * f
 
 def make_forecast(fc, extras, model, obs=None):
     print("SPA:")
@@ -3088,6 +3185,31 @@ def make_forecast(fc, extras, model, obs=None):
     ft  = fc["hourly"]["time"]
     et  = {k: (v["hourly"]["time"] if v else []) for k, v in extras.items()}
     now = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
+    # [v7.9] Hitaleidretting eftir adstaedum
+    _trc = {}
+    if TEMP_REGIME_ON:
+        try:
+            _trc = fit_temp_regime()
+            print(f"  HITALEIDRETTING: laerd fyrir {len(_trc)} spalengdir "
+                  f"({', '.join(sorted(_trc, key=int))} klst)")
+        except Exception as _e:
+            print(f"  (hitaleidretting sleppt: {_e})")
+    def _feats_at(_i):
+        _ws, _cs = [], []
+        for _api in MODELS.values():
+            _a = fc["hourly"].get(f"windspeed_10m_{_api}", [])
+            if _i < len(_a) and _a[_i] is not None: _ws.append(_a[_i])
+            _c = total_cloud(*[(fc["hourly"].get(f"{k}_{_api}", []) or [None] * (_i + 1))[_i]
+                               if _i < len(fc["hourly"].get(f"{k}_{_api}", [])) else None
+                               for k in ("cloud_cover_low", "cloud_cover_mid",
+                                         "cloud_cover_high", "cloud_cover")])
+            if _c is not None: _cs.append(_c)
+        _pm = mean_series(fc, "pressure_msl")
+        _dpi = ((_pm[_i] - _pm[_i - 3]) / 3.0 if _i >= 3 and _pm[_i] is not None
+                and _pm[_i - 3] is not None else None)
+        _hr = int(fc["hourly"]["time"][_i][11:13])
+        return temp_regime_feats(sum(_ws) / len(_ws) if _ws else None,
+                                 sum(_cs) / len(_cs) if _cs else None, _hr, _dpi)
     # [v6.6] Frávik nýjustu hitamælingar frá HRÁU meðaltali líkana á mælitíma
     _nc_anom, _nc_tobs = None, None
     try:
@@ -3105,11 +3227,14 @@ def make_forecast(fc, extras, model, obs=None):
                     if _i0 < len(_a) and _a[_i0] is not None:
                         _v.append(_a[_i0])
                 if len(_v) >= 5:
-                    _nc_anom = _last["temperature"] - sum(_v) / len(_v)
+                    _bl0 = sum(_v) / len(_v)
+                    if _trc:   # [v7.9] midad vid leidretta blondu
+                        _bl0 -= temp_regime_corr(_trc, 1, _feats_at(_i0))
+                    _nc_anom = _last["temperature"] - _bl0
                     _nc_tobs = _tobs
                     print(f"  NOWCAST: mæling {_last['temperature']:.1f}° kl "
                           f"{_last['time'][11:16]} á móti blöndu "
-                          f"{sum(_v)/len(_v):.1f}° -> frávik {_nc_anom:+.2f}° "
+                          f"{_bl0:.1f}°{' (leidrett)' if _trc else ''} -> frávik {_nc_anom:+.2f}° "
                           f"(aldur {_age:.1f} klst)")
     except Exception as _e:
         print(f"  (nowcast sleppt: {_e})")
@@ -3412,6 +3537,11 @@ def make_forecast(fc, extras, model, obs=None):
 
         temp, wind, prec = wa(T), wa(W), wa(P)
         wdir, cloud      = wang(D), wa(C)
+        if _trc and temp is not None and i is not None:   # [v7.9]
+            try:
+                temp = round(temp - temp_regime_corr(_trc, max(1, lead), _feats_at(i)), 2)
+            except Exception:
+                pass
 
         # --- RESTLEIDRETTING A JOLLY ---
         # Blondan sjalf getur haft hlutdraegni sem er ekki summa hlutanna.
