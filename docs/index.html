@@ -48,6 +48,33 @@
   .hero .temp::after{content:"°";font-weight:200;color:var(--chill);opacity:.7}
   .hero .desc{font-size:14px;color:var(--sub);margin-top:4px}
 
+  /* ── Núna-flís (ein flís: ský+hiti+áttaviti, reitir núna/+6/+12) ── */
+  .nowc .top{display:flex;align-items:center;gap:12px;padding:18px 16px 10px 18px}
+  .nowc .icon{width:92px;height:92px;flex-shrink:0;position:relative}
+  .nowc .icon .hwind{position:absolute;right:-10px;bottom:2px;pointer-events:none;
+    filter:drop-shadow(0 2px 4px rgba(0,0,0,.45))}
+  .nowc .temp{font-size:72px;font-weight:200;line-height:.92;letter-spacing:-.03em}
+  .nowc .temp::after{content:"°";font-weight:200;color:var(--chill);opacity:.7}
+  .nowc .desc{font-size:14px;color:var(--sub);margin-top:4px}
+  .nowc .tcmp{margin-left:auto;width:112px;flex-shrink:0}
+  .nowc .cmpbox{width:112px;height:112px}
+  .nowc .leg{font-size:10px;color:var(--faint);text-align:center;margin-top:-2px}
+  .nowc .hair{height:1px;background:rgba(255,255,255,0.07);margin:0 20px}
+  .nowc .wide{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:12px 14px 14px}
+  .nowc .col{background:rgba(255,255,255,0.035);border-radius:14px;padding:8px 2px 9px;text-align:center}
+  .nowc .col.nw{background:rgba(255,255,255,0.07)}
+  .nowc .col .k{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+  .nowc .col .ic{height:38px;display:flex;align-items:center;justify-content:center;margin:2px 0}
+  .nowc .col .t{font-size:18px;font-weight:300}
+  .nowc .col .w{font-size:11px;color:var(--sub);display:flex;justify-content:center;align-items:center;gap:3px;margin-top:4px}
+  .nowc .col .p{font-size:11px;margin-top:2px;color:#7fb3ff}
+  .nowc .col .p.dry{color:var(--faint)}
+  .nowc .col .pr{font-size:9px;color:var(--faint);margin-top:1px}
+  .nowc .gustbar{margin:-2px 14px 14px;padding:7px 12px;border-radius:12px;background:rgba(240,179,90,.12);
+    color:#f0b35a;font-size:12.5px;text-align:center}
+  .nowc .gustbar b{font-weight:600}
+  .nowc .gustbar:empty{display:none}
+
   .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:11px;
     margin-bottom:12px;align-items:stretch}
   .stat{padding:16px 12px 13px;display:flex;flex-direction:column}
@@ -171,29 +198,15 @@
       </div>
     </div>
 
-    <div class="card hero">
-      <div class="icon" id="heroIcon"></div>
-      <div class="right">
-        <div class="temp" id="heroTemp">–</div>
-        <div class="desc" id="heroDesc">–</div>
+    <div class="card nowc">
+      <div class="top">
+        <div class="icon" id="heroIcon"></div>
+        <div><div class="temp" id="heroTemp">–</div><div class="desc" id="heroDesc">–</div></div>
+        <div class="tcmp"><div class="cmpbox" id="compass"></div><div class="leg" id="cLeg"></div></div>
       </div>
-    </div>
-
-    <div class="stats">
-      <div class="card stat">
-        <div class="lbl">Vindátt</div>
-        <div class="mid cmid"><div class="compass" id="compass"></div></div>
-        <div class="cnow" id="cNow">–</div>
-        <div class="clater" id="cLater"></div>
-        <div class="clater" id="cLater12"></div>
-        <div class="gust" id="cGust"></div>
-      </div>
-      <div class="card stat">
-        <div class="lbl">Úrkoma</div>
-        <div class="mid" id="precipIcon"></div>
-        <div class="val" id="precipVal">–</div>
-        <div class="n6" id="precipNext6"></div>
-      </div>
+      <div class="hair"></div>
+      <div class="wide" id="nowCols"></div>
+      <div class="gustbar" id="cGust"></div>
     </div>
 
     <div class="sec">Klukkustundaspá</div>
@@ -478,6 +491,40 @@ function buildCompass(nowDeg, laterDeg){
     <circle cx="${cx}" cy="${cy}" r="3.5" fill="#fff"/></svg>`;
 }
 
+// ══ ÁTTAVITI: hvít ör = núna, ljós ör = +6 klst, bogi = hvernig áttin snýst ══
+function compassX(arrows, arc){
+  const cx=95,cy=95,R=76;
+  const P=(ang,r)=>{const a=(ang+180-90)*Math.PI/180;return [cx+Math.cos(a)*r, cy+Math.sin(a)*r, a];};
+  function arrow(o){
+    const len=o.len||R-16, hl=o.hl||14, [ex,ey,rad]=P(o.deg,len);
+    const bx=cx-Math.cos(rad)*len*0.28, by=cy-Math.sin(rad)*len*0.28, pp=rad+Math.PI/2, hw=hl*0.6;
+    const lx=ex-Math.cos(rad)*hl*0.7, ly=ey-Math.sin(rad)*hl*0.7;
+    const b1=[ex-Math.cos(rad)*hl+Math.cos(pp)*hw, ey-Math.sin(rad)*hl+Math.sin(pp)*hw];
+    const b2=[ex-Math.cos(rad)*hl-Math.cos(pp)*hw, ey-Math.sin(rad)*hl-Math.sin(pp)*hw];
+    return `<line x1="${bx}" y1="${by}" x2="${lx}" y2="${ly}" stroke="${o.color}" stroke-width="${o.w||3}" stroke-linecap="round" opacity="${o.op}"/>
+      <path d="M${ex} ${ey} L${b1[0]} ${b1[1]} L${b2[0]} ${b2[1]} Z" fill="${o.color}" opacity="${o.op}"/>`;
+  }
+  let arcs='';
+  if(arc){
+    const d=((arc.to-arc.from+540)%360)-180, r=R-1;
+    const [x0,y0]=P(arc.from,r), [x1,y1]=P(arc.to,r), sweep=d>0?1:0, large=Math.abs(d)>180?1:0;
+    const a1=(arc.to+180-90)*Math.PI/180, tan=a1+(d>0?Math.PI/2:-Math.PI/2), hh=8;
+    const t1=[x1-Math.cos(tan)*hh+Math.cos(a1)*hh*.55, y1-Math.sin(tan)*hh+Math.sin(a1)*hh*.55];
+    const t2=[x1-Math.cos(tan)*hh-Math.cos(a1)*hh*.55, y1-Math.sin(tan)*hh-Math.sin(a1)*hh*.55];
+    arcs=`<path d="M${x0} ${y0} A${r} ${r} 0 ${large} ${sweep} ${x1} ${y1}" fill="none" stroke="#aac6ea" stroke-width="3.5" stroke-linecap="round" opacity=".75"/>
+      <path d="M${x1} ${y1} L${t1[0]} ${t1[1]} L${t2[0]} ${t2[1]} Z" fill="#aac6ea" opacity=".85"/>`;
+  }
+  const ticks=[0,45,90,135,180,225,270,315].map(a=>{const r=(a-90)*Math.PI/180, r2=(a%90===0)?R-8:R-4;
+    return `<line x1="${cx+Math.cos(r)*R}" y1="${cy+Math.sin(r)*R}" x2="${cx+Math.cos(r)*r2}" y2="${cy+Math.sin(r)*r2}" stroke="rgba(255,255,255,0.16)" stroke-width="1.3"/>`;}).join('');
+  return `<svg viewBox="-6 -6 202 202" width="100%" height="100%">
+    <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1.3"/>${ticks}
+    <text x="${cx}" y="22" fill="#9aa2b4" font-size="12" text-anchor="middle" font-weight="500">N</text>
+    <text x="${cx}" y="176" fill="#646d82" font-size="12" text-anchor="middle">S</text>
+    <text x="18" y="${cy+4}" fill="#646d82" font-size="12" text-anchor="middle">V</text>
+    <text x="172" y="${cy+4}" fill="#646d82" font-size="12" text-anchor="middle">A</text>
+    ${arcs}${arrows.map(arrow).join('')}<circle cx="${cx}" cy="${cy}" r="3.5" fill="#fff"/></svg>`;
+}
+
 // ══ DAG/NÓTT BAKGRUNNUR eftir tíma ══
 const SKY={
   nott:    {a:'#080b12',b:'#0d1220',c:'#141a2e',glow:'rgba(90,110,170,0.10)'},
@@ -515,45 +562,51 @@ function render(FC){
   const nowH=new Date().getHours();
   applySky(nowH);
 
-  // ── NÚNA ──
+  // ── NÚNA-FLÍS ──
   const t0=Math.round(T[0]??0);
   const c0=C[0], p0=P[0]||0, w0=W[0]||0, d0=D[0]??0;
   const kind0=wxKind(c0,p0,t0);
-  // Vindtákn ofan á skýjamyndinni - sömu reglur og áður (windSvg eftir styrk)
-  document.getElementById('heroIcon').innerHTML=wxIcon(120,kind0,p0,isNightHour(nowH),c0)
-    + `<div class="hwind">${windSvg(w0,54)}</div>`;
+  document.getElementById('heroIcon').innerHTML=wxIcon(92,kind0,p0,isNightHour(nowH),c0)
+    + `<div class="hwind">${windSvg(w0,40)}</div>`;
   document.getElementById('heroTemp').textContent=t0;
   const descMap={clear:'Heiðskírt',partly:'Léttskýjað',cloudy:'Skýjað',
     rain:'Rigning',sleet:'Slydda',snow:'Snjókoma'};
   document.getElementById('heroDesc').textContent=
     `${descMap[kind0]||'Skýjað'}${c0!=null?' · '+Math.round(c0)+'% ský':''}`;
 
+  // Áttaviti: hvít ör núna, ljós ör +6 klst, bogi sýnir snúning (ef áttin breytist)
+  const i6=Math.min(6,T.length-1), i12=Math.min(12,T.length-1);
+  const d6=D[i6]??d0, w6=W[i6]??w0;
+  const turn=Math.abs(((d6-d0+540)%360)-180);
+  const turns=turn>=11.25;
+  document.getElementById('compass').innerHTML=compassX(
+    [{deg:d6,color:'#aac6ea',op:.55,w:2.6,hl:12},{deg:d0,color:'#fff',op:1,w:3.2,hl:16}],
+    turns?{from:d0,to:d6}:null);
+  document.getElementById('cLeg').textContent=turns?`${degToDir(d0)} → ${degToDir(d6)}`:degToDir(d0);
 
-  // ── ÁTTAVITI: núna + 6 klst ──
-  const d6=D[6]??d0, w6=W[6]??w0;
-  // Ein ör: áttin eftir 6 klst. Núna og +12 klst sem texti.
-  const d12=D[12]??d6, w12=W[12]??w6;
-  document.getElementById('compass').innerHTML=buildCompass(d6,null);
-  document.getElementById('cNow').textContent=`${degToDir(d0)} ${fmtHalf(w0)} m/s`;
-  document.getElementById('cLater').textContent=`+6 klst · ${degToDir(d6)} ${fmtHalf(w6)} m/s`;
-  document.getElementById('cLater12').textContent=`+12 klst · ${degToDir(d12)} ${fmtHalf(w12)} m/s`;
+  // Reitir: hiti/vindur/tákn = staðan á þeim tíma; úrkoma = samtala hvers tímabils
+  const _sum=(a,b)=>{let x=0; for(let k=a;k<Math.min(b,P.length);k++) x+=P[k]||0; return x;};
+  const r06=_sum(1,7), r612=_sum(7,13);
+  const hrOf=i=>times[i]?new Date(times[i]).getHours():nowH;
+  const col=(lbl,i,rain,rlbl,cls)=>{
+    const t=Math.round(T[i]??0), k=wxKind(C[i],P[i]||0,t);
+    const dry=Math.round(rain*10)===0;
+    return `<div class="col ${cls||''}"><div class="k">${lbl}</div>
+      <div class="ic">${wxIcon(34,k,P[i]||0,isNightHour(hrOf(i)),C[i])}</div>
+      <div class="t">${t}°</div>
+      <div class="w">${windArrow(D[i]??0,10)}${fmtHalf(W[i]||0)}</div>
+      <div class="p${dry?' dry':''}">${fmtRain(rain)} mm</div>
+      <div class="pr">${rlbl}</div></div>`;
+  };
+  document.getElementById('nowCols').innerHTML=
+    col('Núna',0,p0,'þessa klst','nw')+col('+6 klst',i6,r06,'0–6 klst')+col('+12 klst',i12,r612,'6–12 klst');
+
   // Kviður: aðeins sýndar ef hámark næstu 24 klst fer yfir 8 m/s
   const G=H.windgust||[]; let gmx=-1, gi=-1;
   for(let k=0;k<Math.min(24,G.length);k++){ if(G[k]!=null && G[k]>gmx){ gmx=G[k]; gi=k; } }
   document.getElementById('cGust').innerHTML = gmx>8
     ? `Kviður allt að <b>${fmtHalf(gmx)} m/s</b> kl. ${String(new Date(times[gi]).getHours()).padStart(2,'0')}`
     : '';
-
-  // ── ÚRKOMA ──
-  // Samtala næstu 6 og 12 klst
-  const _sum=(a,b)=>{let x=0; for(let k=a;k<Math.min(b,P.length);k++) x+=P[k]||0; return x;};
-  const r6=_sum(1,7), r12=_sum(1,13);
-  document.getElementById('precipIcon').innerHTML=
-    Math.round(r6*10)/10>0 ? wxIcon(50,wxKind(c0,r6,t0),r6,isNightHour(nowH),c0) : wxIcon(50,'dry',0,isNightHour(nowH),c0);
-  document.getElementById('precipVal').innerHTML=`${fmtRain(r6)}<span class="u">mm</span>`;
-  const _pn=document.getElementById('precipNext6');
-  _pn.innerHTML=`næstu 6 klst<br>næstu 12 klst: <b>${fmtRain(r12)} mm</b>`;
-  _pn.className='n6'+(Math.round(r12*10)/10===0?' empty':'');
 
   // ── KLUKKUSTUNDASPÁ (24 klst) ──
   let hh='';
