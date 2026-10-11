@@ -226,6 +226,9 @@ SAGA I STUTTU MALI:
         hverri keyrslu ur sidustu 30 dogum. Ortrygg endurspilun fra 25.sept:
         MAE 1kl 1.79->1.24 | 6kl 1.75->1.54 | 24kl 2.01->1.66 | 48kl 2.37->1.93;
         "spad >=12 m/s" for ur 14 i 6 tilvik @6kl.
+  v8.2  SAMANTEKT: docs/data/summary.json skrifud i hverri keyrslu (arangur
+        sidustu 14 daga: Jolly / vedur.is / yr.no / medaltal hnattlikana) fyrir
+        Um-siduna. Engin breyting a spanni sjalfri.
 """
 
 
@@ -262,7 +265,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "8.1"
+JOLLY_VERSION = "8.2"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -3347,6 +3350,61 @@ def fit_gust_model():
         out[bs] = {"w": w, "c": c, "n": len(X)}
     return out
 
+# [v8.2] ── SAMANTEKT fyrir Um-sidu: litil JSON-skra med nyjustu arangurstolum ──
+SUMMARY_DAYS = 14
+
+def write_summary():
+    """Reiknar nokkrar einfaldar arangurstolur sidustu SUMMARY_DAYS daga
+    ur verify-safninu og vistar i docs/data/summary.json."""
+    import csv as _csv
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    t0 = (now - timedelta(days=SUMMARY_DAYS)).strftime("%Y-%m-%dT%H")
+    def fl(x):
+        try: return float(x)
+        except (TypeError, ValueError): return None
+    grp = {}
+    for f in sorted(VERIFY_DIR.glob("*.csv"))[-2:]:
+        with open(f) as fh:
+            for r in _csv.DictReader(fh):
+                if r["valid_time"] < t0: continue
+                grp.setdefault((r["valid_time"], r["lead"]), {})[r["src"]] = r
+    GLOB = ["ecmwf", "icon", "gfs", "ukmo", "mfr"]
+    def ang(a, b):
+        d = abs(a - b) % 360
+        return min(d, 360 - d)
+    def mae(fc, ob, leads, angle=False, min_ws=None):
+        acc = {"jolly": [], "vedur": [], "yr": [], "glob": []}
+        for (vt, L), g in grp.items():
+            if L not in leads: continue
+            j = g.get(JOLLY_KEY)
+            if not j: continue
+            o, jv = fl(j.get(ob)), fl(j.get(fc))
+            if o is None or jv is None: continue
+            if min_ws is not None and (fl(j.get("ws_ob")) or 0) < min_ws: continue
+            err = (lambda a: ang(a, o)) if angle else (lambda a: abs(a - o))
+            acc["jolly"].append(err(jv))
+            for k, s in (("vedur", "harmonie"), ("yr", "metno")):
+                v = fl((g.get(s) or {}).get(fc))
+                if v is not None: acc[k].append(err(v))
+            gv = [fl(g[m].get(fc)) for m in GLOB if m in g and fl(g[m].get(fc)) is not None]
+            if len(gv) >= 4 and not angle: acc["glob"].append(err(sum(gv) / len(gv)))
+        return {k: (round(sum(v) / len(v), 2) if len(v) >= 20 else None) for k, v in acc.items()}
+    out = {
+        "updated": now.strftime("%Y-%m-%dT%H:%MZ"), "days": SUMMARY_DAYS,
+        "temp_near": mae("t_fc", "t_ob", ("1", "3", "6")),
+        "temp_1": mae("t_fc", "t_ob", ("1",)),
+        "wind_near": mae("w_fc", "w_ob", ("1", "3", "6")),
+        "dir": mae("d_fc", "d_ob", ("1", "3", "6", "12", "24"), angle=True, min_ws=2),
+        "sky_1": mae("c_fc", "c_ob", ("1",)),
+    }
+    p = DATA_DIR / "summary.json"
+    with open(p, "w") as fh:
+        json.dump(out, fh, ensure_ascii=False, indent=1)
+    print(f"  SAMANTEKT: hiti naestu klst Jolly {out['temp_near']['jolly']} | "
+          f"vedur.is {out['temp_near']['vedur']} | yr.no {out['temp_near']['yr']} | "
+          f"hnattlikon {out['temp_near']['glob']}")
+    return out
+
 def make_forecast(fc, extras, model, obs=None):
     print("SPA:")
     if fc is None:
@@ -4444,6 +4502,10 @@ def _run():
         print(f"  (lidnar klst dagsins: {_e})")
     print_coverage(model, fc, extras)
     save(model, fcast)
+    try:
+        write_summary()          # [v8.2]
+    except Exception as _e:
+        print(f"  (samantekt sleppt: {_e})")
     try:
         print_2448_tracker()
     except Exception as _e:
