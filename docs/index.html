@@ -571,14 +571,16 @@ function render(FC){
   document.getElementById('heroTemp').textContent=t0;
   const descMap={clear:'Heiðskírt',partly:'Léttskýjað',cloudy:'Skýjað',
     rain:'Rigning',sleet:'Slydda',snow:'Snjókoma'};
+  // Þurrt: lýsing eftir skýjahulu (áður stóð alltaf "Skýjað", líka í heiðskíru)
+  const dryDesc=c=>c==null?'Þurrt':c<10?'Heiðskírt':c<40?'Léttskýjað':c<75?'Hálfskýjað':'Skýjað';
   document.getElementById('heroDesc').textContent=
-    `${descMap[kind0]||'Skýjað'}${c0!=null?' · '+Math.round(c0)+'% ský':''}`;
+    `${kind0==='dry'?dryDesc(c0):(descMap[kind0]||'Skýjað')}${c0!=null?' · '+Math.round(c0)+'% ský':''}`;
 
   // Áttaviti: hvít ör núna, ljós ör +6 klst, bogi sýnir snúning (ef áttin breytist)
   const i6=Math.min(6,T.length-1), i12=Math.min(12,T.length-1);
   const d6=D[i6]??d0, w6=W[i6]??w0;
   const turn=Math.abs(((d6-d0+540)%360)-180);
-  const turns=turn>=11.25;
+  const turns=turn>=11.25 && degToDir(d0)!==degToDir(d6);
   document.getElementById('compass').innerHTML=compassX(
     [{deg:d6,color:'#aac6ea',op:.55,w:2.6,hl:12},{deg:d0,color:'#fff',op:1,w:3.2,hl:16}],
     turns?{from:d0,to:d6}:null);
@@ -602,11 +604,20 @@ function render(FC){
     col('Núna',0,p0,'þessa klst','nw')+col('+6 klst',i6,r06,'0–6 klst')+col('+12 klst',i12,r612,'6–12 klst');
 
   // Kviður: aðeins sýndar ef hámark næstu 24 klst fer yfir 8 m/s
+  // Aðeins klukkustundir frá og með núna (liðnar klst teljast ekki), og dagur tilgreindur
   const G=H.windgust||[]; let gmx=-1, gi=-1;
-  for(let k=0;k<Math.min(24,G.length);k++){ if(G[k]!=null && G[k]>gmx){ gmx=G[k]; gi=k; } }
-  document.getElementById('cGust').innerHTML = gmx>8
-    ? `Kviður allt að <b>${fmtHalf(gmx)} m/s</b> kl. ${String(new Date(times[gi]).getHours()).padStart(2,'0')}`
-    : '';
+  const nowMs=Date.now()-36e5;
+  let g0=0; while(g0<times.length && Date.parse(times[g0])<nowMs) g0++;
+  for(let k=g0;k<Math.min(g0+24,G.length);k++){ if(G[k]!=null && G[k]>gmx){ gmx=G[k]; gi=k; } }
+  let gTxt='';
+  if(gmx>8){
+    const gd=new Date(times[gi]), td=new Date();
+    const dd=Math.round((new Date(gd.getFullYear(),gd.getMonth(),gd.getDate())-new Date(td.getFullYear(),td.getMonth(),td.getDate()))/864e5);
+    const gh=gd.getHours();
+    const dayW=dd===0?(gh>=18?'í kvöld':'í dag'):dd===1?(gh<6?'í nótt':'á morgun'):'á '+DAGAR[gd.getDay()].toLowerCase().replace(/ur$/,'');
+    gTxt=`Kviður allt að <b>${fmtHalf(gmx)} m/s</b> ${dayW} kl. ${String(gh).padStart(2,'0')}`;
+  }
+  document.getElementById('cGust').innerHTML = gTxt;
 
   // ── KLUKKUSTUNDASPÁ (24 klst) ──
   let hh='';
