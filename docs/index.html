@@ -184,6 +184,8 @@
     backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
     transition:all .2s;
   }
+  .links{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px}
+  .links .nanar-link{margin:0}
   .nanar-link:hover{background:rgba(255,255,255,0.08);color:var(--ink)}
   .nanar-link svg{opacity:.6}
 </style></head>
@@ -217,11 +219,18 @@
 
     <div class="foot" id="foot"></div>
 
-    <a class="nanar-link" href="nanar.html">
-      <span>Nánari upplýsingar</span>
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-        stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
-    </a>
+    <div class="links">
+      <a class="nanar-link" href="nanar.html">
+        <span>Nánari upplýsingar</span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+      </a>
+      <a class="nanar-link" href="um.html">
+        <span>Um Jolly</span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+      </a>
+    </div>
   </div>
 <script>
 const FC_URL='https://raw.githubusercontent.com/Blodnasir10/jolly-weather/main/docs/data/jolly_forecast.json';
