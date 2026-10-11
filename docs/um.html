@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="is"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Um Jolly</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--ink:#f4f6fa;--sub:#9aa2b4;--faint:#646d82;--edge:rgba(255,255,255,0.10);--chill:#aac6ea;--jolly:#3987e5}
+  body{font-family:-apple-system,"SF Pro Display",system-ui,sans-serif;color:var(--ink);background:#0a0d14;
+    -webkit-font-smoothing:antialiased;padding-bottom:50px}
+  .sky{position:fixed;inset:0;z-index:-1;background:radial-gradient(140% 90% at 50% -20%,#1b2138 0%,transparent 55%),
+    linear-gradient(180deg,#0e1220 0%,#141a2e 55%,#1b2138 100%)}
+  .wrap{max-width:560px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 18px) 20px 0}
+  .back{display:inline-flex;align-items:center;gap:4px;color:var(--sub);text-decoration:none;font-size:14px;padding:6px 0}
+  .back svg{width:16px;height:16px}
+  h1{font-size:30px;font-weight:300;margin:6px 0 4px}
+  .lede{color:var(--sub);font-size:15px;line-height:1.55}
+  h2{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:500;margin:34px 0 10px}
+  p{font-size:15px;line-height:1.65;color:#d6dbe6;margin-bottom:12px}
+  b{color:var(--ink);font-weight:600}
+  .m{border-top:1px solid rgba(255,255,255,0.07);padding:12px 0}
+  .m:last-child{border-bottom:1px solid rgba(255,255,255,0.07)}
+  .m .n{font-size:15px;font-weight:500}
+  .m .n span{font-size:12px;color:var(--faint);font-weight:400;margin-left:6px}
+  .m .d{font-size:14px;color:var(--sub);line-height:1.55;margin-top:3px}
+  .nums{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0 6px}
+  .num{background:rgba(255,255,255,0.05);border:1px solid var(--edge);border-radius:16px;padding:12px 8px;text-align:center}
+  .num b{display:block;font-size:22px;font-weight:300;color:#8fbaf0}
+  .num span{font-size:11px;color:var(--sub);line-height:1.35;display:block;margin-top:3px}
+  .note{font-size:12px;color:var(--faint);line-height:1.5}
+  .cmp{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0 8px}
+  .cmp .c{background:rgba(255,255,255,0.04);border:1px solid var(--edge);border-radius:16px;padding:12px 8px;text-align:center}
+  .cmp .c.j{background:rgba(57,135,229,.12);border-color:rgba(57,135,229,.35)}
+  .cmp .t{font-size:12px;color:var(--sub)}
+  .cmp .v{font-size:24px;font-weight:300;margin:4px 0 2px}
+  .cmp .s{font-size:11px;color:var(--faint);line-height:1.35}
+  .end{margin-top:34px;padding:16px 18px;border-radius:18px;background:rgba(57,135,229,.10);border:1px solid rgba(57,135,229,.22);
+    font-size:15px;line-height:1.6;color:#d6dbe6}
+</style></head>
+<body>
+<div class="sky"></div>
+<div class="wrap">
+  <a class="back" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg>Jolly</a>
+  <h1>Um Jolly</h1>
+  <div class="lede">Veðurspá fyrir Egilsstaði sem ber saman spár frá mörgum veðurlíkönum og leiðréttir þær út frá því sem raunverulega mælist hér.</div>
+
+  <h2>Af hverju?</h2>
+  <p>Á Egilsstöðum getur munað miklu á því sem veðurspárnar segja og því sem gerist í raun. Ein spá segir logn og sól, önnur rigningu, og stundum hafa þær allar rangt fyrir sér. Mig langaði að vita hver þeirra hefði oftast rétt fyrir sér, og hvort hægt væri að gera betur með því að láta þær vinna saman.</p>
+  <p>Þannig varð Jolly til: lítið áhugaverkefni sem byrjaði á því að bera spárnar saman við mælingar og hefur síðan lært af hverri einustu klukkustund.</p>
+
+  <h2>Hvernig virkar þetta?</h2>
+  <p>Á klukkutíma fresti sækir Jolly nýjustu spár frá níu veðurlíkönum og ber þær saman við mælingar Veðurstofunnar á Egilsstaðaflugvelli. Hvert líkan fær vægi eftir því hve vel það hefur staðið sig undanfarið. Síðan leiðréttir Jolly þekktar skekkjur: til dæmis að líkönin spá of mikilli úrkomu í suðaustanátt (regnskuggi yfir Héraði) og of hlýju á kyrrum, heiðskírum nóttum. Fyrstu klukkustundirnar er spáin líka færð að því sem stöðin mælir akkúrat núna.</p>
+
+  <h2>Líkönin og veikleikar þeirra</h2>
+  <div class="m"><div class="n">vedur.is<span>Veðurstofa Íslands</span></div><div class="d">Sterk í hita, enda gerð fyrir Ísland. Veikari í vindátt og vindstyrk, og skýjahulan er aðeins gróf.</div></div>
+  <div class="m"><div class="n">yr.no<span>MET Norway</span></div><div class="d">Gott í vindstyrk. Á það til að spá of hlýju þegar kólnar í kyrru veðri.</div></div>
+  <div class="m"><div class="n">ECMWF<span>Evrópska reiknimiðstöðin</span></div><div class="d">Eitt besta hnattlíkan heims, en vanmetur vindinn hér um rúman metra á sekúndu.</div></div>
+  <div class="m"><div class="n">DMI og KNMI<span>Danska og hollenska veðurstofan</span></div><div class="d">Fínupplausn yfir Íslandi, en spá of hvössum vindi og kviðum á Egilsstöðum.</div></div>
+  <div class="m"><div class="n">ICON<span>Þýska veðurstofan</span></div><div class="d">Traust í vindi og kviðum. Í meðallagi í öðru.</div></div>
+  <div class="m"><div class="n">UKMO<span>Breska veðurstofan</span></div><div class="d">Eitt það besta í kviðum. Spáir oft aðeins of litlum vindi.</div></div>
+  <div class="m"><div class="n">Météo-France<span>Franska veðurstofan</span></div><div class="d">Gott í vindi og kviðum, en það vantar stundum klukkustundir í gögnin.</div></div>
+  <div class="m"><div class="n">GFS<span>Bandaríska veðurstofan</span></div><div class="d">Grófasta líkanið. Gagnlegt í samanburðinn en sjaldan best eitt og sér.</div></div>
+  <p class="note" style="margin-top:10px">Öll líkönin eiga það sameiginlegt að spá of mikilli úrkomu í suðaustanátt og gera lítið úr kuldanum á kyrrum vetrarnóttum. Það eru einmitt hlutirnir sem Jolly leiðréttir.</p>
+
+  <h2>Hvað sérðu annars staðar?</h2>
+  <p>Flestir fá veðrið frá RÚV, sem notar spá Veðurstofunnar, eða úr veðurappinu í símanum. iPhone og Android nota hnattlíkön (NOAA, ECMWF, þýsku og frönsku veðurstofurnar o.fl.) en ekkert íslenskt líkan. Svona hefur hitaspáin næstu klukkustundir staðist hér á Egilsstöðum:</p>
+  <div class="cmp" id="cmp">
+    <div class="c"><div class="t">RÚV / vedur.is</div><div class="v" id="cV">–</div><div class="s">meðalskekkja</div></div>
+    <div class="c"><div class="t">Símaspá</div><div class="v" id="cS">–</div><div class="s">meðalskekkja*</div></div>
+    <div class="c j"><div class="t">Jolly</div><div class="v" id="cJ">–</div><div class="s">meðalskekkja</div></div>
+  </div>
+  <p class="note">* Ekki er hægt að sækja spár símaappanna beint, svo hér er notað meðaltal hnattlíkananna sem þau byggja á. Það er nálgun.</p>
+
+  <h2>Hverju hefur þetta skilað?</h2>
+  <p id="resTxt">Síðustu vikur hefur Jolly verið nákvæmari en bæði yr.no og vedur.is í flestum samanburðum, mest næstu klukkustundirnar.</p>
+  <div class="nums">
+    <div class="num"><b id="n1">–</b><span id="n1s">skekkja í hita næstu klst</span></div>
+    <div class="num"><b id="n2">–</b><span>minni skekkja í vindátt en yr.no</span></div>
+    <div class="num"><b id="n3">–</b><span>minni skekkja í skýjahulu næstu klst</span></div>
+  </div>
+  <p class="note" id="upd">Tölurnar eru reiknaðar sjálfkrafa á klukkutíma fresti úr mælingum síðustu 14 daga. Samanburð dag fyrir dag má sjá á síðunni „Nánari upplýsingar“.</p>
+
+  <div class="end">Markmiðið er áfram einfalt: að búa til bestu mögulegu veðurspá fyrir Egilsstaði. Jolly er ekki rekið í hagnaðarskyni, það eru engar auglýsingar og engum persónuupplýsingum er safnað. Þetta er gert til gamans.</div>
+</div>
+<script>
+// Nýjustu árangurstölur (Jolly reiknar þær á klukkutíma fresti)
+const fmt=(v,d=1)=>v==null?'–':(Math.round(v*10**d)/10**d).toFixed(d).replace('.',',');
+function fill(S){
+  const t=S.temp_near||{},t1=S.temp_1||{},dr=S.dir||{},sk=S.sky_1||{};
+  document.getElementById('cV').textContent=fmt(t.vedur)+'°';
+  document.getElementById('cS').textContent=fmt(t.glob)+'°';
+  document.getElementById('cJ').textContent=fmt(t.jolly)+'°';
+  document.getElementById('n1').textContent=fmt(t1.jolly)+'°';
+  document.getElementById('n1s').innerHTML=`skekkja í hita næstu klst<br>(yr.no ${fmt(t1.yr)}° · vedur.is ${fmt(t1.vedur)}°)`;
+  const pct=(a,b)=>a!=null&&b?Math.round((1-a/b)*100)+'%':'–';
+  document.getElementById('n2').textContent=pct(dr.jolly,dr.yr);
+  const others=[sk.yr,sk.vedur,sk.glob].filter(x=>x!=null);
+  document.getElementById('n3').textContent=others.length?pct(sk.jolly,Math.min(...others)):'–';
+  if(S.updated){const d=new Date(S.updated.replace('Z',':00Z'));
+    document.getElementById('upd').textContent=`Reiknað sjálfkrafa úr mælingum síðustu ${S.days||14} daga · síðast uppfært ${d.getUTCDate()}.${d.getUTCMonth()+1}. kl. ${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}. Samanburð dag fyrir dag má sjá á síðunni „Nánari upplýsingar“.`;}
+}
+fetch('https://raw.githubusercontent.com/Blodnasir10/jolly-weather/main/docs/data/summary.json?t='+Date.now(),{cache:'no-store'})
+  .then(r=>r.ok?r.json():null).then(S=>{if(S)fill(S);}).catch(()=>{});
+</script>
+<script data-goatcounter="https://ajx1.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body></html>
