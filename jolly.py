@@ -208,6 +208,17 @@ SAGA I STUTTU MALI:
         Endurspilun fra 26.sept (Jolly i dag -> ny):
           1kl 0.54 | 6kl 1.05->0.90 | 12kl 1.11->0.97 | 24kl 1.08->1.00 | 48kl 1.07->0.98
         Slaer vedur.is OG yr.no a ollum spalengdum i thessu urtaki.
+  v8.0  (1) LIFANDI URKOMUSTUDULL EFTIR ATT, med SA-regnskugga i forgrunni:
+        i suðaustanatt maelist adeins ~55% af urkomu likananna. Studull per att
+        (8 attir) = (maelt+5)/(spad+5) sidustu 120 daga, endurmetinn i HVERRI
+        keyrslu (laert af medlimum, ekki Jolly - engin endurgjafarlykkja),
+        takmarkadur 0.3-1.2. Ortrygg endurspilun fra 1.okt (studlar adeins ur
+        fortidinni): urkomuvilla 1kl 0.116->0.091 | 6kl 0.108->0.083 |
+        24kl 0.119->0.099 (SA eingongu: 0.100 | 0.092 | 0.109).
+        (2) VINDVAEGI UR LANGTIMASAFNI: vaegi = (1/RMSE sidustu 30 d)^6 per
+        likan og spalengd. Endurspilun fra 15.sept (blanda an nowcast):
+        6kl 1.28->1.22 | 12kl 1.28->1.25 | 24kl 1.40->1.31 | 48kl 1.53->1.45,
+        betra i badum helmingum urtaksins. Nowcast vinds midar vid sama vaegi.
 """
 
 
@@ -244,7 +255,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "7.9"
+JOLLY_VERSION = "8.0"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -3177,6 +3188,83 @@ def temp_regime_corr(coefs, lead, feats):
     f = (lead - lo) / (hi - lo)
     return v(lo) * (1 - f) + v(hi) * f
 
+# [v8.0] ── LANGTIMASAFN: vindvaegi og SA-regnskuggi (laert i hverri keyrslu) ──
+WIND_ARCH_ON    = True
+WIND_ARCH_DAYS  = 30      # gluggi fyrir RMSE hvers likans
+WIND_ARCH_POWER = 3       # vaegi = (1/RMSE)^(2*POWER); endurspilun: 2-5 jafngott
+WIND_ARCH_MIN_N = 20      # lagmarksfjoldi para per likan og spalengd
+SE_RAIN_ON      = True
+SE_RAIN_SECTOR  = (112.5, 157.5)   # SA (ASA-SSA midja)
+SE_RAIN_DAYS    = 120
+SE_RAIN_PRIOR   = 5.0     # mm - togar studulinn ad 1.0 thegar gogn eru fa
+SE_RAIN_CLAMP   = (0.3, 1.2)
+_SECT8 = ["N", "NA", "A", "SA", "S", "SV", "V", "NV"]
+
+def _sect8(d):
+    return _SECT8[int(((d + 22.5) % 360) // 45)]
+
+def fit_archive_extras():
+    """[v8.0] Les verify-safnid einu sinni: (a) RMSE vinds per likan/spalengd
+    sidustu WIND_ARCH_DAYS d -> vaegi, (b) urkomuhlutfall maelt/spad per att
+    (8 attir) sidustu SE_RAIN_DAYS d -> lifandi SA-studull."""
+    import csv as _csv
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    t_w = (now - timedelta(days=WIND_ARCH_DAYS)).strftime("%Y-%m-%dT%H")
+    t_r = (now - timedelta(days=SE_RAIN_DAYS)).strftime("%Y-%m-%dT%H")
+    def fl(x):
+        try: return float(x)
+        except (TypeError, ValueError): return None
+    grp = {}
+    for f in sorted(VERIFY_DIR.glob("*.csv"))[-5:]:
+        with open(f) as fh:
+            for r in _csv.DictReader(fh):
+                vt = r["valid_time"]
+                if vt < t_r: continue
+                g = grp.setdefault((vt, r["lead"]), {})
+                g[r["src"]] = r
+    # (a) vindvaegi
+    se = {}
+    for (vt, L), g in grp.items():
+        if vt < t_w: continue
+        jr = g.get(JOLLY_KEY) or next(iter(g.values()))
+        ob = fl(jr.get("w_ob"))
+        if ob is None: continue
+        for m in ALL_KEYS:
+            v = fl((g.get(m) or {}).get("w_fc"))
+            if v is None: continue
+            a = se.setdefault(L, {}).setdefault(m, [0.0, 0])
+            a[0] += (v - ob) ** 2; a[1] += 1
+    ww = {}
+    for L, d in se.items():
+        ok = {m: (s / n) ** 0.5 for m, (s, n) in d.items() if n >= WIND_ARCH_MIN_N}
+        if len(ok) < 5: continue
+        raw = {m: (1.0 / max(r, 0.05)) ** (2 * WIND_ARCH_POWER) for m, r in ok.items()}
+        tot = sum(raw.values())
+        ww[str(lead_bucket(int(L)))] = {m: w / tot for m, w in raw.items()}
+    # (b) urkoma eftir att (medlimir, ekki Jolly -> engin endurgjof)
+    sec = {s: [0.0, 0.0, 0, 0] for s in _SECT8}   # spad, maelt, blautar, n
+    for (vt, L), g in grp.items():
+        jr = g.get(JOLLY_KEY)
+        if not jr: continue
+        ob = fl(jr.get("p_ob"))
+        if ob is None: continue
+        ps, xs, ys = [], 0.0, 0.0
+        for m in ALL_KEYS:
+            r = g.get(m)
+            if not r: continue
+            p = fl(r.get("p_fc")); d = fl(r.get("d_fc")); w = fl(r.get("w_fc"))
+            if p is not None: ps.append(p)
+            if d is not None and w is not None:
+                xs += w * math.sin(math.radians(d)); ys += w * math.cos(math.radians(d))
+        if len(ps) < 5 or (xs == 0 and ys == 0): continue
+        s = _sect8(math.degrees(math.atan2(xs, ys)) % 360)
+        a = sec[s]; a[0] += sum(ps) / len(ps); a[1] += ob; a[2] += (ob >= 0.1); a[3] += 1
+    ks = {}
+    for s_, (fc_, ob_, _w, _n) in sec.items():
+        k = (ob_ + SE_RAIN_PRIOR) / (fc_ + SE_RAIN_PRIOR)
+        ks[s_] = round(min(SE_RAIN_CLAMP[1], max(SE_RAIN_CLAMP[0], k)), 3)
+    return ww, ks, sec
+
 def make_forecast(fc, extras, model, obs=None):
     print("SPA:")
     if fc is None:
@@ -3194,6 +3282,23 @@ def make_forecast(fc, extras, model, obs=None):
                   f"({', '.join(sorted(_trc, key=int))} klst)")
         except Exception as _e:
             print(f"  (hitaleidretting sleppt: {_e})")
+    # [v8.0] Vindvaegi og SA-regnskuggi ur langtimasafni
+    _ww, _se_k = {}, {}
+    try:
+        _ww_all, _se_k_fit, _sec = fit_archive_extras()
+        if WIND_ARCH_ON: _ww = _ww_all
+        if SE_RAIN_ON: _se_k = _se_k_fit
+        if "6" in _ww:
+            print("  VINDVAEGI (RMSE " + str(WIND_ARCH_DAYS) + " d) @6klst: " + " ".join(
+                f"{m} {w:.2f}" for m, w in sorted(_ww["6"].items(), key=lambda x: -x[1])))
+        _sa = _sec["SA"]
+        print(f"  SA-REGNSKUGGI: studull {_se_k_fit['SA']:.2f} | SA sidustu {SE_RAIN_DAYS} d: "
+              f"spad {_sa[0]:.1f} mm, maelt {_sa[1]:.1f} mm, {_sa[2]} blautar klst (n={_sa[3]})"
+              + ("" if SE_RAIN_ON else " [AF]"))
+        print("  URKOMUSTUDLAR EFTIR ATT (lifandi): " + " | ".join(
+            f"{s} {_se_k_fit[s]:.2f} ({v[2]} bl.)" for s, v in _sec.items()))
+    except Exception as _e:
+        print(f"  (vindvaegi/regnskuggi sleppt: {_e})")
     def _feats_at(_i):
         _ws, _cs = [], []
         for _api in MODELS.values():
@@ -3266,11 +3371,15 @@ def make_forecast(fc, extras, model, obs=None):
             if _agw <= NOWCAST_MAX_AGE and _lw["time"] in _ft:
                 _i0 = _ft.index(_lw["time"])
                 _vw = []
-                for _api in MODELS.values():
+                _w1 = _ww.get("1", {})   # [v8.0] sama vaegi og blandan
+                for _mk, _api in MODELS.items():
                     _a = fc["hourly"].get(f"windspeed_10m_{_api}", [])
-                    if _i0 < len(_a) and _a[_i0] is not None: _vw.append(_a[_i0])
+                    if _i0 < len(_a) and _a[_i0] is not None:
+                        _vw.append((_a[_i0], _w1.get(_mk, 0.0) if _w1 else 1.0))
                 if len(_vw) >= 5:
-                    _bw = sum(_vw) / len(_vw)
+                    _tw0 = sum(w for _, w in _vw)
+                    _bw = (sum(v * w for v, w in _vw) / _tw0 if _tw0 > 0
+                           else sum(v for v, _ in _vw) / len(_vw))
                     _ncw_anom, _ncw_tobs = _lw["windspeed"] - _bw, _tw
                     print(f"  NOWCAST VINDUR: maeling {_lw['windspeed']:.1f} m/s kl "
                           f"{_lw['time'][11:16]} a moti likonum {_bw:.1f} -> "
@@ -3417,6 +3526,7 @@ def make_forecast(fc, extras, model, obs=None):
         for m, api in MODELS.items():
             # Fjorar thyngdir - ein per breytu
             wv = {v: WGT(v, m) for v in WEIGHT_VARS}
+            if _ww.get(bs): wv["vindur"] = _ww[bs].get(m, 0.0)   # [v8.0]
             for _v in WEIGHT_VARS: hour_weights[_v][m] = wv[_v]
             b  = model["bias"][m][bs]
             bl = model["bias"][m][b_lo]
@@ -3474,6 +3584,7 @@ def make_forecast(fc, extras, model, obs=None):
 
         for k, src in extras.items():
             xv = {v: WGT(v, k) for v in WEIGHT_VARS}
+            if _ww.get(bs): xv["vindur"] = _ww[bs].get(k, 0.0)   # [v8.0]
             for _v in WEIGHT_VARS: hour_weights[_v][k] = xv[_v]
             xb = model["bias"][k][bs]
             xl = model["bias"][k][b_lo]; xh = model["bias"][k][b_hi]
@@ -3565,6 +3676,10 @@ def make_forecast(fc, extras, model, obs=None):
                 prec = round(max(0.0, prec * jb.get("urkoma_scale", 1.0)), 2)
             if cloud is not None and APPLY_JOLLY_RESIDUAL.get("sky"):
                 cloud = min(100.0, max(0.0, cloud + jb.get("sky", 0.0)))
+
+        # [v8.0] Lifandi urkomustudull eftir spadri att (SA = regnskuggi)
+        if prec is not None and wdir is not None and _se_k:
+            prec = round(prec * _se_k.get(_sect8(wdir), 1.0), 2)
 
         # [v6.4] Skra restbias(hiti) sem RAUNVERULEGA var lagt a thessa
         # klukkustund (0 ef ekkert). Stadfesting notar thad til ad laera af
