@@ -219,6 +219,13 @@ SAGA I STUTTU MALI:
         likan og spalengd. Endurspilun fra 15.sept (blanda an nowcast):
         6kl 1.28->1.22 | 12kl 1.28->1.25 | 24kl 1.40->1.31 | 48kl 1.53->1.45,
         betra i badum helmingum urtaksins. Nowcast vinds midar vid sama vaegi.
+  v8.1  KVIDUR: adur hratt medaltal likana (DMI/KNMI +1.3 m/s of hvass, of
+        lagt i haegvidri, spad >=12 m/s raettist adeins i 2/3 tilvika).
+        Nu: (a) vaegi = (1/RMSE 30 d)^6 per likan og spalengd, (b) lifandi
+        kvordun maelt = a + b*blanda (+ c*vindspa Jolly a 1-3 klst), laerd i
+        hverri keyrslu ur sidustu 30 dogum. Ortrygg endurspilun fra 25.sept:
+        MAE 1kl 1.79->1.24 | 6kl 1.75->1.54 | 24kl 2.01->1.66 | 48kl 2.37->1.93;
+        "spad >=12 m/s" for ur 14 i 6 tilvik @6kl.
 """
 
 
@@ -255,7 +262,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "8.0"
+JOLLY_VERSION = "8.1"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -3265,6 +3272,81 @@ def fit_archive_extras():
         ks[s_] = round(min(SE_RAIN_CLAMP[1], max(SE_RAIN_CLAMP[0], k)), 3)
     return ww, ks, sec
 
+# [v8.1] ── KVIDUR: vaegi + lifandi kvordun ur langtimasafni ──
+GUST_ARCH_ON   = True
+GUST_ARCH_DAYS = 30
+GUST_MIN_N     = 60
+
+def _lsq(X, y, lam=1.0):
+    k = len(X[0]); A = [[0.0] * k for _ in range(k)]; b = [0.0] * k
+    for x, yy in zip(X, y):
+        for i in range(k):
+            b[i] += x[i] * yy
+            for j in range(k): A[i][j] += x[i] * x[j]
+    for i in range(1, k): A[i][i] += lam
+    for c in range(k):
+        piv = max(range(c, k), key=lambda r: abs(A[r][c]))
+        A[c], A[piv] = A[piv], A[c]; b[c], b[piv] = b[piv], b[c]
+        if abs(A[c][c]) < 1e-12: return None
+        for r in range(c + 1, k):
+            f_ = A[r][c] / A[c][c]
+            for j in range(c, k): A[r][j] -= f_ * A[c][j]
+            b[r] -= f_ * b[c]
+    x = [0.0] * k
+    for i in range(k - 1, -1, -1):
+        x[i] = (b[i] - sum(A[i][j] * x[j] for j in range(i + 1, k))) / A[i][i]
+    return x
+
+def fit_gust_model():
+    """[v8.1] Per spalengdarholf: vaegi likana (1/RMSE^6) og kvordun
+    maelt = a + b*vegin_blanda (+ c*vindspa Jolly a holfum 1 og 3)."""
+    import csv as _csv
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    t0 = (now - timedelta(days=GUST_ARCH_DAYS)).strftime("%Y-%m-%dT%H")
+    def fl(x):
+        try: return float(x)
+        except (TypeError, ValueError): return None
+    grp = {}
+    for f in sorted(VERIFY_DIR.glob("*.csv"))[-2:]:
+        with open(f) as fh:
+            for r in _csv.DictReader(fh):
+                if r["valid_time"] < t0: continue
+                grp.setdefault((r["valid_time"], r["lead"]), {})[r["src"]] = r
+    recs = {}
+    for (vt, L), g in grp.items():
+        j = g.get(JOLLY_KEY)
+        if not j: continue
+        o = fl(j.get("g_ob"))
+        if o is None: continue
+        v = {m: fl(g[m].get("g_fc")) for m in MODELS if m in g and fl(g[m].get("g_fc")) is not None}
+        if len(v) < 5: continue
+        recs.setdefault(str(lead_bucket(int(L))), []).append((o, v, fl(j.get("w_fc"))))
+    out = {}
+    for bs, rr in recs.items():
+        if len(rr) < GUST_MIN_N: continue
+        rm = {}
+        for m in MODELS:
+            e = [(v[m] - o) ** 2 for o, v, _ in rr if m in v]
+            if len(e) >= GUST_MIN_N // 2: rm[m] = (sum(e) / len(e)) ** 0.5
+        if len(rm) < 4: continue
+        w = {m: (1.0 / max(r_, 0.05)) ** 6 for m, r_ in rm.items()}
+        tw = sum(w.values()); w = {m: x / tw for m, x in w.items()}
+        def bl(v):
+            s_ = sum(w.get(m, 0) for m in v)
+            return sum(v[m] * w.get(m, 0) for m in v) / s_ if s_ > 0 else None
+        use_w = bs in ("1", "3")
+        X, y = [], []
+        for o, v, jw in rr:
+            b_ = bl(v)
+            if b_ is None or (use_w and jw is None): continue
+            X.append([1.0, b_] + ([jw] if use_w else [])); y.append(o)
+        if len(X) < GUST_MIN_N: continue
+        c = _lsq(X, y)
+        if not c: continue
+        c[1] = min(1.5, max(0.3, c[1]))
+        out[bs] = {"w": w, "c": c, "n": len(X)}
+    return out
+
 def make_forecast(fc, extras, model, obs=None):
     print("SPA:")
     if fc is None:
@@ -3299,6 +3381,17 @@ def make_forecast(fc, extras, model, obs=None):
             f"{s} {_se_k_fit[s]:.2f} ({v[2]} bl.)" for s, v in _sec.items()))
     except Exception as _e:
         print(f"  (vindvaegi/regnskuggi sleppt: {_e})")
+    _gm = {}
+    if GUST_ARCH_ON:
+        try:
+            _gm = fit_gust_model()
+            if "6" in _gm:
+                _c6 = _gm["6"]["c"]
+                print(f"  KVIDULIKAN: {len(_gm)} spalengdir | @6klst maelt = {_c6[0]:.2f} + "
+                      f"{_c6[1]:.2f} x blanda (n={_gm['6']['n']}) | vaegi: " + " ".join(
+                      f"{m} {x:.2f}" for m, x in sorted(_gm["6"]["w"].items(), key=lambda q: -q[1])[:4]))
+        except Exception as _e:
+            print(f"  (kvidulikan sleppt: {_e})")
     def _feats_at(_i):
         _ws, _cs = [], []
         for _api in MODELS.values():
@@ -3751,6 +3844,20 @@ def make_forecast(fc, extras, model, obs=None):
         J["hourly"]["temperature"].append(temp)
         J["hourly"]["windspeed"].append(wind)
         J["hourly"]["winddirection"].append(wdir)
+        # [v8.1] Vegin og kvordud kvidaspa
+        _gb = _gm.get(bs) if _gm else None
+        if _gb and i is not None:
+            _vals = []
+            for _mk, _api in MODELS.items():
+                _a = fc["hourly"].get(f"windgusts_10m_{_api}", [])
+                if i < len(_a) and _a[i] is not None and _mk in _gb["w"]:
+                    _vals.append((_a[i], _gb["w"][_mk]))
+            _tw = sum(x for _, x in _vals)
+            if _tw > 0:
+                _b = sum(v * x for v, x in _vals) / _tw
+                _c = _gb["c"]
+                _g = _c[0] + _c[1] * _b + (_c[2] * (wind or 0.0) if len(_c) > 2 else 0.0)
+                gust = max(_g, wind or 0.0, 0.0)
         J["hourly"]["windgust"].append(round(gust, 1) if gust is not None else None)
         # [v7.1] THRYSTISPA JOLLY, tilraun 1: medaltal likana (sjavarmal) +
         # fravik maelingar fra blondu a maelitima, dvinar a ~24 klst.
