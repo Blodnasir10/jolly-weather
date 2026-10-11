@@ -1,2003 +1,725 @@
 <!DOCTYPE html>
-<html lang="is">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Jolly — Egilsstaðir</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<html lang="is"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Jolly · Nánar</title>
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --blur: blur(40px) saturate(1.8);
-  --glass: rgba(255,255,255,0.055);
-  --glass-border: rgba(255,255,255,0.09);
-  --glass-strong: rgba(255,255,255,0.09);
-  --text: rgba(255,255,255,0.93);
-  --sub: rgba(255,255,255,0.45);
-  --dim: rgba(255,255,255,0.25);
-}
-html{scroll-behavior:smooth;height:100%}
-body{
-  font-family:-apple-system,'SF Pro Text','SF Pro Display',system-ui,sans-serif;
-  color:var(--text);min-height:100vh;overflow-x:hidden;
-  background:#06090f;-webkit-font-smoothing:antialiased;
-}
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  :root{
+    --ink:#f4f6fa;--sub:#9aa2b4;--faint:#646d82;--line:rgba(255,255,255,0.07);
+    --card:rgba(255,255,255,0.055);--card-top:rgba(255,255,255,0.10);--edge:rgba(255,255,255,0.10);
+    --chill:#aac6ea;
+    --jolly:#3987e5;--yr:#d95926;--ved:#199e70;--mod:#8a93a8;--obs:#f4f6fa;
+    --good:#4cc38a;--warn:#f0b35a;--bad:#ff7a70;
+  }
+  html,body{min-height:100%}
+  body{font-family:-apple-system,"SF Pro Display",system-ui,sans-serif;color:var(--ink);
+    background:#0a0d14;-webkit-font-smoothing:antialiased;font-feature-settings:"tnum";padding-bottom:50px;overflow-x:hidden}
+  .sky{position:fixed;inset:0;z-index:-2;
+    background:radial-gradient(140% 90% at 50% -20%,#1b2138 0%,transparent 55%),
+      linear-gradient(180deg,#0e1220 0%,#141a2e 55%,#1b2138 100%)}
+  .wrap{max-width:520px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 18px) 16px 0}
+  a{color:inherit}
+  .back{display:inline-flex;align-items:center;gap:4px;color:var(--sub);text-decoration:none;font-size:14px;padding:6px 0}
+  .back svg{width:16px;height:16px}
+  h1{font-size:30px;font-weight:300;letter-spacing:-.01em;margin-top:6px}
+  .lede{color:var(--sub);font-size:14px;margin-top:2px}
 
-/* BG */
-#bg{
-  position:fixed;inset:0;z-index:0;
-  background:linear-gradient(160deg,#0a1220,#0f2035);
-  transition:background 4s cubic-bezier(.4,0,.2,1);
-}
-#bg::after{
-  content:'';position:absolute;inset:0;
-  background:
-    radial-gradient(ellipse 80% 50% at 20% 10%, rgba(255,255,255,0.025) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 40% at 80% 80%, rgba(255,255,255,0.015) 0%, transparent 50%);
-}
+  .card{position:relative;background:linear-gradient(180deg,var(--card-top),var(--card) 40%);
+    border-radius:24px;border:1px solid var(--edge);
+    box-shadow:0 1px 0 rgba(255,255,255,0.08) inset,0 12px 34px rgba(0,0,0,0.30);
+    backdrop-filter:blur(24px) saturate(1.4);-webkit-backdrop-filter:blur(24px) saturate(1.4);
+    padding:18px 16px;margin-top:12px}
+  .sec{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:28px 6px 0}
+  .sech{font-size:17px;font-weight:500;margin:0 0 2px}
+  .secd{font-size:13px;color:var(--sub);line-height:1.45;margin-bottom:12px}
 
-/* PAGES */
-.page{position:relative;z-index:1;min-height:100vh}
+  /* status */
+  .status{display:flex;align-items:center;gap:12px}
+  .badge{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .badge svg{width:24px;height:24px}
+  .badge.ok{background:rgba(76,195,138,.15);color:var(--good)}
+  .badge.warn{background:rgba(240,179,90,.15);color:var(--warn)}
+  .badge.bad{background:rgba(255,122,112,.15);color:var(--bad)}
+  .st1{font-size:17px;font-weight:500}
+  .st2{font-size:13px;color:var(--sub);margin-top:2px}
+  .issues{margin-top:10px;font-size:13px;color:var(--warn);line-height:1.5}
+  .src{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+  .chip{font-size:12px;padding:5px 9px;border-radius:999px;background:rgba(255,255,255,0.05);
+    color:var(--sub);display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  .dot{width:7px;height:7px;border-radius:50%}
+  .dot.ok{background:var(--good)} .dot.bad{background:var(--bad)} .dot.warn{background:var(--warn)}
 
-/* GLASS CARD */
-.g{
-  background:var(--glass);
-  backdrop-filter:var(--blur);
-  -webkit-backdrop-filter:var(--blur);
-  border:1px solid var(--glass-border);
-  border-radius:22px;
-  box-shadow:0 8px 40px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.08);
-}
-.g-sm{
-  background:var(--glass);
-  backdrop-filter:var(--blur);
-  -webkit-backdrop-filter:var(--blur);
-  border:1px solid var(--glass-border);
-  border-radius:16px;
-  box-shadow:0 4px 24px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.07);
-}
+  /* hero */
+  .hero{display:flex;align-items:center;gap:16px}
+  .ring{width:92px;height:92px;flex-shrink:0;position:relative}
+  .ring .n{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .ring .n b{font-size:22px;font-weight:300;letter-spacing:-.02em}
+  .ring .n span{font-size:10px;color:var(--faint);letter-spacing:.06em}
+  .hero .t1{font-size:17px;font-weight:500;line-height:1.3}
+  .hero .t2{font-size:13px;color:var(--sub);margin-top:4px;line-height:1.45}
 
-/* ════ FORSÍÐA ════ */
-#forsida{
-  display:flex;flex-direction:column;
-  padding:52px 18px 32px;
-  max-width:420px;margin:0 auto;gap:12px;
-}
+  /* controls */
+  .seg{display:flex;gap:4px;background:rgba(0,0,0,0.22);padding:3px;border-radius:12px;overflow-x:auto;scrollbar-width:none}
+  .seg::-webkit-scrollbar{display:none}
+  .seg button{flex:1 0 auto;border:0;background:transparent;color:var(--sub);font:inherit;font-size:13px;
+    padding:7px 8px;border-radius:9px;cursor:pointer;white-space:nowrap}
+  .seg button.on{background:rgba(255,255,255,0.12);color:var(--ink);font-weight:500}
+  .row{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+  .lbl{font-size:12px;color:var(--faint)}
+  .seg.small button{font-size:12px;padding:5px 9px}
+  .tog{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--sub);cursor:pointer;user-select:none;margin-left:auto}
+  .tog i{width:30px;height:18px;border-radius:9px;background:rgba(255,255,255,0.15);position:relative;transition:.2s}
+  .tog i::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:.2s}
+  .tog.on i{background:var(--jolly)} .tog.on i::after{left:14px}
 
-/* Top bar */
-.topbar{
-  display:flex;justify-content:space-between;align-items:center;
-  padding:0 4px;margin-bottom:4px;
-}
-.loc{
-  display:flex;align-items:center;gap:6px;
-  font-size:.72rem;letter-spacing:.1em;color:var(--sub);font-weight:400;
-}
-.loc-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,0.3)}
-.model-tag{font-size:.6rem;letter-spacing:.12em;color:var(--dim);font-weight:300}
+  /* charts */
+  .chart{position:relative;margin-top:12px;touch-action:pan-y}
+  .chart svg{display:block;width:100%;overflow:visible}
+  .tip{position:absolute;pointer-events:none;background:rgba(14,18,32,0.94);border:1px solid var(--edge);
+    border-radius:12px;padding:8px 10px;font-size:12px;min-width:150px;opacity:0;transition:opacity .12s;
+    box-shadow:0 8px 24px rgba(0,0,0,.4);z-index:5}
+  .tip .h{color:var(--sub);margin-bottom:5px;font-size:11px}
+  .tip .r{display:flex;align-items:center;gap:7px;line-height:1.6}
+  .tip .r .v{margin-left:auto;padding-left:10px;font-weight:500}
+  .tip .sw{width:10px;height:3px;border-radius:2px}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:12px;color:var(--sub)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend .sw{width:14px;height:3px;border-radius:2px}
+  .legend .sw.dotsw{width:8px;height:8px;border-radius:50%}
+  .legend .sw.band{height:10px;border-radius:3px;background:rgba(138,147,168,0.22)}
+  .note{font-size:12px;color:var(--faint);margin-top:8px;line-height:1.45}
 
-/* Hero */
-.hero{text-align:center;padding:8px 0 4px}
-.hero-icon{line-height:1;margin-bottom:0;display:flex;justify-content:center;
-  filter:drop-shadow(0 6px 24px rgba(0,0,0,0.45))}
-.hero-icon img{width:120px;height:120px;display:block}
-.hero-temp{
-  font-size:7rem;font-weight:100;letter-spacing:-.05em;
-  line-height:.9;
-  background:linear-gradient(180deg,rgba(255,255,255,.95) 0%,rgba(255,255,255,.7) 100%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}
-.hero-temp sup{font-size:2.8rem;font-weight:200;vertical-align:top;margin-top:1.2rem;opacity:.8}
-.hero-desc{
-  font-size:.9rem;font-weight:300;letter-spacing:.1em;
-  color:var(--sub);margin-top:8px;
-}
-.hero-range{
-  display:flex;justify-content:center;gap:20px;
-  margin-top:8px;font-size:.78rem;color:var(--dim);font-weight:300;
-}
-.hero-range span{display:flex;align-items:center;gap:5px}
-.arr{font-size:.65rem;opacity:.6}
+  /* scoreboard */
+  .sb{display:flex;flex-direction:column;gap:14px;margin-top:14px}
+  .sbv .vh{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px}
+  .sbv .vh b{font-size:14px;font-weight:500}
+  .sbv .vh span{font-size:12px;color:var(--faint)}
+  .bar{display:grid;grid-template-columns:104px 1fr 58px;align-items:center;gap:8px;height:22px}
+  .bar .nm{font-size:12px;color:var(--sub);white-space:nowrap}
+  .bar .tr{height:8px;border-radius:4px;background:rgba(255,255,255,0.04);position:relative;overflow:hidden}
+  .bar .fl{position:absolute;left:0;top:0;bottom:0;border-radius:4px}
+  .bar .vl{font-size:12px;text-align:right;color:var(--sub)}
+  .bar.win .nm,.bar.win .vl{color:var(--ink);font-weight:600}
+  .crown{font-size:11px;color:var(--good);margin-left:4px}
 
-/* Wind compass row */
-.wind-row{display:grid;grid-template-columns:1fr 148px 1fr;gap:10px;align-items:stretch}
+  /* weights */
+  .wbars{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+  .wbar{display:grid;grid-template-columns:96px 1fr 40px;gap:8px;align-items:center;font-size:12px;color:var(--sub)}
+  .wbar .tr{height:10px;border-radius:5px;background:rgba(255,255,255,0.04);overflow:hidden}
+  .wbar .fl{height:100%;border-radius:5px;background:var(--chill);opacity:.75}
+  .wbar.top .fl{opacity:1}
+  .wbar .v{text-align:right}
 
-.stat-card{padding:18px 10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
-.stat-lbl{font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--sub);margin-bottom:4px;display:flex;align-items:center;gap:3px}
-.stat-lbl::after{content:'⌄';font-size:.75rem;opacity:.5;font-weight:400}
-.stat-val{font-size:2rem;font-weight:200;letter-spacing:-.03em;line-height:1}
-.stat-unit{font-size:.62rem;color:var(--dim);margin-top:2px}
+  /* corrections */
+  .corr{display:grid;grid-template-columns:150px 1fr;gap:14px;align-items:center}
+  .ncl{display:flex;flex-direction:column;gap:10px}
+  .nc{font-size:13px;color:var(--sub);line-height:1.4}
+  .nc b{color:var(--ink);font-weight:500}
+  .pill{display:inline-block;font-size:11px;padding:1px 7px;border-radius:8px;margin-left:4px}
+  .pill.dn{background:rgba(57,135,229,.18);color:#8fbaf0}
+  .pill.up{background:rgba(217,89,38,.18);color:#f0a07e}
 
-/* Compass */
-.compass-card{padding:14px 10px;display:flex;flex-direction:column;align-items:center;gap:0}
-.c-lbl{font-size:.55rem;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:6px;display:flex;align-items:center;justify-content:center;gap:3px}
-.c-lbl::after{content:'⌄';font-size:.7rem;opacity:.5;font-weight:400}
-.compass{width:110px;height:110px;position:relative}
-.compass svg{width:100%;height:100%}
-.c-now{font-size:.68rem;font-weight:500;color:var(--text);margin-top:5px;letter-spacing:.05em}
-.c-6h{font-size:.58rem;color:var(--dim);margin-top:1px;letter-spacing:.03em}
-
-/* Hourly */
-.section-lbl{
-  font-size:.58rem;letter-spacing:.16em;text-transform:uppercase;
-  color:var(--dim);padding:0 4px;margin-top:2px;
-}
-.hourly-card{padding:16px 14px 12px}
-.hourly-scroll{
-  display:flex;overflow-x:auto;scroll-snap-type:x mandatory;
-  scrollbar-width:none;-webkit-overflow-scrolling:touch;
-}
-.hourly-scroll::-webkit-scrollbar{display:none}
-.hourly-page{
-  flex:0 0 100%;scroll-snap-align:start;
-  display:flex;flex-direction:column;
-}
-.hp-grid{
-  display:grid;grid-template-columns:repeat(6,1fr);
-  gap:2px;text-align:center;
-}
-.hp-time{font-size:.62rem;color:var(--sub);letter-spacing:.04em;font-weight:400}
-.hp-time.now{color:var(--text);font-weight:600}
-.hp-icon{margin:6px 0 3px;line-height:1;display:flex;justify-content:center}
-.hp-icon img{width:34px;height:34px;display:block}
-.hp-temp{font-size:1.02rem;font-weight:300;letter-spacing:-.01em}
-.hourly-line-area{position:relative;height:32px;margin:10px 0 4px}
-.hourly-line-area svg{width:100%;height:100%;display:block;overflow:visible}
-.hp-rain-row{display:grid;grid-template-columns:repeat(6,1fr);text-align:center}
-.hp-rain{font-size:.6rem;color:rgba(147,197,253,0.7);font-weight:300;min-height:13px}
-.hourly-dots{display:flex;justify-content:center;gap:5px;margin-top:12px}
-.hourly-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,0.15);transition:background .25s}
-.hourly-dot.active{background:rgba(255,255,255,0.55)}
-
-/* Daily */
-.daily-card{padding:8px 6px;overflow:hidden}
-.day-row{
-  display:grid;grid-template-columns:72px 26px 44px 1fr 36px 40px;
-  align-items:center;gap:8px;
-  padding:11px 18px;
-  border-bottom:1px solid rgba(255,255,255,0.04);
-}
-.day-row:last-child{border-bottom:none}
-.d-name{font-size:.8rem;font-weight:300;color:var(--text)}
-.d-icon{display:flex;justify-content:center;align-items:center}
-.d-icon img{width:28px;height:28px;display:block}
-.d-rain{font-size:.68rem;color:rgba(147,197,253,0.7);font-weight:300}
-.d-bar-wrap{position:relative;height:3px;border-radius:2px;background:rgba(255,255,255,0.08)}
-.d-bar{position:absolute;height:100%;border-radius:2px;background:rgba(255,255,255,0.3)}
-.d-min{font-size:.75rem;color:var(--sub);text-align:right;font-weight:300}
-.d-max{font-size:.75rem;font-weight:400;text-align:right}
-
-/* Scroll hint */
-.hint{
-  display:flex;flex-direction:column;align-items:center;
-  gap:7px;padding:18px 0 10px;cursor:pointer;
-  color:var(--dim);font-size:.58rem;letter-spacing:.16em;text-transform:uppercase;
-}
-.hint-ring{
-  width:30px;height:30px;
-  border:1px solid rgba(255,255,255,0.12);
-  border-radius:50%;display:flex;align-items:center;justify-content:center;
-  font-size:.75rem;color:var(--dim);
-  animation:bob 2.4s ease-in-out infinite;
-}
-@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
-
-/* ════ NÁNAR ════ */
-#nanar{
-  display:none;
-  padding:20px 18px 40px;
-  max-width:900px;margin:0 auto;
-  position:relative;z-index:5;
-  background:rgba(5,8,14,0.55);
-  backdrop-filter:blur(30px);
-  -webkit-backdrop-filter:blur(30px);
-  min-height:100vh;
-}
-#nanar.open{display:block}
-.n-topbar{display:flex;align-items:center;gap:14px;padding:16px 0 20px}
-.n-back{
-  font-size:.65rem;letter-spacing:.1em;color:var(--dim);
-  cursor:pointer;background:none;border:none;
-  text-transform:uppercase;display:flex;align-items:center;gap:5px;
-  transition:color .2s;padding:0;
-}
-.n-back:hover{color:var(--text)}
-.n-title{font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;
-  color:var(--sub);font-weight:600}
-.n-topbar{display:flex;align-items:center;gap:16px;
-  padding-bottom:16px;margin-bottom:4px;
-  border-bottom:1px solid rgba(255,255,255,0.06)}
-
-.n-pills{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 8px}
-.n-pill{
-  padding:5px 13px;border-radius:20px;
-  border:1px solid rgba(255,255,255,0.08);
-  font-size:.62rem;font-weight:500;letter-spacing:.02em;
-  background:rgba(255,255,255,0.035);color:var(--sub);
-  display:flex;align-items:center;gap:6px;
-}
-.n-pill::before{content:'';width:5px;height:5px;border-radius:50%;
-  background:currentColor;opacity:.7}
-.n-pill.ok{border-color:rgba(74,222,128,.28);color:#4ade80;
-  background:rgba(74,222,128,.06)}
-.n-pill.warn{border-color:rgba(251,191,36,.28);color:#fbbf24;
-  background:rgba(251,191,36,.06)}
-
-.n-sec{font-size:.58rem;color:var(--dim);letter-spacing:.16em;
-  text-transform:uppercase;margin:28px 0 12px;font-weight:600;
-  display:flex;align-items:center;gap:10px}
-.n-sec::after{content:'';flex:1;height:1px;
-  background:linear-gradient(90deg,rgba(255,255,255,0.08),transparent)}
-.n-card{background:rgba(255,255,255,0.035);
-  border:1px solid rgba(255,255,255,0.07);border-radius:16px;
-  padding:18px;margin-bottom:10px;
-  box-shadow:0 4px 20px rgba(0,0,0,0.14)}
-canvas{max-height:240px}
-@keyframes nFade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-#nanar.n-fadein.open .n-sec,
-#nanar.n-fadein.open .n-card,
-#nanar.n-fadein.open .n-skill,
-#nanar.n-fadein.open .n-model-grid,
-#nanar.n-fadein.open .n-tbl-wrap{animation:nFade .4s ease both}
-
-.n-tabs{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap;
-  padding:4px;background:rgba(255,255,255,0.03);border-radius:13px;
-  border:1px solid rgba(255,255,255,0.05)}
-.n-tab{
-  padding:8px 15px;border-radius:9px;
-  border:1px solid transparent;cursor:pointer;
-  font-size:.72rem;font-weight:500;letter-spacing:.01em;
-  background:transparent;color:var(--sub);transition:all .18s;
-  flex:1;min-width:fit-content;
-}
-.n-tab:hover{color:var(--text);background:rgba(255,255,255,0.04)}
-.n-tab.active{background:rgba(255,255,255,0.1);color:var(--text);
-  border-color:rgba(255,255,255,0.14);
-  box-shadow:0 2px 10px rgba(0,0,0,0.2)}
-
-.n-leg{display:flex;gap:6px;font-size:.68rem;flex-wrap:wrap;margin-bottom:6px}
-.n-leg-item{display:flex;align-items:center;gap:5px;cursor:pointer;
-  padding:4px 9px;border-radius:14px;border:1px solid transparent;
-  transition:background .15s,border-color .15s,opacity .15s;user-select:none}
-.n-leg-item:hover{background:rgba(255,255,255,0.06)}
-.n-leg-item.dim{opacity:.32}
-.n-leg-item.sel{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.22)}
-.n-leg-item.locked{cursor:default;opacity:1}
-.n-leg-hint{font-size:.58rem;color:var(--dim);letter-spacing:.06em;
-  margin:2px 0 10px;padding-left:2px}
-.n-leg-nodata{font-size:.62rem;color:#fbbf24;margin:6px 0 4px;padding-left:2px}
-.n-leg-dot{width:9px;height:9px;border-radius:50%}
-
-.n-model-grid{display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(118px,1fr));
-  gap:9px;margin-bottom:10px}
-.n-mc{position:relative;background:rgba(255,255,255,0.04);
-  border-radius:14px;padding:13px 12px 12px;
-  border:1px solid rgba(255,255,255,0.07);text-align:center;
-  overflow:hidden;transition:transform .15s,border-color .15s}
-.n-mc:hover{transform:translateY(-2px);
-  border-color:rgba(255,255,255,0.14)}
-.n-mc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
-  background:var(--accent,rgba(255,255,255,0.2));opacity:.85}
-.n-mc-name{font-size:.66rem;font-weight:700;margin-bottom:7px;
-  letter-spacing:.02em}
-.n-mc-bias{font-size:.72rem;margin-bottom:3px;font-weight:500}
-.n-mc-mae{font-size:.6rem;color:var(--sub);font-variant-numeric:tabular-nums}
-.n-mc-wlbl{font-size:.6rem;color:var(--dim);margin-top:4px;font-weight:500}
-.n-wbar{height:4px;background:rgba(255,255,255,0.06);border-radius:3px;
-  margin-top:9px;overflow:hidden}
-.n-wfill{height:100%;border-radius:3px;
-  transition:width .3s;background:var(--accent,#4ade80)}
-
-.n-tbl-wrap{background:rgba(255,255,255,0.025);border-radius:14px;
-  overflow:auto;border:1px solid rgba(255,255,255,0.06);margin-bottom:10px;
-  box-shadow:0 4px 20px rgba(0,0,0,0.12)}
-table{width:100%;border-collapse:collapse;font-size:.7rem;min-width:480px}
-th{background:rgba(0,0,0,0.15);color:var(--dim);padding:7px 8px;text-align:center;font-weight:500;font-size:.62rem;letter-spacing:.06em;white-space:nowrap}
-td{padding:6px 8px;text-align:center;border-top:1px solid rgba(255,255,255,0.04);white-space:nowrap}
-tr:hover td{background:rgba(255,255,255,0.025)}
-.d-hdr td{background:rgba(0,0,0,0.12);color:var(--dim);font-weight:500;font-size:.62rem;text-align:left;padding:5px 8px}
-.jv{color:#4ade80;font-weight:600}
-.dg{color:#4ade80}.dy{color:#fbbf24}.dr{color:#f87171}
-.nd{color:rgba(255,255,255,0.18);font-size:.6rem}
-.n-note{font-size:.6rem;color:rgba(255,255,255,0.3);padding:14px;
-  text-align:center;line-height:1.8;
-  background:rgba(255,255,255,0.02);border-radius:12px;
-  border:1px solid rgba(255,255,255,0.04)}
-.n-note span{color:var(--sub)}
-
-@media(max-width:360px){
-  .hero-temp{font-size:5.8rem}
-  .wind-row{grid-template-columns:1fr 128px 1fr}
-  .compass{width:92px;height:92px}
-}
-
-/* LOGIN MODAL */
-.login-overlay{
-  position:fixed;inset:0;z-index:100;
-  background:rgba(0,0,0,0.55);
-  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
-  display:none;align-items:center;justify-content:center;
-  padding:20px;
-}
-.login-overlay.open{display:flex}
-.login-card{
-  width:100%;max-width:300px;
-  padding:32px 24px;text-align:center;
-  display:flex;flex-direction:column;gap:10px;
-}
-.login-icon{font-size:2rem;margin-bottom:4px}
-.login-title{font-size:.95rem;font-weight:500;color:var(--text)}
-.login-sub{font-size:.72rem;color:var(--sub);margin-bottom:10px}
-.login-input{
-  background:rgba(255,255,255,0.06);
-  border:1px solid rgba(255,255,255,0.12);
-  border-radius:10px;padding:11px 14px;
-  color:var(--text);font-size:.85rem;
-  outline:none;transition:border-color .2s;
-}
-.login-input:focus{border-color:rgba(255,255,255,0.3)}
-.login-input::placeholder{color:rgba(255,255,255,0.3)}
-.login-error{
-  font-size:.7rem;color:#f87171;min-height:14px;
-}
-.login-btn{
-  background:rgba(255,255,255,0.14);
-  border:1px solid rgba(255,255,255,0.2);
-  border-radius:10px;padding:11px;
-  color:var(--text);font-size:.85rem;font-weight:500;
-  cursor:pointer;transition:background .2s;margin-top:4px;
-}
-.login-btn:hover{background:rgba(255,255,255,0.2)}
-.login-cancel{
-  background:none;border:none;
-  color:var(--dim);font-size:.72rem;
-  cursor:pointer;padding:4px;letter-spacing:.05em;
-}
-.login-cancel:hover{color:var(--sub)}
-.wx svg{width:100%;height:100%;display:block}
-
-/* Spálengdarveljari */
-.n-lead-picker{display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
-.n-lead-lbl{font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;
-  color:var(--dim);margin-right:4px}
-.n-lead{padding:4px 10px;border-radius:12px;cursor:pointer;font-size:.66rem;
-  background:rgba(255,255,255,0.04);color:var(--sub);
-  border:1px solid rgba(255,255,255,0.08);transition:all .15s}
-.n-lead:hover{background:rgba(255,255,255,0.08)}
-.n-lead.active{background:rgba(255,255,255,0.12);color:var(--text);
-  border-color:rgba(255,255,255,0.22)}
-.n-mc-dead{opacity:.42}
-
-/* Skill-kort: Jolly a moti besta einstaka likani */
-.n-skill{background:linear-gradient(180deg,rgba(255,255,255,0.05),
-  rgba(255,255,255,0.025));border:1px solid rgba(255,255,255,0.09);
-  border-radius:16px;padding:16px 18px;margin-bottom:12px;
-  box-shadow:0 4px 20px rgba(0,0,0,0.16)}
-.n-skill-hd{font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;
-  color:var(--sub);margin-bottom:12px;font-weight:600}
-.n-skill-row{display:grid;grid-template-columns:52px 1fr 66px 62px;
-  align-items:center;gap:8px;padding:5px 0;font-size:.7rem}
-.n-skill-lead{color:var(--sub);font-size:.66rem}
-.n-skill-bar{position:relative;height:6px;border-radius:4px;
-  background:rgba(255,255,255,0.06);overflow:hidden}
-.n-skill-fill{position:absolute;top:0;bottom:0;border-radius:3px}
-.n-skill-fill{transition:width .35s}
-.n-skill-fill.pos{background:linear-gradient(90deg,rgba(74,222,128,.45),#4ade80);
-  box-shadow:0 0 8px rgba(74,222,128,.4)}
-.n-skill-fill.neg{background:linear-gradient(90deg,#f87171,rgba(248,113,113,.45));
-  box-shadow:0 0 8px rgba(248,113,113,.35)}
-.n-skill-val{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
-.n-skill-val.pos{color:#4ade80}.n-skill-val.neg{color:#f87171}
-.n-skill-val.na{color:var(--dim);font-weight:400}
-.n-skill-vs{color:var(--dim);font-size:.62rem;text-align:right}
-.n-skill-empty{font-size:.66rem;color:#fbbf24;line-height:1.6}
-.n-skill-note{font-size:.58rem;color:var(--dim);margin-top:8px;line-height:1.5}
-
-/* ── DAGASPÁ: tímaraufir 06/12/18/00 ───────────────────────────────── */
-.dt-head,.dt-row{
-  display:grid;
-  grid-template-columns:106px repeat(4,minmax(34px,1fr)) 68px 96px 56px;
-  align-items:center;gap:2px;
-  min-width:0;
-}
-.dt-head>*,.dt-row>*{min-width:0;overflow:hidden}
-.dt-head{
-  padding:0 4px 9px;font-size:.58rem;letter-spacing:.04em;
-  color:var(--dim);border-bottom:1px solid rgba(255,255,255,0.07);
-  margin-bottom:2px;white-space:nowrap;
-}
-.dt-head .dt-slot{
-  font-variant-numeric:tabular-nums;font-size:.58rem;
-  justify-content:center;
-}
-.dt-head .dt-day{text-align:left}
-.dt-head .dt-slot,.dt-head .dt-temp,
-.dt-head .dt-wind,.dt-head .dt-rain{text-align:center}
-.dt-row{
-  padding:9px 4px;border-bottom:1px solid rgba(255,255,255,0.045);
-  transition:background .15s;border-radius:10px;
-}
-.dt-row:last-child{border-bottom:none}
-.dt-row:hover{background:rgba(255,255,255,0.035)}
-.dt-day{
-  font-size:.72rem;font-weight:500;color:var(--text);
-  line-height:1.25;padding-left:2px;
-}
-.dt-slot{display:flex;justify-content:center;align-items:center}
-.dt-slot .wx{width:34px;height:34px}
-.dt-empty{color:rgba(255,255,255,0.18);font-size:.75rem}
-.dt-temp{
-  display:flex;align-items:baseline;justify-content:center;gap:2px;
-  white-space:nowrap;
-  font-size:.78rem;font-variant-numeric:tabular-nums;
-}
-.dt-temp .lo{color:#7dd3fc;font-weight:500}
-.dt-temp .hi{color:#fca5a5;font-weight:600}
-.dt-temp .sep{color:var(--dim);font-size:.65rem;margin:0 1px}
-.dt-wind{
-  display:flex;align-items:center;justify-content:center;gap:4px;
-  white-space:nowrap;
-  font-size:.76rem;font-variant-numeric:tabular-nums;color:var(--text);
-}
-.dt-arr{
-  display:inline-block;font-size:.85rem;line-height:1;
-  color:rgba(255,255,255,0.62);
-}
-.dt-rain{
-  display:flex;align-items:baseline;justify-content:center;gap:2px;
-  white-space:nowrap;
-  font-size:.76rem;font-variant-numeric:tabular-nums;
-}
-.dt-rain b{color:var(--text)}
-.dt-wind .u,.dt-rain .u{font-size:.56rem;color:var(--dim)}
-
-@media(max-width:520px){
-  .dt-head,.dt-row{grid-template-columns:68px repeat(4,minmax(28px,1fr)) 54px 78px 44px;gap:1px}
-  .dt-day{font-size:.62rem}
-  .dt-slot .wx{width:27px;height:27px}
-  .dt-temp{font-size:.68rem}
-  .dt-wind,.dt-rain{font-size:.66rem}
-  .dt-head{font-size:.52rem}
-}
-@media(max-width:390px){
-  .dt-head,.dt-row{grid-template-columns:58px repeat(4,minmax(24px,1fr)) 46px 68px 38px}
-  .dt-slot .wx{width:23px;height:23px}
-}
-
-.dt-wlbl{
-  font-size:.6rem;font-weight:600;letter-spacing:.02em;
-  color:var(--sub);min-width:22px;text-align:left;
-}
-@media(max-width:520px){ .dt-wlbl{font-size:.54rem;min-width:19px} }
-@media(max-width:390px){ .dt-wlbl{font-size:.5rem;min-width:17px} }
-
-/* ══════════ v5.0 DASHBOARD ══════════ */
-.dash-hd{font-size:13px;font-weight:600;color:var(--sub);margin-bottom:12px;
-  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
-.dash-n{font-size:11px;color:var(--faint);font-weight:400}
-.dash-pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
-.dash-pill{padding:5px 11px;border-radius:16px;font-size:11px;font-weight:600;
-  cursor:pointer;border:1.5px solid transparent;background:rgba(255,255,255,0.04);
-  transition:all .15s;user-select:none;opacity:1}
-.dash-pill.off{opacity:.32}
-.dash-chartwrap{position:relative;height:230px}
-.dash-slider-row{display:flex;align-items:center;gap:10px;margin-top:12px}
-.dash-slider-row input[type=range]{flex:1;accent-color:#aac6ea}
-.dash-note{font-size:10.5px;color:var(--faint);margin-top:10px;line-height:1.6}
-
-.dash-lead-tbl{width:100%;border-collapse:collapse;font-size:12px}
-.dash-lead-tbl th{text-align:left;font-size:10px;letter-spacing:.05em;
-  text-transform:uppercase;color:var(--faint);font-weight:600;
-  padding:0 8px 8px;cursor:pointer}
-.dash-lead-tbl th:hover{color:var(--sub)}
-.dash-lead-tbl th.num,.dash-lead-tbl td.num{text-align:right}
-.dash-lead-tbl td{padding:9px 8px;border-top:1px solid rgba(255,255,255,0.055)}
-.dash-lead-tbl tr:hover td{background:rgba(255,255,255,0.025)}
-.dash-lead-tbl .rk{color:var(--faint);width:22px}
-.dash-lead-tbl .mn{font-weight:600;display:flex;align-items:center;gap:7px}
-.dash-lead-tbl .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.dash-trend{font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600}
-.dash-trend.up{background:rgba(74,222,128,.12);color:#4ade80}
-.dash-trend.down{background:rgba(248,113,113,.12);color:#f87171}
-.dash-trend.flat{background:rgba(255,255,255,.06);color:var(--faint)}
-.dash-wbar{height:3px;border-radius:2px;background:rgba(255,255,255,0.07);
-  margin-top:4px;overflow:hidden}
-.dash-wbar i{display:block;height:100%;border-radius:2px}
-
-.dash-heat-tbl{display:grid;grid-template-columns:64px repeat(4,1fr);gap:3px}
-.dash-heat-hd{font-size:9.5px;color:var(--faint);text-align:center;padding:4px 2px}
-.dash-heat-lbl{font-size:11px;color:var(--sub);display:flex;align-items:center;
-  padding-right:4px;font-weight:500}
-.dash-heat-cell{border-radius:7px;padding:6px 3px;text-align:center;font-size:9.5px;
-  font-weight:600;min-height:38px;display:flex;flex-direction:column;
-  align-items:center;justify-content:center}
-.dash-heat-cell .v{font-size:8px;opacity:.75;margin-top:1px;font-weight:500}
-.dash-heat-cell.thin{color:var(--faint)!important;background:rgba(255,255,255,0.04)!important;
-  border:1px dashed rgba(255,255,255,0.1)}
-</style>
-</head>
+  /* af hverju */
+  .wf{display:flex;flex-direction:column;gap:4px;margin-top:14px}
+  .wfr{display:grid;grid-template-columns:1fr 58px;gap:10px;align-items:center}
+  .wfr .k{font-size:13px;color:var(--sub);display:flex;justify-content:space-between;gap:8px}
+  .wfr .k i{font-style:normal;color:var(--faint);font-size:12px}
+  .wfr .tr{height:12px;border-radius:6px;background:rgba(255,255,255,0.04);margin-top:5px;overflow:hidden}
+  .wfr .fl{height:100%;border-radius:6px}
+  .wfr .v{font-size:15px;text-align:right;font-weight:500}
+  .wfstep{font-size:12px;color:var(--good);padding:4px 0 6px 2px;display:flex;align-items:center;gap:6px}
+  .wfstep svg{width:12px;height:12px}
+  .wfstep.neg{color:var(--warn)}
+  .big{font-size:15px;line-height:1.45;margin-top:14px;padding:12px 14px;border-radius:14px;background:rgba(57,135,229,.10);border:1px solid rgba(57,135,229,.22)}
+  .big b{font-weight:600}
+  .refs{display:flex;gap:14px;margin-top:10px;font-size:12px;color:var(--faint)}
+  .refs b{color:var(--sub);font-weight:500}
+  /* spá vs raun */
+  .days{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-top:8px;padding-bottom:2px}
+  .days::-webkit-scrollbar{display:none}
+  .days button{flex:0 0 auto;border:1px solid var(--edge);background:rgba(255,255,255,0.03);color:var(--sub);font:inherit;
+    border-radius:12px;padding:6px 10px;cursor:pointer;text-align:center;min-width:52px}
+  .days button b{display:block;font-size:15px;font-weight:500;color:var(--ink)}
+  .days button span{font-size:11px}
+  .days button.on{background:rgba(57,135,229,.18);border-color:rgba(57,135,229,.5)}
+  .strip{margin-top:14px}
+  .srow{display:grid;grid-template-columns:62px 1fr;align-items:center;gap:6px;margin-top:3px}
+  .srow .nm{font-size:11px;color:var(--sub)}
+  .cells{display:grid;grid-template-columns:repeat(24,1fr);gap:2px}
+  .cells i{height:16px;border-radius:3px;display:block;position:relative}
+  .cells i.best::after{content:"";position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px 0 0 -2px;border-radius:50%;background:#fff}
+  .hrs{display:grid;grid-template-columns:repeat(24,1fr);gap:2px;margin-left:68px;font-size:9px;color:var(--faint);margin-top:3px}
+  .scale{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--faint);margin-top:8px}
+  .scale .g{height:8px;width:90px;border-radius:4px;background:linear-gradient(90deg,rgba(144,133,233,.08),rgba(144,133,233,1))}
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+  .kpi{background:rgba(255,255,255,0.04);border-radius:14px;padding:10px 8px;text-align:center}
+  .kpi .k{font-size:11px;color:var(--faint)}
+  .kpi .v{font-size:19px;font-weight:300;margin-top:2px}
+  .kpi .s{font-size:11px;color:var(--sub);margin-top:2px}
+  .kpi.win{background:rgba(57,135,229,.12)}
+  /* sigrar */
+  .moments{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+  .mo{border-radius:14px;padding:10px 12px;background:rgba(255,255,255,0.04);font-size:13px;color:var(--sub);line-height:1.5}
+  .mo .h{display:flex;justify-content:space-between;color:var(--ink);font-weight:500;font-size:13px}
+  .mo .h span{font-weight:400;color:var(--faint);font-size:12px}
+  .mo .vals{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:4px}
+  .mo .vals em{font-style:normal;color:var(--ink)}
+  .mo.win{border-left:3px solid var(--good)} .mo.loss{border-left:3px solid var(--warn)}
+  .skel{height:180px;border-radius:14px;background:linear-gradient(90deg,rgba(255,255,255,.03),rgba(255,255,255,.07),rgba(255,255,255,.03));
+    background-size:200% 100%;animation:sh 1.4s infinite}
+  @keyframes sh{to{background-position:-200% 0}}
+  .tbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
+  .tbl th,.tbl td{padding:6px 4px;border-bottom:1px solid var(--line);text-align:right}
+  .tbl th:first-child,.tbl td:first-child{text-align:left}
+  .tbl th{color:var(--faint);font-weight:400}
+  .linkbtn{background:none;border:0;color:var(--chill);font:inherit;font-size:12px;cursor:pointer;margin-top:10px;padding:0}
+  .foot{text-align:center;font-size:11px;color:rgba(255,255,255,0.25);margin-top:28px;line-height:1.7}
+</style></head>
 <body>
-<div id="bg"></div>
+<div class="sky"></div>
+<div class="wrap">
+  <a class="back" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg>Jolly</a>
+  <h1>Nánar</h1>
+  <div class="lede">Hvað spá líkönin, hvað gerðist og hver hafði rétt fyrir sér</div>
 
-<!-- ════ LOGIN MODAL ════ -->
-<div id="loginModal" class="login-overlay open">
-  <div class="login-card g">
-    <div class="login-icon">🔒</div>
-    <div class="login-title">Nánari upplýsingar</div>
-    <div class="login-sub">Skráðu þig inn til að skoða tölfræði</div>
-    <input type="text" id="loginUser" class="login-input" placeholder="Notandanafn" autocomplete="off">
-    <input type="password" id="loginPass" class="login-input" placeholder="Lykilorð" autocomplete="off">
-    <div class="login-error" id="loginError"></div>
-    <button class="login-btn" onclick="tryLogin()">Skrá inn</button>
-    <button class="login-cancel" onclick="closeLogin()">Hætta við</button>
+  <!-- STAÐA -->
+  <div class="card" id="statusCard"><div class="skel" style="height:60px"></div></div>
+
+  <!-- HERO -->
+  <div class="card" id="heroCard"><div class="skel" style="height:92px"></div></div>
+
+  <!-- AF HVERJU -->
+  <div class="sec">Af hverju er Jolly best?</div>
+  <div class="card">
+    <div class="sech">Frá einu líkani til Jolly</div>
+    <div class="secd">Jolly byrjar á mörgum líkönum, blandar þeim og leiðréttir. Svona minnkar skekkjan í hverju skrefi (síðustu 14 dagar, á móti mælingum).</div>
+    <div class="seg" id="wfVar"></div>
+    <div class="row"><span class="lbl">Spáð</span><div class="seg small" id="wfLead"></div><span class="lbl">fyrir</span></div>
+    <div class="wf" id="wf"><div class="skel" style="height:200px"></div></div>
   </div>
-</div>
 
-<!-- ════ FORSÍÐA ════ -->
-<div class="page" id="forsida" style="display:none">
-  <div class="topbar">
-    <div class="loc"><div class="loc-dot"></div>Egilsstaðir</div>
-    <div class="model-tag">Jolly líkan</div>
+  <!-- SPÁ VS RAUN -->
+  <div class="sec">Spá á móti raun</div>
+  <div class="card">
+    <div class="sech">Hverju var spáð – og hvað gerðist?</div>
+    <div class="secd">Veldu dag. Línurnar sýna hverju var spáð fyrir fram og hvítu punktarnir hvað stöðin mældi.</div>
+    <div class="days" id="dayPick"></div>
+    <div class="seg" id="svVar" style="margin-top:10px"></div>
+    <div class="row"><span class="lbl">Spáð</span><div class="seg small" id="svLead"></div><span class="lbl">fyrir</span></div>
+    <div class="kpis" id="svKpi"></div>
+    <div class="chart" id="svChart"><div class="skel"></div></div>
+    <div class="legend" id="svLegend"></div>
+    <div class="strip" id="svStrip"></div>
+    <div class="note" id="svNote"></div>
   </div>
 
-  <div class="hero">
-    <div class="hero-icon" id="heroIcon">⏳</div>
-    <div class="hero-temp"><span id="heroTemp">—</span><sup>°</sup></div>
-    <div class="hero-desc" id="heroDesc">Hleð...</div>
-    <div class="hero-range">
-      <span><span class="arr">↑</span><span id="heroMax">—</span>°</span>
-      <span><span class="arr">↓</span><span id="heroMin">—</span>°</span>
+  <!-- SIGRAR -->
+  <div class="card">
+    <div class="sech">Stærstu sigrar og töp vikunnar</div>
+    <div class="secd">Augnablikin þar sem munaði mestu á Jolly og bestu af yr.no og vedur.is (spáð 6 klst fyrir).</div>
+    <div class="moments" id="moments"><div class="skel" style="height:120px"></div></div>
+  </div>
+
+  <!-- TÍMALÍNA -->
+  <div class="sec">Tímalína</div>
+  <div class="card">
+    <div class="sech">Fortíð og framtíð</div>
+    <div class="secd">Vinstra megin við „núna“: mælingin og hvað hver spá sagði fyrir fram. Hægra megin: hvað spárnar segja um næstu daga.</div>
+    <div class="seg" id="varSeg"></div>
+    <div class="row">
+      <span class="lbl">Fortíð spáð</span>
+      <div class="seg small" id="leadSeg"></div>
+      <span class="lbl">fyrir</span>
+      <label class="tog" id="allTog"><i></i>Öll líkön</label>
     </div>
+    <div class="chart" id="tlChart"><div class="skel"></div></div>
+    <div class="legend" id="tlLegend"></div>
+    <div class="note" id="tlNote"></div>
   </div>
 
-  <!-- Wind + Compass + Rain -->
-  <div class="wind-row">
-    <div class="g stat-card">
-      <div class="stat-lbl">Vindur</div>
-      <div class="stat-val" id="windVal">—</div>
-      <div class="stat-unit">m/s</div>
+  <!-- STIGATAFLA -->
+  <div class="sec">Stigatafla</div>
+  <div class="card">
+    <div class="sech">Hver spáir best?</div>
+    <div class="secd" id="sbDesc">Meðalskekkja á móti mælingum á Egilsstöðum. Styttri stika = betri spá.</div>
+    <div class="row" style="margin-top:0">
+      <div class="seg small" id="sbLead"></div>
+      <div class="seg small" id="sbDays" style="margin-left:auto"></div>
     </div>
-    <div class="g compass-card">
-      <div class="c-lbl">Vindátt</div>
-      <div class="compass">
-        <svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg">
-          <!-- Outer ring -->
-          <circle cx="55" cy="55" r="50" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
-          <!-- Inner ring -->
-          <circle cx="55" cy="55" r="38" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
-          <!-- Tick marks - 16 -->
-          <g stroke="rgba(255,255,255,0.12)" stroke-width="1">
-            <line x1="55" y1="6" x2="55" y2="13"/>
-            <line x1="55" y1="97" x2="55" y2="104"/>
-            <line x1="6" y1="55" x2="13" y2="55"/>
-            <line x1="97" y1="55" x2="104" y2="55"/>
-          </g>
-          <g stroke="rgba(255,255,255,0.06)" stroke-width="1">
-            <line x1="84" y1="13" x2="80" y2="19"/>
-            <line x1="26" y1="13" x2="30" y2="19"/>
-            <line x1="84" y1="97" x2="80" y2="91"/>
-            <line x1="26" y1="97" x2="30" y2="91"/>
-          </g>
-          <!-- Cardinal labels -->
-          <text x="55" y="4" text-anchor="middle" dominant-baseline="hanging" fill="rgba(255,255,255,0.55)" font-size="7.5" font-family="-apple-system,system-ui" font-weight="500">N</text>
-          <text x="55" y="105" text-anchor="middle" dominant-baseline="auto" fill="rgba(255,255,255,0.25)" font-size="6.5" font-family="-apple-system,system-ui">S</text>
-          <text x="4" y="58" text-anchor="middle" fill="rgba(255,255,255,0.25)" font-size="6.5" font-family="-apple-system,system-ui">V</text>
-          <text x="106" y="58" text-anchor="middle" fill="rgba(255,255,255,0.25)" font-size="6.5" font-family="-apple-system,system-ui">A</text>
-          <!-- Center -->
-          <circle cx="55" cy="55" r="2.5" fill="rgba(255,255,255,0.15)"/>
-          <!-- +6h arrow -->
-          <g id="arrow6h" transform="rotate(0,55,55)">
-            <line x1="55" y1="55" x2="55" y2="20" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" stroke-linecap="round"/>
-            <polygon points="55,13 51.5,21 58.5,21" fill="rgba(255,255,255,0.18)"/>
-          </g>
-          <!-- Now arrow -->
-          <g id="arrowNow" transform="rotate(180,55,55)">
-            <line x1="55" y1="58" x2="55" y2="17" stroke="rgba(255,255,255,0.88)" stroke-width="2" stroke-linecap="round"/>
-            <polygon points="55,10 51,19 59,19" fill="rgba(255,255,255,0.92)"/>
-            <line x1="55" y1="58" x2="55" y2="72" stroke="rgba(255,255,255,0.18)" stroke-width="1.5" stroke-linecap="round"/>
-          </g>
-        </svg>
-      </div>
-      <div class="c-now" id="cNow">—</div>
-      <div class="c-6h" id="c6h">+6klst —</div>
-    </div>
-    <div class="g stat-card">
-      <div class="stat-lbl">Úrkoma</div>
-      <div class="stat-val" id="rainVal">—</div>
-      <div class="stat-unit">mm/klst</div>
-    </div>
+    <div class="row"><div class="seg small" id="sbMetric"></div></div>
+    <div class="sb" id="sb"><div class="skel"></div></div>
+    <button class="linkbtn" id="sbTblBtn">Sýna sem töflu</button>
+    <div id="sbTbl"></div>
   </div>
 
-  <!-- Hourly -->
-  <div class="section-lbl">Næstu klukkustundir</div>
-  <div class="g hourly-card">
-    <div class="hourly-scroll" id="hourlyScroll"></div>
-    <div class="hourly-dots" id="hourlyDots"></div>
+  <!-- ÞRÓUN -->
+  <div class="sec">Þróun</div>
+  <div class="card">
+    <div class="sech">Er Jolly að batna?</div>
+    <div class="secd">Meðalskekkja hvers dags, spáð 6 klst fyrir (7 daga hlaupandi meðaltal). Lægra er betra.</div>
+    <div class="seg" id="trSeg"></div>
+    <div class="chart" id="trChart"><div class="skel"></div></div>
+    <div class="legend" id="trLegend"></div>
   </div>
 
-  <!-- Daily -->
-  <div class="section-lbl">Næstu dagar</div>
-  <div class="g daily-card" id="dailyCard"></div>
-
-  <!-- Nánar hnappur -->
-  <div class="hint" onclick="openLogin()">
-    <div class="hint-ring">🔒</div>
-    Nánar
+  <!-- VÆGI -->
+  <div class="sec">Traust</div>
+  <div class="card">
+    <div class="sech">Hverjum treystir Jolly núna?</div>
+    <div class="secd">Hlutdeild hvers líkans í spá Jolly eftir 6 klst. Líkan sem hefur staðið sig vel fær meira vægi.</div>
+    <div class="seg" id="wSeg"></div>
+    <div class="wbars" id="wBars"></div>
   </div>
-</div>
 
-<!-- ════ NÁNAR ════ -->
-<div class="page n-fadein" id="nanar">
-  <div class="n-topbar">
-    <button class="n-back" onclick="closeNanar()">← Til baka</button>
-    <div class="n-title">Jolly · Nákvæmar upplýsingar</div>
+  <!-- LEIÐRÉTTINGAR -->
+  <div class="sec">Lifandi leiðréttingar</div>
+  <div class="card">
+    <div class="sech">Úrkoma eftir vindátt</div>
+    <div class="secd">Hve stór hluti af úrkomu líkananna mælist í raun, eftir vindátt. Hringurinn er 100%. Jolly endurreiknar þetta í hverri keyrslu.</div>
+    <div class="corr"><div id="rose"></div><div class="ncl" id="roseTxt"></div></div>
   </div>
-  <div class="n-pills" id="nPills"></div>
-
-  <!-- ═══════════ NÝR DASHBOARD-HLUTI (v5.0) ═══════════ -->
-  <div id="dashRoot">
-
-    <div class="n-sec">1 · Spátrektir — allir gjafar samtímis</div>
-    <div class="n-card">
-      <div class="dash-hd">
-        <span id="dFcTitle">Hiti · næstu klst</span>
-        <span class="dash-n">þykk lína = Jolly · punktalína = mæling</span>
-      </div>
-      <div class="n-tabs" id="dVarTabs" style="margin-bottom:10px"></div>
-      <div class="dash-pills" id="dModelPills"></div>
-      <div class="dash-chartwrap"><canvas id="dFcChart"></canvas></div>
-      <div class="dash-slider-row">
-        <span class="dash-n">Gluggi:</span>
-        <input type="range" id="dWindowSlider" min="0" max="1" value="0" step="1">
-        <span class="dash-n" id="dWindowLbl"></span>
-      </div>
-    </div>
-
-    <div class="n-sec">2 · Tímaflakk — hvernig spáin þróaðist</div>
-    <div class="n-card">
-      <div class="dash-hd">
-        <span>Veldu klukkustund og sjáðu spárnar sem gerðar voru fyrir hana</span>
-      </div>
-      <div id="dTimeTravelPicker" class="dash-pills"></div>
-      <div class="dash-chartwrap" style="height:200px"><canvas id="dTravelChart"></canvas></div>
-      <div class="dash-note" id="dTravelNote"></div>
-    </div>
-
-    <div class="n-sec">3 · Bakvirk nákvæmni — MAE dag frá degi</div>
-    <div class="n-card">
-      <div class="dash-hd">
-        <span>Er einhver að batna eða versna?</span>
-        <span class="dash-n" id="dTrendN"></span>
-      </div>
-      <div class="dash-chartwrap"><canvas id="dTrendChart"></canvas></div>
-    </div>
-
-    <div class="n-sec">4 · Sannreyning — spá á móti mælingu</div>
-    <div class="n-card">
-      <div class="dash-hd">
-        <span>Punktar á ská = fullkomið</span>
-        <span class="dash-n">síðustu 24 klst · @1klst</span>
-      </div>
-      <div class="dash-chartwrap"><canvas id="dScatterChart"></canvas></div>
-    </div>
-
-    <div class="n-sec">5 · Leiðtogatafla</div>
-    <div class="n-card">
-      <div class="dash-hd">
-        <span>Hver er bestur núna</span>
-        <span class="dash-n" id="dLdrSub"></span>
-      </div>
-      <table class="dash-lead-tbl">
-        <thead><tr>
-          <th onclick="dSortLdr('rank')">#</th>
-          <th onclick="dSortLdr('name')">Gjafi</th>
-          <th class="num" onclick="dSortLdr('mae')">MAE</th>
-          <th class="num" onclick="dSortLdr('weight')">Vægi</th>
-          <th class="num" onclick="dSortLdr('trend')">Þróun</th>
-        </tr></thead>
-        <tbody id="dLdrBody"></tbody>
-      </table>
-    </div>
-
-    <div class="n-sec">6 · Reit-þyngdir — vindátt × dagur/nótt</div>
-    <div class="n-card" id="dHeatCard"></div>
-
+  <div class="card">
+    <div class="sech">Leiðrétt eftir nýjustu mælingu</div>
+    <div class="secd">Fyrstu klukkustundirnar færir Jolly spána að því sem stöðin mælir núna.</div>
+    <div class="ncl" id="ncList"></div>
   </div>
-  <!-- ═══════════ LOK NÝJA HLUTANS ═══════════ -->
 
-  <div class="n-sec" style="margin-top:34px">Eldri skýrslur</div>
-  <div class="n-tabs">
-    <button class="n-tab active" onclick="setMetric('hiti',this)">🌡 Hiti</button>
-    <button class="n-tab" onclick="setMetric('vindur',this)">💨 Vindur</button>
-    <button class="n-tab" onclick="setMetric('urkoma',this)">🌧 Úrkoma</button>
-    <button class="n-tab" onclick="setMetric('att',this)">🧭 Vindátt</button>
-    <button class="n-tab" onclick="setMetric('sky',this)">☁️ Skýjahula</button>
-  </div>
-  <div class="n-leg">
-    <!-- byggt í buildLegend() -->
-  </div>
-  <div id="nSkill"></div>
-  <div class="n-leg-hint" id="nLegHint">Smelltu á líkan til að skoða það eitt á móti Jolly</div>
-  <div class="n-leg-nodata" id="nLegNoData" style="display:none"></div>
-  <div class="n-card"><canvas id="mainChart"></canvas></div>
-
-  <div class="n-sec">Líkanaþyngd og leiðréttingar</div>
-  <div class="n-lead-picker" id="nLeadPicker"></div>
-  <div class="n-model-grid" id="nModelGrid"></div>
-
-  <div class="n-sec">Nákvæmniferill</div>
-  <div class="n-card"><canvas id="learnChart"></canvas></div>
-
-  <div class="n-sec">Tímaspá — 72 klst.</div>
-  <div class="n-tbl-wrap"><table id="nTable"></table></div>
-  <div class="n-sec">Heimildir</div>
-  <p class="n-note" id="nAttrib"></p>
+  <div class="foot" id="foot"></div>
 </div>
 
 <script>
-const FC_URL   ='https://raw.githubusercontent.com/Blodnasir10/jolly-weather/main/docs/data/jolly_forecast.json';
-const MODEL_URL='https://raw.githubusercontent.com/Blodnasir10/jolly-weather/main/docs/data/jolly_model.json';
-const ARCH_URL  ='https://raw.githubusercontent.com/Blodnasir10/jolly-weather/main/docs/data/forecast_archive.json';
-const TRUTH_URL ='https://raw.githubusercontent.com/Blodnasir10/jolly-weather/main/docs/data/truth.json';
-const HIST_URL  ='https://raw.githubusercontent.com/Blodnasir10/jolly-weather/main/docs/data/mae_history.json';
-const OBS_URL   ='https://raw.githubusercontent.com/Blodnasir10/jolly-weather/main/docs/data/obs_history.json';
-const MANUDIR=['janúar','febrúar','mars','apríl','maí','júní','júlí','ágúst','september','október','nóvember','desember'];
-const DAGAR=['Sun','Mán','Þri','Mið','Fim','Fös','Lau'];
-const MC={harmonie:'#22d3ee',dmi:'#facc15',knmi:'#fb7185',
-          ecmwf:'#f472b6',icon:'#fb923c',ukmo:'#818cf8',
-          mfr:'#2dd4bf',gfs:'#a78bfa',metno:'#34d399'};
-const MN={harmonie:'HARMONIE',dmi:'DMI',knmi:'KNMI',
-          ecmwf:'ECMWF',icon:'ICON',ukmo:'UKMO',
-          mfr:'Météo-France',gfs:'GFS',metno:'MET Norway'};
-
-const BG={
-  nott:    {clear:['#06090f','#0c1428'],cloudy:['#060809','#0b0f16'],rain:['#050708','#090d13'],snow:['#07090d','#0d1220'],thunder:['#050608','#080810']},
-  dogun:   {clear:['#0d0c14','#1e1828'],cloudy:['#0c0c12','#181620'],rain:['#090a10','#131318'],snow:['#0e0e18','#1c1c28'],thunder:['#080810','#100e18']},
-  dagur:   {clear:['#0a1220','#0f2035'],cloudy:['#0d1118','#141924'],rain:['#090e14','#0e1420'],snow:['#0e1420','#182030'],thunder:['#080a0e','#0e1018']},
-  solsetur:{clear:['#100c18','#1e1420'],cloudy:['#0e0c12','#181418'],rain:['#090810','#120e16'],snow:['#0e0e18','#181820'],thunder:['#080610','#100812']},
-  kvold:   {clear:['#07080f','#0e1020'],cloudy:['#060708','#0e0f12'],rain:['#050608','#08090e'],snow:['#080a10','#0f1218'],thunder:['#050508','#09080f']},
+const RAW='https://raw.githubusercontent.com/Blodnasir10/jolly-weather/main/docs/data/';
+const NAMES={jolly:'Jolly',metno:'yr.no',harmonie:'vedur.is',dmi:'DMI',knmi:'KNMI',ecmwf:'ECMWF',
+  icon:'ICON',ukmo:'UKMO',mfr:'Météo-France',gfs:'GFS',mean:'Meðaltal líkana',obs:'Mæling'};
+const MODELS=['dmi','knmi','ecmwf','icon','ukmo','mfr','gfs','metno','harmonie'];
+const COL={jolly:'#3987e5',metno:'#d95926',harmonie:'#199e70',mod:'#8a93a8',obs:'#f4f6fa',mean:'#8a93a8'};
+const VARS={
+  hiti:  {n:'Hiti',     u:'°',   fc:'t_fc',ob:'t_ob',jf:'temperature',mf:'model_temperatures',of:'temperature',d:1},
+  vindur:{n:'Vindur',   u:' m/s',fc:'w_fc',ob:'w_ob',jf:'windspeed',  mf:'model_windspeeds',  of:'windspeed',d:1},
+  kvidur:{n:'Kviður',   u:' m/s',fc:'g_fc',ob:'g_ob',jf:'windgust',   mf:null,                of:'windgust',d:1},
+  urkoma:{n:'Úrkoma',   u:' mm', fc:'p_fc',ob:'p_ob',jf:'precipitation',mf:'model_precipitations',of:'precipitation',d:1,bar:true},
+  sky:   {n:'Skýjahula',u:'%',   fc:'c_fc',ob:'c_ob',jf:'cloud_cover',mf:'model_clouds',      of:'cloud_cover',d:0},
+  thr:   {n:'Þrýstingur',u:' hPa',fc:'pm_fc',ob:'pr_ob',jf:'pressure',mf:null,               of:'pressure',d:1},
+  att:   {n:'Vindátt',  u:'°',   fc:'d_fc',ob:'d_ob',angle:true,d:0},
 };
+const fmt=(v,d=1)=>v==null||isNaN(v)?'–':(Math.round(v*10**d)/10**d).toFixed(d).replace('.',',');
+const T=s=>Date.parse(s.length<=16?s+':00Z':s);       // gögn eru í UTC (= íslenskur tími)
+const hh=t=>String(new Date(t).getUTCHours()).padStart(2,'0');
+const DAGAR=['sun','mán','þri','mið','fim','fös','lau'];
+const el=id=>document.getElementById(id);
+const angd=(a,b)=>{let d=Math.abs(a-b)%360;return d>180?360-d:d};
 
-function slot(h){return h<5?'nott':h<7?'dogun':h<19?'dagur':h<21?'solsetur':'kvold'}
-function wKey(mm){return mm>3?'rain':mm>0.3?'rain':mm>0?'cloudy':'clear'}
-// ── TÁKNKERFI ────────────────────────────────────────────────────────────────
-// Handteiknuð SVG tákn - engin ytri tenging, virka alltaf.
-// Byggð úr einingum: sól, tungl, ský, úrkoma. Canvas 128x128.
+let FC,OBS,LOG,ROWS=[],S={v:'hiti',lead:6,all:false,sbLead:6,sbDays:7,sbMetric:'mae',tr:'hiti',w:'hiti',wf:'hiti',wfLead:6,sv:'hiti',svLead:6,day:Math.floor(Date.now()/864e5)*864e5-864e5};
 
-const WX_C = {
-  sun1:'#FFD972', sun2:'#FF9F43',
-  moon1:'#EEF3FB', moon2:'#C3CEE0',
-  cloud1:'rgba(255,255,255,0.95)', cloud2:'rgba(214,226,240,0.85)',
-  dark1:'rgba(206,218,233,0.95)',  dark2:'rgba(160,176,196,0.9)',
-  rain:'#7DD3FC', snow:'#E8F6FF', bolt:'#FBBF24', fog:'rgba(255,255,255,0.6)',
-};
-
-function wxDefs(id){
-  return `<defs>
-    <linearGradient id="s${id}" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="${WX_C.sun1}"/><stop offset="1" stop-color="${WX_C.sun2}"/>
-    </linearGradient>
-    <linearGradient id="m${id}" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="${WX_C.moon1}"/><stop offset="1" stop-color="${WX_C.moon2}"/>
-    </linearGradient>
-    <linearGradient id="c${id}" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="${WX_C.cloud1}"/><stop offset="1" stop-color="${WX_C.cloud2}"/>
-    </linearGradient>
-    <linearGradient id="d${id}" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="${WX_C.dark1}"/><stop offset="1" stop-color="${WX_C.dark2}"/>
-    </linearGradient>
-  </defs>`;
+// ── GÖGN ─────────────────────────────────────────────
+async function get(path,type){
+  const r=await fetch(RAW+path+'?t='+Date.now(),{cache:'no-store'});
+  if(!r.ok) throw new Error(path+' '+r.status);
+  return type==='json'?r.json():r.text();
 }
-
-// Sól - full stærð eða minni bak við ský
-function wxSun(id,cx,cy,r){
-  let rays='';
-  for(let i=0;i<8;i++){
-    const a=i*Math.PI/4, i1=r*1.35, i2=r*1.75;
-    rays+=`<line x1="${(cx+Math.cos(a)*i1).toFixed(1)}" y1="${(cy+Math.sin(a)*i1).toFixed(1)}"
-      x2="${(cx+Math.cos(a)*i2).toFixed(1)}" y2="${(cy+Math.sin(a)*i2).toFixed(1)}"
-      stroke="url(#s${id})" stroke-width="${(r*0.28).toFixed(1)}" stroke-linecap="round"/>`;
-  }
-  return rays+`<circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#s${id})"/>`;
+function months(){const d=new Date();const a=[];for(let k=1;k>=0;k--){
+  const x=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth()-k,1));
+  a.push(x.getUTCFullYear()+'-'+String(x.getUTCMonth()+1).padStart(2,'0'));}return a;}
+function parseCSV(txt){
+  const L=txt.trim().split('\n'),H=L[0].split(','),out=[];
+  for(let i=1;i<L.length;i++){const c=L[i].split(',');const o={};
+    for(let j=0;j<H.length;j++)o[H[j]]=c[j];out.push(o);}
+  return out;
 }
-
-function wxMoon(id,cx,cy,r){
-  return `<path d="M ${cx+r*0.30} ${cy-r}
-    a ${r} ${r} 0 1 0 ${r*0.78} ${r*1.62}
-    a ${r*0.82} ${r*0.82} 0 1 1 ${-r*0.78} ${-r*1.62} Z"
-    fill="url(#m${id})"/>`;
+// Fyrirspár: IDX[lead][vt][src] = röð
+let IDX={};
+function buildIdx(){
+  IDX={};
+  for(const r of ROWS){const L=+r.lead;(IDX[L]=IDX[L]||{});const g=(IDX[L][r.valid_time]=IDX[L][r.valid_time]||{});g[r.src]=r;}
 }
-
-// Ský úr þremur hringjum + grunni
-function wxCloud(id,dx,dy,sc,dark){
-  const g = dark?`url(#d${id})`:`url(#c${id})`;
-  const t = (x,y,r)=>`<circle cx="${(dx+x*sc).toFixed(1)}" cy="${(dy+y*sc).toFixed(1)}" r="${(r*sc).toFixed(1)}" fill="${g}"/>`;
-  return `<g>${t(-16,4,17)}${t(4,-6,23)}${t(24,6,15)}
-    <rect x="${(dx-16*sc).toFixed(1)}" y="${(dy+2*sc).toFixed(1)}"
-      width="${(40*sc).toFixed(1)}" height="${(18*sc).toFixed(1)}"
-      rx="${(9*sc).toFixed(1)}" fill="${g}"/></g>`;
-}
-
-function wxRain(n,y0){
-  let o='';
-  const xs=[-16,0,16].slice(0,n);
-  xs.forEach((x,i)=>{
-    const yo=y0+(i%2)*6;
-    o+=`<line x1="${64+x}" y1="${yo}" x2="${64+x-5}" y2="${yo+15}"
-      stroke="${WX_C.rain}" stroke-width="5.5" stroke-linecap="round" opacity="0.95"/>`;
-  });
-  return o;
-}
-
-function wxSnow(n,y0){
-  let o='';
-  const xs=[-16,0,16].slice(0,n);
-  xs.forEach((x,i)=>{
-    const cy=y0+(i%2)*7+5;
-    o+=`<g stroke="${WX_C.snow}" stroke-width="3.4" stroke-linecap="round">
-      <line x1="${64+x-6}" y1="${cy}" x2="${64+x+6}" y2="${cy}"/>
-      <line x1="${64+x}" y1="${cy-6}" x2="${64+x}" y2="${cy+6}"/>
-      <line x1="${64+x-4}" y1="${cy-4}" x2="${64+x+4}" y2="${cy+4}"/>
-      <line x1="${64+x-4}" y1="${cy+4}" x2="${64+x+4}" y2="${cy-4}"/>
-    </g>`;
-  });
-  return o;
-}
-
-function wxSleet(y0){
-  return `<line x1="52" y1="${y0}" x2="47" y2="${y0+15}"
-      stroke="${WX_C.rain}" stroke-width="5.5" stroke-linecap="round"/>
-    <g stroke="${WX_C.snow}" stroke-width="3.4" stroke-linecap="round">
-      <line x1="70" y1="${y0+8}" x2="82" y2="${y0+8}"/>
-      <line x1="76" y1="${y0+2}" x2="76" y2="${y0+14}"/>
-      <line x1="72" y1="${y0+4}" x2="80" y2="${y0+12}"/>
-      <line x1="72" y1="${y0+12}" x2="80" y2="${y0+4}"/>
-    </g>`;
-}
-
-function wxBolt(){
-  return `<path d="M 68 84 L 56 106 L 66 106 L 60 122 L 78 98 L 68 98 Z"
-    fill="${WX_C.bolt}"/>`;
-}
-
-function wxFogLines(y0){
-  let o='';
-  [[26,102],[20,108],[30,98]].forEach((w,i)=>{
-    o+=`<line x1="${w[0]}" y1="${y0+i*14}" x2="${w[1]}" y2="${y0+i*14}"
-      stroke="${WX_C.fog}" stroke-width="7" stroke-linecap="round"/>`;
-  });
-  return o;
-}
-
-// Setur saman tákn út frá slug
-function wxBuild(slug,uid){
-  const D = wxDefs(uid);
-  const S = (b)=>`<svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">${D}${b}</svg>`;
-  const night = slug.includes('night');
-  const lum   = (cx,cy,r)=> night ? wxMoon(uid,cx,cy,r) : wxSun(uid,cx,cy,r);
-
-  switch(true){
-    case slug==='clear-day':    return S(wxSun(uid,64,64,24));
-    case slug==='clear-night':  return S(wxMoon(uid,66,62,30));
-
-    // Léttskýjað - stór sól/tungl, lítið ský neðst í horni
-    case slug==='partly-cloudy-day': case slug==='partly-cloudy-night':
-      return S(lum(52,46,19)+wxCloud(uid,74,78,0.72,false));
-
-    // Skýjað að hluta - meðalsól, meðalstórt ský
-    case slug==='mostly-clear-day': case slug==='mostly-clear-night':
-      return S(lum(48,42,17)+wxCloud(uid,70,74,0.9,false));
-
-    // Hálfskýjað - minni sól, stærra ský sem hylur til hálfs
-    case slug==='half-cloudy-day': case slug==='half-cloudy-night':
-      return S(lum(44,38,14)+wxCloud(uid,66,70,1.02,false));
-
-    // Að mestu skýjað - lítil sól kíkir yfir stórt ský
-    case slug==='mostly-cloudy-day': case slug==='mostly-cloudy-night':
-      return S(lum(42,34,11)+wxCloud(uid,64,66,1.12,false));
-
-    case slug==='overcast-day': case slug==='overcast-night':
-      return S(lum(44,40,14)+wxCloud(uid,64,70,1.05,false));
-
-    case slug==='overcast':
-      return S(wxCloud(uid,64,62,1.15,false));
-
-    case slug==='drizzle':
-      return S(wxCloud(uid,64,52,1.05,false)+wxRain(2,88));
-
-    case slug==='overcast-rain':
-      return S(wxCloud(uid,64,50,1.05,true)+wxRain(3,86));
-    case slug==='extreme-rain':
-      return S(wxCloud(uid,64,48,1.12,true)+wxRain(3,84)+
-               `<line x1="64" y1="102" x2="59" y2="117" stroke="${WX_C.rain}"
-                stroke-width="5.5" stroke-linecap="round"/>`);
-
-    case slug.includes('-rain') && slug.startsWith('partly'):
-      return S(lum(44,36,14)+wxCloud(uid,68,58,0.95,false)+wxRain(2,90));
-
-    case slug==='overcast-snow':
-      return S(wxCloud(uid,64,50,1.05,true)+wxSnow(3,84));
-    case slug==='extreme-snow':
-      return S(wxCloud(uid,64,48,1.12,true)+wxSnow(3,82)+wxSnow(1,100));
-    case slug.includes('-snow') && slug.startsWith('partly'):
-      return S(lum(44,36,14)+wxCloud(uid,68,58,0.95,false)+wxSnow(2,88));
-
-    case slug==='overcast-sleet': case slug==='extreme-sleet':
-      return S(wxCloud(uid,64,50,1.05,true)+wxSleet(86));
-    case slug.includes('-sleet') && slug.startsWith('partly'):
-      return S(lum(44,36,14)+wxCloud(uid,68,58,0.95,false)+wxSleet(88));
-
-    case slug.startsWith('thunderstorms'):
-      return S(wxCloud(uid,64,48,1.08,true)+wxBolt()+
-               `<line x1="44" y1="86" x2="39" y2="100" stroke="${WX_C.rain}"
-                stroke-width="5" stroke-linecap="round"/>
-                <line x1="90" y1="86" x2="85" y2="100" stroke="${WX_C.rain}"
-                stroke-width="5" stroke-linecap="round"/>`);
-
-    case slug.startsWith('fog'):
-      return S(wxCloud(uid,64,46,0.95,false)+wxFogLines(80));
-    case slug==='mist':
-      return S(wxFogLines(48)+wxFogLines(90));
-
-    default:
-      return S(wxCloud(uid,64,62,1.15,false));
-  }
-}
-
-let _wxUid = 0;
-function mcIcon(slug,size){
-  const s = slug || 'overcast';
-  const svg = wxBuild(s, ++_wxUid);
-  return `<span class="wx" style="width:${size}px;height:${size}px;display:block">${svg}</span>`;
-}
-
-function dir(deg){
-  if(deg===null||deg===undefined)return'—';
-  const d=['N','NNA','NA','ANA','A','ASA','SA','SSA','S','SSV','SV','VSV','V','VNV','NV','NNV'];
-  return d[Math.round(deg/22.5)%16];
-}
-function hfmt(iso){const d=new Date(iso+'Z');return String(d.getUTCHours()).padStart(2,'0')+':00'}
-function dfmt(iso){const d=new Date(iso+'Z');return DAGAR[d.getUTCDay()]+' '+d.getUTCDate()+'/'+(d.getUTCMonth()+1)}
-
-let FC,MODEL,activeMetric='hiti',charts={};
-
-let ARCH=null, TRUTH=null, MAEHIST=null, OBSHIST=null;
-
-async function safeJson(url){
-  try{ const r=await fetch(url+'?t='+Date.now()); if(!r.ok) return null; return await r.json(); }
-  catch(e){ return null; }
-}
+const num=x=>{if(x===''||x==null)return null;const v=+x;return isNaN(v)?null:v};
 
 async function load(){
-  try{
-    const[f,m]=await Promise.all([fetch(FC_URL+'?t='+Date.now()),fetch(MODEL_URL+'?t='+Date.now())]);
-    FC=await f.json();MODEL=await m.json();
-    renderNanar();  // renderForsida sleppt - forsida er a index.html
-  }catch(e){document.getElementById('heroDesc').textContent='Villa við gagnasótt';console.error(e);return;}
-
-  // Dashboard-gögnin eru VIÐBÓT - ef eitthvað af þeim vantar sýnir
-  // dashboard-hlutinn "gögn vantar" fyrir ÞANN eina hluta, án þess að
-  // brjóta restina af síðunni.
-  [ARCH, TRUTH, MAEHIST, OBSHIST] = await Promise.all(
-    [ARCH_URL, TRUTH_URL, HIST_URL, OBS_URL].map(safeJson));
-  renderDashboard();
+  const [fc,obs,log]=await Promise.all([get('jolly_forecast.json','json'),get('obs_history.json','json'),get('last_run.log','text').catch(()=>'')]);
+  FC=fc;OBS=obs;LOG=log;
+  renderStatus();renderWeights();renderCorr();
+  const parts=await Promise.all(months().map(m=>get('verify/'+m+'.csv','text').catch(()=>'')));
+  ROWS=parts.filter(Boolean).flatMap(parseCSV);buildIdx();
+  renderHero();renderWF();renderDayPick();renderSV();renderMoments();renderTimeline();renderSB();renderTrend();
 }
 
-function buildHourlyPages(T, idx){
-  const scroll=document.getElementById('hourlyScroll');
-  const dotsWrap=document.getElementById('hourlyDots');
-  scroll.innerHTML='';
-  dotsWrap.innerHTML='';
+// ── STAÐA ────────────────────────────────────────────
+const ICON={ok:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  warn:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 8v5M12 16.5v.5"/><path d="M10.3 4.2L2.8 17.5A2 2 0 004.5 20.5h15a2 2 0 001.7-3L13.7 4.2a2 2 0 00-3.4 0z"/></svg>'};
+function renderStatus(){
+  const gen=Date.parse(FC.generated), age=(Date.now()-gen)/36e5;
+  const stada=(LOG.match(/STADA[^\n]*\n((?:\s+!![^\n]*\n|\s+![^\n]*\n)*)/)||[])[0]||'';
+  const issues=[...stada.matchAll(/!+\s*([^\n]+)/g)].map(m=>m[1].trim());
+  const okRun=age<2.5;
+  const level=!okRun?'bad':issues.length?'warn':'ok';
+  const t1=!okRun?`Engin keyrsla í ${Math.floor(age)} klst`:issues.length?`${issues.length} atriði til skoðunar`:'Allt í lagi';
+  const d=new Date(gen);
+  const t2=`Síðasta keyrsla kl. ${hh(gen)}:${String(d.getUTCMinutes()).padStart(2,'0')} · ${FC.model_name||'Jolly'} · ${String(FC.runs||0).replace(/\B(?=(\d{3})+(?!\d))/g,'.')} keyrslur`;
+  // Gjafar: hefur líkan gildi fyrstu klukkustundina?
+  const H=FC.hourly, chips=[];
+  for(const m of MODELS){const a=(H.model_temperatures||{})[m]||[];const ok=a.slice(0,6).some(v=>v!=null);
+    chips.push(`<span class="chip"><span class="dot ${ok?'ok':'bad'}"></span>${NAMES[m]}</span>`);}
+  const lo=OBS[OBS.length-1], oa=(Date.now()-T(lo.time))/36e5;
+  chips.push(`<span class="chip"><span class="dot ${oa<2?'ok':oa<4?'warn':'bad'}"></span>Stöð 4271 · kl. ${hh(T(lo.time))}</span>`);
+  chips.push(`<span class="chip"><span class="dot ${lo.has_metar?'ok':'warn'}"></span>METAR ský</span>`);
+  el('statusCard').innerHTML=`<div class="status"><div class="badge ${level}">${ICON[level==='ok'?'ok':'warn']}</div>
+    <div><div class="st1">${t1}</div><div class="st2">${t2}</div></div></div>
+    ${issues.length?`<div class="issues">${issues.map(i=>'• '+i).join('<br>')}</div>`:''}
+    <div class="src">${chips.join('')}</div>`;
+}
 
-  const HOURS_TOTAL=24, PER_PAGE=6;
-  const endIdx=Math.min(idx+HOURS_TOTAL, T.length);
-  const indices=[];
-  for(let i=idx;i<endIdx;i++) indices.push(i);
-
-  // Sameiginlegur skali fyrir allar síður - svo línan er samanburðarhæf
-  const allRain=indices.map(i=>FC.hourly.precipitation[i]||0);
-  const maxRain=Math.max(...allRain, 1); // lágmark 1mm skali svo lítil gildi sjást ekki sem risa
-
-  const nPages=Math.ceil(indices.length/PER_PAGE);
-
-  for(let p=0;p<nPages;p++){
-    const pageIndices=indices.slice(p*PER_PAGE,(p+1)*PER_PAGE);
-    while(pageIndices.length<PER_PAGE) pageIndices.push(null); // fylla tóma reiti á síðustu síðu
-
-    const page=document.createElement('div');
-    page.className='hourly-page';
-
-    // Tími + tákn + hiti röð
-    let timeHtml='<div class="hp-grid">';
-    pageIndices.forEach(i=>{
-      if(i===null){timeHtml+='<div></div>';return;}
-      const isNow=i===idx;
-      timeHtml+=`<div class="hp-time${isNow?' now':''}">${isNow?'Núna':hfmt(T[i])}</div>`;
-    });
-    timeHtml+='</div><div class="hp-grid">';
-    pageIndices.forEach(i=>{
-      if(i===null){timeHtml+='<div></div>';return;}
-      const ic=FC.hourly.icon?FC.hourly.icon[i]:null;
-      timeHtml+=`<div class="hp-icon">${mcIcon(ic,34)}</div>`;
-    });
-    timeHtml+='</div><div class="hp-grid">';
-    pageIndices.forEach(i=>{
-      if(i===null){timeHtml+='<div></div>';return;}
-      const t=FC.hourly.temperature[i];
-      timeHtml+=`<div class="hp-temp">${t!==null?Math.round(t)+'°':'—'}</div>`;
-    });
-    timeHtml+='</div>';
-
-    page.innerHTML=timeHtml;
-
-    // Línurit svæði
-    const lineArea=document.createElement('div');
-    lineArea.className='hourly-line-area';
-    const pageRain=pageIndices.map(i=>i===null?null:(FC.hourly.precipitation[i]||0));
-    lineArea.innerHTML=buildLineSvg(pageRain, maxRain);
-    page.appendChild(lineArea);
-
-    // mm gildi röð
-    let rainHtml='<div class="hp-rain-row">';
-    pageIndices.forEach(i=>{
-      if(i===null){rainHtml+='<div></div>';return;}
-      const r=FC.hourly.precipitation[i]||0;
-      rainHtml+=`<div class="hp-rain">${r>0?r.toFixed(1)+' mm':'0 mm'}</div>`;
-    });
-    rainHtml+='</div>';
-    page.insertAdjacentHTML('beforeend', rainHtml);
-
-    scroll.appendChild(page);
-
-    const dot=document.createElement('div');
-    dot.className='hourly-dot'+(p===0?' active':'');
-    dotsWrap.appendChild(dot);
+// ── SKEKKJUREIKNINGUR ───────────────────────────────
+// err(v, srcs, lead, fromT, toT) -> {src: [abs errors]}
+// pairs: [{t,o,v:{jolly,dmi,...,mean}}] - hver klst þar sem bæði spá og mæling eru til
+function pairs(vk,lead,from,to){
+  const V=VARS[vk],G=IDX[lead]||{},out=[];
+  for(const vt in G){const t=T(vt);if(t<from||t>=to)continue;const g=G[vt];const j=g.jolly;if(!j)continue;
+    const o=num(j[V.ob]);if(o==null)continue;
+    if(vk==='att'&&(num(j.ws_ob)||0)<2)continue;
+    const jv=num(j[V.fc]);if(jv==null)continue;
+    const v={jolly:jv};
+    for(const m of MODELS){const r=g[m];if(r){const x=num(r[V.fc]);if(x!=null)v[m]=x;}}
+    const ms=MODELS.map(m=>v[m]).filter(x=>x!=null);
+    if(ms.length>=4){if(V.angle){let a=0,b=0;ms.forEach(d=>{a+=Math.sin(d*Math.PI/180);b+=Math.cos(d*Math.PI/180)});v.mean=(Math.atan2(a,b)*180/Math.PI+360)%360;}
+      else v.mean=ms.reduce((a,b)=>a+b,0)/ms.length;}
+    out.push({t,o,v});
   }
-
-  // Uppfæra punkta við skroll
-  scroll.onscroll=()=>{
-    const pageW=scroll.clientWidth;
-    const cur=Math.round(scroll.scrollLeft/pageW);
-    document.querySelectorAll('.hourly-dot').forEach((d,i)=>d.classList.toggle('active',i===cur));
-  };
+  return out.sort((a,b)=>a.t-b.t);
 }
-
-function buildLineSvg(vals, maxV){
-  const n=vals.length;
-  const W=300, H=32, pad=6;
-  const validIdx=vals.map((v,i)=>v!==null?i:null).filter(i=>i!==null);
-  if(validIdx.length===0) return '';
-
-  const stepX=W/n;
-  const pts=vals.map((v,i)=>{
-    if(v===null) return null;
-    const x=stepX*i+stepX/2;
-    const frac=Math.min(v/maxV,1);
-    const y=(H-pad) - frac*(H-pad*2);
-    return [x,y];
-  });
-
-  const validPts=pts.filter(p=>p!==null);
-  if(validPts.length===0) return '';
-
-  let pathD='';
-  validPts.forEach((p,idx)=>{
-    pathD += (idx===0?'M':'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1) + ' ';
-  });
-
-  const dots=validPts.map(p=>
-    `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.2" fill="rgba(147,197,253,0.9)"/>`
-  ).join('');
-
-  // Grunnlína (0mm) neðst - alltaf sýnileg dauf lína
-  const baseline=`<line x1="0" y1="${H-pad}" x2="${W}" y2="${H-pad}" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>`;
-
-  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
-    ${baseline}
-    <path d="${pathD.trim()}" fill="none" stroke="rgba(147,197,253,0.6)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-    ${dots}
-  </svg>`;
+const E=(vk,a,o)=>VARS[vk].angle?angd(a,o):Math.abs(a-o);
+const HIT={hiti:1,vindur:1,att:30,sky:20};
+const hit=(vk,a,o)=>vk==='urkoma'?((a>=0.1)===(o>=0.1)):E(vk,a,o)<=HIT[vk];
+function errs(vk,lead,from,to,srcs){
+  const out={};srcs.forEach(s=>out[s]=[]);
+  for(const p of pairs(vk,lead,from,to))for(const s of srcs)if(p.v[s]!=null)out[s].push(E(vk,p.v[s],p.o));
+  return out;
 }
+const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
 
-function renderForsida(){
-  const T=FC.hourly.time;
-  const now=new Date();
-  const ns=now.toISOString().slice(0,13);
-  let idx=T.findIndex(t=>t.slice(0,13)>=ns);if(idx<0)idx=0;
-
-  const temp=FC.hourly.temperature[idx];
-  const wind=FC.hourly.windspeed[idx];
-  const rain=FC.hourly.precipitation[idx]||0;
-  const wdir=FC.hourly.winddirection?.[idx]??null;
-  const idx6=Math.min(idx+6,T.length-1);
-  const wdir6=FC.hourly.winddirection?.[idx6]??null;
-  const wind6=FC.hourly.windspeed[idx6];
-  const h=new Date(T[idx]+'Z').getUTCHours();
-  const isNight=h<6||h>=22;
-
-  // Background
-  const w=wKey(rain);
-  const p=BG[slot(h)][w];
-  document.getElementById('bg').style.background=`linear-gradient(160deg,${p[0]},${p[1]})`;
-
-  // Hero
-  const heroSlug=FC.hourly.icon?FC.hourly.icon[idx]:null;
-  document.getElementById('heroIcon').innerHTML=mcIcon(heroSlug,120);
-  document.getElementById('heroTemp').textContent=temp!==null?Math.round(temp):'—';
-  const cond=FC.hourly.condition?FC.hourly.condition[idx]:'';
-  const cc=FC.hourly.cloud_cover?FC.hourly.cloud_cover[idx]:null;
-  document.getElementById('heroDesc').textContent=
-    cond ? (cc!==null ? `${cond} · ${cc}% skýjahula` : cond) : '';
-
-  // Min/max today
-  const tod=T[idx].slice(0,10);
-  const todT=T.map((t,i)=>t.startsWith(tod)?FC.hourly.temperature[i]:null).filter(v=>v!==null);
-  if(todT.length){
-    document.getElementById('heroMax').textContent=Math.round(Math.max(...todT));
-    document.getElementById('heroMin').textContent=Math.round(Math.min(...todT));
+// ── HERO ─────────────────────────────────────────────
+function renderHero(){
+  const to=Date.now(),from=to-7*864e5;let win=0,tot=0;const wins=[];
+  for(const vk of ['hiti','vindur','att','urkoma','sky'])for(const L of [1,6,24]){
+    const e=errs(vk,L,from,to,['jolly','metno','harmonie','mean']);const n=e.jolly.length;if(n<10)continue;
+    const m={};for(const s in e)if(e[s].length>=0.8*n)m[s]=avg(e[s]);
+    tot++;const best=Object.keys(m).sort((a,b)=>m[a]-m[b])[0];if(best==='jolly'){win++;wins.push(VARS[vk].n+' '+L+' klst');}
   }
+  const p=tot?win/tot:0,R=40,C=2*Math.PI*R;
+  el('heroCard').innerHTML=`<div class="hero"><div class="ring"><svg viewBox="0 0 92 92">
+    <circle cx="46" cy="46" r="${R}" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="7"/>
+    <circle cx="46" cy="46" r="${R}" fill="none" stroke="${COL.jolly}" stroke-width="7" stroke-linecap="round"
+      stroke-dasharray="${C*p} ${C}" transform="rotate(-90 46 46)"/></svg>
+    <div class="n"><b>${win}/${tot}</b><span>7 DAGAR</span></div></div>
+    <div><div class="t1">Jolly var nákvæmust í ${win} af ${tot} samanburðum</div>
+    <div class="t2">Borið saman við yr.no, vedur.is og meðaltal allra líkana: hiti, vindur, vindátt, úrkoma og ský, spáð 1, 6 og 24 klst fyrir.</div></div></div>`;
+}
 
-  document.getElementById('windVal').textContent=wind!==null?wind.toFixed(1):'—';
-  document.getElementById('rainVal').textContent=rain!==null?rain.toFixed(1):'—';
+// ── AF HVERJU ER JOLLY BEST? ───────────────────────
+const UP='<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 2v8M2.5 6.5L6 10l3.5-3.5"/></svg>';
+function renderWF(){
+  const vk=S.wf,V=VARS[vk],L=S.wfLead,to=Date.now(),from=to-14*864e5,P=pairs(vk,L,from,to);
+  const dd=vk==='urkoma'?2:vk==='sky'||vk==='att'?0:1,u=V.u;
+  if(P.length<20){el('wf').innerHTML='<div class="note">Ekki næg gögn enn.</div>';return;}
+  // aðeins klst þar sem öll líkön eru til - sanngjarn samanburður
+  const mae=k=>{const e=P.filter(p=>p.v[k]!=null).map(p=>E(vk,p.v[k],p.o));return e.length>=0.8*P.length?avg(e):null;};
+  const single=MODELS.map(m=>[m,mae(m)]).filter(x=>x[1]!=null).sort((a,b)=>a[1]-b[1]);
+  const worst=single[single.length-1],best=single[0],typical=avg(single.map(x=>x[1]));
+  const mean=mae('mean'),jol=mae('jolly');
+  const steps=[
+    ['1. Eitt líkan',`dæmigert af ${single.length}`,typical,'#6b7488'],
+    ['2. Meðaltal allra líkana','villur jafnast út',mean,'#aac6ea'],
+    ['Jolly','vægi + leiðréttingar'+(L<=6&&vk!=='urkoma'&&vk!=='att'?' + nýjasta mæling':''),jol,COL.jolly]];
+  const mx=Math.max(...steps.map(s=>s[2]||0),worst[1])*1.04;
+  let h='';
+  steps.forEach((st,i)=>{
+    if(i>0&&steps[i-1][2]!=null&&st[2]!=null){const d=(steps[i-1][2]-st[2])/steps[i-1][2]*100;
+      h+=Math.abs(d)<1?`<div class="wfstep" style="color:var(--faint)">Svipað</div>`:`<div class="wfstep ${d<0?'neg':''}">${d>=0?UP:''}${d>=0?Math.round(d)+'% minni skekkja':Math.round(-d)+'% meiri skekkja'}</div>`;}
+    const last=i===steps.length-1;
+    h+=`<div class="wfr"><div><div class="k">${last?'3. Jolly':st[0]}<i>${st[1]}</i></div><div class="tr" style="position:relative"><div class="fl" style="width:${(st[2]||0)/mx*100}%;background:${st[3]}"></div>
+      ${last?`<span title="Besta staka líkanið" style="position:absolute;top:-3px;bottom:-3px;left:${best[1]/mx*100}%;width:2px;background:#f4f6fa;opacity:.7"></span>`:''}</div></div>
+      <div class="v" style="${last?'color:#8fbaf0':''}">${fmt(st[2],dd)}${u}</div></div>`;});
+  h+=`<div class="note" style="margin-top:2px">Hvíta strikið = besta staka líkanið (${NAMES[best[0]]}, ${fmt(best[1],dd)}${u}).</div>`;
+  const yr=mae('metno'),ved=mae('harmonie');
+  const gain=(1-jol/best[1])*100;
+  h+=`<div class="big">${gain>=0?`Jolly er <b>${Math.round(gain)}% nákvæmari</b> en besta staka líkanið (${NAMES[best[0]]})`:`Hér er ${NAMES[best[0]]} enn <b>${Math.round(-gain)}% betra</b> en Jolly`} í ${V.n.toLowerCase()} ${L} klst fram í tímann, og ${Math.round((1-jol/typical)*100)}% nákvæmari en venjulegt líkan.</div>
+    <div class="refs"><span>yr.no <b>${fmt(yr,dd)}${u}</b></span><span>vedur.is <b>${fmt(ved,dd)}${u}</b></span><span>Versta: ${NAMES[worst[0]]} <b>${fmt(worst[1],dd)}${u}</b></span></div>`;
+  el('wf').innerHTML=h;
+}
 
-  // Compass
-  if(wdir!==null){
-    const from=(wdir+180)%360;
-    document.getElementById('arrowNow').setAttribute('transform',`rotate(${from},55,55)`);
-    document.getElementById('cNow').textContent=`${dir(wdir)}  ${wind!==null?wind.toFixed(1)+' m/s':''}`;
+// ── SPÁ Á MÓTI RAUN ────────────────────────────────
+function dayList(){const a=[],d0=Math.floor(Date.now()/864e5)*864e5;for(let k=0;k<8;k++)a.push(d0-k*864e5);return a;}
+function renderDayPick(){
+  el('dayPick').innerHTML=dayList().map((d,k)=>{const x=new Date(d);return `<button data-d="${d}" class="${d===S.day?'on':''}"><span>${k===0?'í dag':k===1?'í gær':DAGAR[x.getUTCDay()]}</span><b>${x.getUTCDate()}.</b></button>`;}).join('');
+  el('dayPick').onclick=e=>{const b=e.target.closest('button');if(!b)return;S.day=+b.dataset.d;renderDayPick();renderSV();};
+}
+function renderSV(){
+  const vk=S.sv,V=VARS[vk],L=S.svLead,x0=S.day,x1=S.day+864e5,dd=vk==='urkoma'?1:vk==='sky'?0:1;
+  const P=pairs(vk,L,x0,x1),src=['jolly','metno','harmonie'];
+  // KPI
+  const m={},w={};src.forEach(s=>{const e=P.filter(p=>p.v[s]!=null).map(p=>E(vk,p.v[s],p.o));m[s]=avg(e);});
+  P.forEach(p=>{let b=null,be=1e9;src.forEach(s=>{if(p.v[s]==null)return;const e=E(vk,p.v[s],p.o);if(e<be-1e-9){be=e;b=s;}});if(b)w[b]=(w[b]||0)+1;});
+  const bestS=src.filter(s=>m[s]!=null).sort((a,b)=>m[a]-m[b])[0];
+  el('svKpi').innerHTML=src.map(s=>`<div class="kpi ${s===bestS?'win':''}"><div class="k" style="color:${COL[s]}">${NAMES[s]}</div>
+    <div class="v">${fmt(m[s],vk==='urkoma'?2:dd)}${V.u}</div><div class="s">næst í ${w[s]||0} af ${P.length} klst</div></div>`).join('');
+  // línurit: mæling + spár
+  const obs=OBS.filter(o=>{const t=T(o.time);return t>=x0&&t<x1&&o[V.of]!=null}).map(o=>[T(o.time),o[V.of]]);
+  const G=IDX[L]||{},ser=[];const line=s=>Object.keys(G).map(vt=>[T(vt),G[vt][s]?num(G[vt][s][V.fc]):null]).filter(p=>p[0]>=x0&&p[0]<x1&&p[1]!=null).sort((a,b)=>a[0]-b[0]);
+  if(V.bar)ser.push({id:'obs',name:'Mæling',color:'#7fb3ff',kind:'bar',op:.6,pts:obs});
+  ser.push({id:'harmonie',name:'vedur.is',color:COL.harmonie,w:1.6,pts:line('harmonie')});
+  ser.push({id:'metno',name:'yr.no',color:COL.metno,w:1.6,pts:line('metno')});
+  ser.push({id:'jolly',name:'Jolly',color:COL.jolly,w:2.6,pts:line('jolly')});
+  if(!V.bar)ser.push({id:'obs',name:'Mæling',color:COL.obs,kind:'dots',w:1.4,pts:obs});
+  const nowT=Date.now();
+  lineChart(el('svChart'),{x0,x1:x1-36e5,series:ser,u:V.u,d:dd,yZero:vk==='urkoma'||vk==='sky',now:nowT<x1&&nowT>x0?nowT:null,hours:true,height:210});
+  legend(el('svLegend'),[{name:'Mæling',color:V.bar?'#7fb3ff':COL.obs,cls:V.bar?'':'dotsw'},{name:'Jolly',color:COL.jolly},{name:'yr.no',color:COL.metno},{name:'vedur.is',color:COL.harmonie}]);
+  // villuræma: hver klst, litstyrkur = skekkja, punktur = næst mælingu
+  const byH={};P.forEach(p=>byH[new Date(p.t).getUTCHours()]=p);
+  const maxE=Math.max(0.01,...P.flatMap(p=>src.filter(s=>p.v[s]!=null).map(s=>E(vk,p.v[s],p.o))));
+  const cap={hiti:3,vindur:3,att:60,urkoma:1,sky:50}[vk]||maxE,sc=Math.min(maxE,cap);
+  let st='';
+  src.forEach(s=>{let c='';for(let h=0;h<24;h++){const p=byH[h];if(!p||p.v[s]==null){c+='<i style="background:rgba(255,255,255,0.03)"></i>';continue;}
+    const e=E(vk,p.v[s],p.o),a=Math.min(1,e/sc);
+    const bst=src.filter(q=>p.v[q]!=null).every(q=>E(vk,p.v[q],p.o)>=e-1e-9);
+    c+=`<i class="${bst?'best':''}" title="kl. ${h}: ${NAMES[s]} ${fmt(p.v[s],dd)}${V.u}, mælt ${fmt(p.o,dd)}${V.u}" style="background:rgba(144,133,233,${(0.08+0.92*a).toFixed(2)})"></i>`;}
+    st+=`<div class="srow"><span class="nm" style="color:${COL[s]}">${NAMES[s]}</span><div class="cells">${c}</div></div>`;});
+  st+=`<div class="hrs">${Array.from({length:24},(_,h)=>`<span>${h%6===0?String(h).padStart(2,'0'):''}</span>`).join('')}</div>
+    <div class="scale"><span>Lítil skekkja</span><span class="g"></span><span>${fmt(sc,vk==='urkoma'?1:0)}${V.u}+</span><span style="margin-left:auto">● = næst mælingu</span></div>`;
+  el('svStrip').innerHTML=P.length?st:'';
+  let note='';
+  if(!P.length)note='Engar staðfestar mælingar fyrir þennan dag enn.';
+  else if(vk==='hiti'){const ob=P.map(p=>p.o),jv=P.map(p=>p.v.jolly),yr=P.filter(p=>p.v.metno!=null).map(p=>p.v.metno),ve=P.filter(p=>p.v.harmonie!=null).map(p=>p.v.harmonie);
+    note=`Hámark: mælt <b style="color:var(--ink)">${fmt(Math.max(...ob))}°</b> · Jolly ${fmt(Math.max(...jv))}° · yr.no ${fmt(Math.max(...yr))}° · vedur.is ${fmt(Math.max(...ve))}°<br>
+      Lágmark: mælt <b style="color:var(--ink)">${fmt(Math.min(...ob))}°</b> · Jolly ${fmt(Math.min(...jv))}° · yr.no ${fmt(Math.min(...yr))}° · vedur.is ${fmt(Math.min(...ve))}°`;}
+  else if(vk==='urkoma'){const sum=k=>P.filter(p=>p.v[k]!=null).reduce((a,p)=>a+p.v[k],0);
+    note=`Samtals: mælt <b style="color:var(--ink)">${fmt(P.reduce((a,p)=>a+p.o,0))} mm</b> · Jolly ${fmt(sum('jolly'))} mm · yr.no ${fmt(sum('metno'))} mm`;}
+  el('svNote').innerHTML=note;
+}
+
+// ── SIGRAR OG TÖP ──────────────────────────────────
+function renderMoments(){
+  const to=Date.now(),from=to-7*864e5,items=[];
+  for(const vk of ['hiti','vindur','urkoma']){const V=VARS[vk];
+    for(const p of pairs(vk,6,from,to)){const c=['metno','harmonie'].filter(s=>p.v[s]!=null);if(!c.length)continue;
+      const ej=E(vk,p.v.jolly,p.o),ec=Math.min(...c.map(s=>E(vk,p.v[s],p.o)));
+      const rel=(ec-ej)/({hiti:1,vindur:1,urkoma:0.5}[vk]);items.push({vk,p,ej,ec,rel});}}
+  // dreifa: einn atburður á hverja 6 klst
+  const pick=(arr)=>{const out=[];for(const it of arr){if(out.some(o=>Math.abs(o.p.t-it.p.t)<6*36e5))continue;out.push(it);if(out.length>=3)break;}return out;};
+  const wins=pick(items.filter(i=>i.rel>0).sort((a,b)=>b.rel-a.rel)),loss=pick(items.filter(i=>i.rel<0).sort((a,b)=>a.rel-b.rel)).slice(0,2);
+  const card=(it,cls)=>{const V=VARS[it.vk],d=new Date(it.p.t),dd=it.vk==='urkoma'?1:1;
+    return `<div class="mo ${cls}"><div class="h">${V.n} · ${DAGAR[d.getUTCDay()]} ${d.getUTCDate()}. kl. ${hh(it.p.t)}<span>${cls==='win'?'Jolly '+fmt(it.ec-it.ej,1)+V.u+' nær':'Jolly '+fmt(it.ej-it.ec,1)+V.u+' fjær'}</span></div>
+      <div class="vals"><span>Mælt <em>${fmt(it.p.o,dd)}${V.u}</em></span><span style="color:${COL.jolly}">Jolly <em>${fmt(it.p.v.jolly,dd)}${V.u}</em></span>
+      ${it.p.v.metno!=null?`<span style="color:${COL.metno}">yr.no <em>${fmt(it.p.v.metno,dd)}${V.u}</em></span>`:''}${it.p.v.harmonie!=null?`<span style="color:${COL.harmonie}">vedur.is <em>${fmt(it.p.v.harmonie,dd)}${V.u}</em></span>`:''}</div></div>`;};
+  el('moments').innerHTML=(wins.map(w=>card(w,'win')).join('')+loss.map(l=>card(l,'loss')).join(''))||'<div class="note">Ekki næg gögn.</div>';
+}
+
+// ── SVG LÍNURIT ─────────────────────────────────────
+function lineChart(host,cfg){
+  // cfg: {x0,x1,series:[{id,name,color,w,op,dash,pts:[[t,v]],kind:'line'|'bar'|'dots'|'band',lo,hi}],u,d,now,yZero,height}
+  const W=Math.max(300,host.clientWidth||460),H=cfg.height||230,pl=34,pr=8,pt=10,pb=26;
+  let ys=[];cfg.series.forEach(s=>{if(s.kind==='band')s.pts.forEach(p=>{ys.push(p[1],p[2])});else s.pts.forEach(p=>p[1]!=null&&ys.push(p[1]))});
+  if(!ys.length){host.innerHTML='<div class="note">Engin gögn enn.</div>';return;}
+  let y0=Math.min(...ys),y1=Math.max(...ys);if(cfg.yZero)y0=Math.min(0,y0);
+  if(y1-y0<1){y1+=0.5;y0-=cfg.yZero?0:0.5;}
+  const pad=(y1-y0)*0.08;y1+=pad;if(!cfg.yZero)y0-=pad;
+  const X=t=>pl+(t-cfg.x0)/(cfg.x1-cfg.x0)*(W-pl-pr),Y=v=>pt+(1-(v-y0)/(y1-y0))*(H-pt-pb);
+  // ásar
+  const step=niceStep((y1-y0)/4);let g='';
+  for(let v=Math.ceil(y0/step)*step;v<=y1;v+=step){g+=`<line x1="${pl}" x2="${W-pr}" y1="${Y(v)}" y2="${Y(v)}" stroke="rgba(255,255,255,0.06)"/>
+    <text x="${pl-6}" y="${Y(v)+4}" fill="#646d82" font-size="10" text-anchor="end">${fmt(v,step<1?1:0)}</text>`;}
+  // dagaskil
+  let d=new Date(cfg.x0);d=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()+1);
+  if(cfg.hours){for(let h=6;h<24;h+=6){const t=cfg.x0+h*36e5,x=X(t);g+=`<line x1="${x}" x2="${x}" y1="${pt}" y2="${H-pb}" stroke="rgba(255,255,255,0.05)"/><text x="${x}" y="${H-8}" fill="#9aa2b4" font-size="10" text-anchor="middle">kl. ${String(h).padStart(2,'0')}</text>`;}d=cfg.x1+1;}
+  const dstep=(cfg.x1-cfg.x0)>8*864e5?5*864e5:864e5;
+  for(;d<cfg.x1;d+=dstep){const x=X(d);g+=`<line x1="${x}" x2="${x}" y1="${pt}" y2="${H-pb}" stroke="rgba(255,255,255,0.05)"/>
+    <text x="${x+4}" y="${H-8}" fill="#9aa2b4" font-size="10">${DAGAR[new Date(d).getUTCDay()]} ${new Date(d).getUTCDate()}.</text>`;}
+  if(cfg.now){const x=X(cfg.now);g+=`<rect x="${x}" y="${pt}" width="${W-pr-x}" height="${H-pt-pb}" fill="rgba(255,255,255,0.025)"/>
+    <line x1="${x}" x2="${x}" y1="${pt}" y2="${H-pb}" stroke="rgba(255,255,255,0.35)" stroke-dasharray="3 3"/>
+    <text x="${x}" y="${pt+10}" fill="#f4f6fa" font-size="10" text-anchor="middle" dy="-12">núna</text>`;}
+  let marks='';
+  const bw=Math.max(2,(W-pl-pr)/((cfg.x1-cfg.x0)/36e5)*0.6);
+  for(const s of cfg.series){
+    if(s.kind==='band'){if(!s.pts.length)continue;
+      const top=s.pts.map(p=>`${X(p[0])},${Y(p[2])}`),bot=s.pts.slice().reverse().map(p=>`${X(p[0])},${Y(p[1])}`);
+      marks+=`<polygon points="${top.concat(bot).join(' ')}" fill="rgba(138,147,168,0.16)"/>`;continue;}
+    if(s.kind==='bar'){for(const [t,v] of s.pts)if(v!=null&&v>0)marks+=`<rect x="${X(t)-bw/2}" y="${Y(v)}" width="${bw}" height="${Math.max(0,Y(y0<0?0:y0)-Y(v))}" rx="1.5" fill="${s.color}" opacity="${s.op||0.55}"/>`;continue;}
+    if(s.kind==='dots'){for(const [t,v] of s.pts)if(v!=null)marks+=`<circle cx="${X(t)}" cy="${Y(v)}" r="2.2" fill="${s.color}"/>`;}
+    let path='',pen=false,last=null;
+    for(const [t,v] of s.pts){if(v==null||(last!=null&&t-last>(cfg.gap||3.1*36e5))){pen=false;}
+      if(v!=null){path+=(pen?'L':'M')+X(t).toFixed(1)+' '+Y(v).toFixed(1);pen=true;last=t;}}
+    if(s.kind!=='dots'||s.w)marks+=`<path d="${path}" fill="none" stroke="${s.color}" stroke-width="${s.w||1.5}" stroke-linejoin="round" stroke-linecap="round" opacity="${s.op??1}" ${s.dash?`stroke-dasharray="${s.dash}"`:''}/>`;
   }
-  if(wdir6!==null){
-    const from6=(wdir6+180)%360;
-    document.getElementById('arrow6h').setAttribute('transform',`rotate(${from6},55,55)`);
-    document.getElementById('c6h').textContent=`+6klst ${dir(wdir6)}  ${wind6!==null?wind6.toFixed(1)+' m/s':''}`;
+  host.innerHTML=`<svg viewBox="0 0 ${W} ${H}" height="${H}">${g}${marks}<line class="xh" x1="0" x2="0" y1="${pt}" y2="${H-pb}" stroke="rgba(255,255,255,0.4)" opacity="0"/><g class="hd"></g>
+    <rect x="${pl}" y="${pt}" width="${W-pl-pr}" height="${H-pt-pb}" fill="transparent" class="hit"/></svg><div class="tip"></div>`;
+  // hover
+  const svg=host.querySelector('svg'),tip=host.querySelector('.tip'),xh=host.querySelector('.xh'),hd=host.querySelector('.hd');
+  const PR=['obs','jolly','metno','harmonie'],prio=s=>{const i=PR.indexOf(s.id);return i<0?9:i};
+  const tipSeries=cfg.series.filter(s=>s.kind!=='band'&&s.tip!==false).sort((a,b)=>prio(a)-prio(b));
+  function at(s,t){let best=null,bd=1e18;for(const p of s.pts){const dd=Math.abs(p[0]-t);if(dd<bd){bd=dd;best=p;}}return bd<=(cfg.gap?cfg.gap/2:1.6*36e5)?best:null;}
+  function move(ev){
+    const r=svg.getBoundingClientRect(),px=(ev.touches?ev.touches[0].clientX:ev.clientX)-r.left;
+    const sx=px*W/r.width;if(sx<pl||sx>W-pr){hide();return;}
+    const snap=cfg.gap?864e5:36e5;let t=cfg.x0+(sx-pl)/(W-pl-pr)*(cfg.x1-cfg.x0);t=Math.round(t/snap)*snap;
+    const x=X(t);xh.setAttribute('x1',x);xh.setAttribute('x2',x);xh.setAttribute('opacity',1);
+    let rows='',dots='';
+    for(const s of tipSeries){const p=at(s,t);if(!p||p[1]==null)continue;
+      rows+=`<div class="r"><span class="sw" style="background:${s.color}"></span>${s.name}<span class="v">${fmt(p[1],cfg.d)}${cfg.u}</span></div>`;
+      if(s.kind!=='bar')dots+=`<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="3.5" fill="${s.color}" stroke="#0e1220" stroke-width="1.5"/>`;}
+    const band=cfg.series.find(s=>s.kind==='band');if(band){const p=band.pts.find(q=>q[0]===t);
+      if(p)rows+=`<div class="r"><span class="sw" style="background:rgba(138,147,168,.4)"></span>Bil líkana<span class="v">${fmt(p[1],cfg.d)}–${fmt(p[2],cfg.d)}</span></div>`;}
+    hd.innerHTML=dots;
+    const dd=new Date(t);
+    tip.innerHTML=`<div class="h">${DAGAR[dd.getUTCDay()]} ${dd.getUTCDate()}.${cfg.daily?' · 7 dagar á undan':' kl. '+hh(t)}${cfg.now&&t>cfg.now?' · spá':cfg.now?' · liðið':''}</div>${rows||'<div class="r">Engin gögn</div>'}`;
+    tip.style.opacity=1;const tw=tip.offsetWidth,cx=x*r.width/W;
+    tip.style.left=Math.min(Math.max(0,cx+(cx>r.width/2?-tw-12:12)),r.width-tw)+'px';tip.style.top='8px';
   }
+  function hide(){tip.style.opacity=0;xh.setAttribute('opacity',0);hd.innerHTML='';}
+  svg.addEventListener('mousemove',move);svg.addEventListener('mouseleave',hide);
+  svg.addEventListener('touchstart',move,{passive:true});svg.addEventListener('touchmove',move,{passive:true});
+  svg.addEventListener('touchend',()=>setTimeout(hide,1800));
+}
+function niceStep(r){const p=10**Math.floor(Math.log10(r||1)),f=r/p;return (f<1.5?1:f<3?2:f<7?5:10)*p;}
+function legend(host,items){host.innerHTML=items.map(i=>`<span><span class="sw ${i.cls||''}" style="${i.cls==='band'?'':'background:'+i.color}"></span>${i.name}</span>`).join('');}
+function seg(host,opts,cur,on){host.innerHTML=opts.map(([k,n])=>`<button data-k="${k}" class="${k==cur?'on':''}">${n}</button>`).join('');
+  host.onclick=e=>{const b=e.target.closest('button');if(!b)return;host.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));on(b.dataset.k);};}
 
-  // Hourly — 24 klst skipt í 4 síður af 6
-  buildHourlyPages(T, idx);
-
-  // Daily - tímaraufir 06/12/18/00 eins og Veðurstofan
-  const dc=document.getElementById('dailyCard');
-  dc.innerHTML='';
-  const SLOTS = FC.slot_hours || ['06','12','18','00'];
-
-  // Haus
-  const hdr=document.createElement('div');
-  hdr.className='dt-head';
-  hdr.innerHTML =
-    `<div class="dt-day">Dagsetning</div>`
-    + SLOTS.map(s=>`<div class="dt-slot">${s}</div>`).join('')
-    + `<div class="dt-temp">Hiti</div>`
-    + `<div class="dt-wind">Vindur</div>`
-    + `<div class="dt-rain">Úrkoma</div>`;
-  dc.appendChild(hdr);
-
-  const dd = FC.daily || {};
-  const dates = dd.date || [];
-
-  // Raufir koma fra jolly.py (daily_slots). Ef thaer vantar - t.d. eldri
-  // utgafa af Python-skranni - reiknum vid thaer sjalf ur klukkustundunum
-  // svo taknin birtist alltaf.
-  let slots = FC.daily_slots;
-  if(!slots || !slots.length){
-    const idx = {};
-    (FC.hourly.time||[]).forEach((t,k)=>{ idx[t]=k; });
-    slots = dates.map(d=>{
-      const out={};
-      SLOTS.forEach(s=>{
-        let key;
-        if(s==='00'){
-          const nd=new Date(d+'T00:00:00Z');
-          nd.setUTCDate(nd.getUTCDate()+1);
-          key=nd.toISOString().slice(0,10)+'T00:00';
-        } else {
-          key=`${d}T${s}:00`;
-        }
-        const k=idx[key];
-        out[s] = (k===undefined) ? null : {
-          icon:      FC.hourly.icon?.[k],
-          condition: FC.hourly.condition?.[k],
-          temp:      FC.hourly.temperature?.[k],
-        };
-      });
-      return out;
-    });
+// ── TÍMALÍNA ────────────────────────────────────────
+function renderTimeline(){
+  const vk=S.v,V=VARS[vk],now=Date.now(),x0=now-48*36e5,x1=now+72*36e5,H=FC.hourly;
+  const ser=[];
+  // mæling
+  const obs=OBS.filter(o=>T(o.time)>=x0&&o[V.of]!=null).map(o=>[T(o.time),o[V.of]]);
+  // fortíð: spá gefin `lead` klst fyrir
+  const G=IDX[S.lead]||{},past={};
+  for(const vt in G){const t=T(vt);if(t<x0||t>now)continue;for(const s in G[vt]){const v=num(G[vt][s][V.fc]);if(v==null)continue;(past[s]=past[s]||[]).push([t,v]);}}
+  for(const s in past)past[s].sort((a,b)=>a[0]-b[0]);
+  // framtíð
+  const ft=H.time.map(T),fut={};
+  if(H[V.jf])fut.jolly=ft.map((t,i)=>[t,H[V.jf][i]]).filter(p=>p[0]<=x1);
+  if(V.mf)for(const m of MODELS){const a=(H[V.mf]||{})[m];if(a)fut[m]=ft.map((t,i)=>[t,a[i]]).filter(p=>p[0]<=x1);}
+  const band=[];if(V.mf)ft.forEach((t,i)=>{if(t>x1)return;const vs=MODELS.map(m=>((H[V.mf]||{})[m]||[])[i]).filter(v=>v!=null);if(vs.length>=4)band.push([t,Math.min(...vs),Math.max(...vs)]);});
+  const join=s=>(past[s]||[]).concat(fut[s]||[]);
+  ser.push({kind:'band',pts:band});
+  const others=MODELS.filter(m=>m!=='metno'&&m!=='harmonie');
+  if(S.all)for(const m of others)ser.push({id:m,name:NAMES[m],color:COL.mod,w:1,op:.55,pts:join(m)});
+  if(!V.bar){
+    ser.push({id:'harmonie',name:'vedur.is',color:COL.harmonie,w:1.6,pts:join('harmonie')});
+    ser.push({id:'metno',name:'yr.no',color:COL.metno,w:1.6,pts:join('metno')});
+    ser.push({id:'jolly',name:'Jolly',color:COL.jolly,w:2.6,pts:join('jolly')});
+    ser.push({id:'obs',name:'Mæling',color:COL.obs,kind:'dots',w:1.4,pts:obs});
+  }else{
+    ser.unshift({id:'obs',name:'Mæling',color:'#7fb3ff',kind:'bar',op:.6,pts:obs});
+    ser.push({id:'harmonie',name:'vedur.is',color:COL.harmonie,w:1.4,pts:join('harmonie')});
+    ser.push({id:'metno',name:'yr.no',color:COL.metno,w:1.4,pts:join('metno')});
+    ser.push({id:'jolly',name:'Jolly',color:COL.jolly,w:2.4,pts:join('jolly')});
   }
-
-  dates.slice(0,7).forEach((d,i)=>{
-    const mn=dd.temp_min?.[i], mx=dd.temp_max?.[i];
-    const rain=dd.precipitation_total?.[i]||0;
-    const wdeg=dd.wind_dir_dominant_deg?.[i];
-    const wspd=dd.wind_avg?.[i];
-    const dt=new Date(d+'T12:00:00Z');
-    const dayName=DAGAR[dt.getUTCDay()]+'. '+dt.getUTCDate()+'. '+MANUDIR[dt.getUTCMonth()];
-
-    const cells = SLOTS.map(s=>{
-      const sd = slots[i]?.[s];
-      return `<div class="dt-slot">${sd
-        ? `<span title="${sd.condition||''}">${mcIcon(sd.icon,34)}</span>`
-        : '<span class="dt-empty">–</span>'}</div>`;
-    }).join('');
-
-    // Vindör snýr í ÞÁ ÁTT SEM VINDURINN BLÆS.
-    // Taknid er ↑ (upp vid 0°), svo nordanatt (0°) snyst um 180° og
-    // visar NIDUR - vindurinn kemur ad nordan og blaes til sudurs.
-    const wlbl = dd.wind_dir_dominant?.[i] || '';
-    const arrow = wdeg!=null
-      ? `<span class="dt-arr" style="transform:rotate(${(wdeg+180)%360}deg)">↑</span>`
-      : '';
-
-    const el=document.createElement('div');
-    el.className='dt-row';
-    el.innerHTML=
-      `<div class="dt-day">${dayName}</div>`
-      + cells
-      + `<div class="dt-temp"><b class="lo">${mn!=null?Math.round(mn):'–'}°</b>`
-      + `<span class="sep">/</span><b class="hi">${mx!=null?Math.round(mx):'–'}°</b></div>`
-      + `<div class="dt-wind">${arrow}`
-      + `<span class="dt-wlbl">${wlbl}</span>`
-      + `<b>${wspd!=null?Math.round(wspd):'–'}</b>`
-      + `<span class="u">m/s</span></div>`
-      + `<div class="dt-rain"><b>${rain>0?rain.toFixed(1):'0'}</b><span class="u">mm</span></div>`;
-    dc.appendChild(el);
-  });
+  const hasModels=V.mf||Object.keys(past).some(s=>MODELS.includes(s));
+  lineChart(el('tlChart'),{x0,x1,now,series:ser,u:V.u,d:V.d,yZero:vk==='urkoma'||vk==='sky'});
+  const L=[{name:'Mæling',color:V.bar?'#7fb3ff':COL.obs,cls:V.bar?'':'dotsw'},{name:'Jolly',color:COL.jolly},
+    {name:'yr.no',color:COL.metno},{name:'vedur.is',color:COL.harmonie}];
+  if(band.length)L.push({name:'Bil allra líkana',cls:'band'});
+  if(S.all)L.push({name:'Önnur líkön',color:COL.mod});
+  legend(el('tlLegend'),L);
+  // skekkja á þessu tímabili
+  const e=errs(vk,S.lead,x0,now,['jolly','metno','harmonie']);
+  const m=k=>avg(e[k]);
+  let note=`Síðustu 48 klst, spáð ${S.lead} klst fyrir: meðalskekkja Jolly <b style="color:var(--ink)">${fmt(m('jolly'),vk==='sky'?0:1)}${V.u}</b>, yr.no ${fmt(m('metno'),vk==='sky'?0:1)}${V.u}, vedur.is ${fmt(m('harmonie'),vk==='sky'?0:1)}${V.u}.`;
+  if(vk==='kvidur'||vk==='thr')note+=' Framtíðarspá er aðeins til frá Jolly fyrir þessa breytu.';
+  el('tlNote').innerHTML=note;
 }
 
-// Valin spálengd fyrir bias/þyngdartöfluna
-let leadSel = '6';
-const isV2 = ()=> !!(MODEL && MODEL.version && MODEL.version.startsWith('2'));
-
-function leadList(){
-  return (MODEL.lead_buckets || FC.lead_buckets || [1,3,6,12,24,48]).map(String);
-}
-
-// Sækir bias/þyngd/MAE óháð því hvort líkanið er v1.x eða v2.0
-// Eru þyngdir sér fyrir hverja breytu? (v2.3+)
-const perVar = ()=> !!(MODEL.weights && MODEL.weights.hiti
-                       && MODEL.weights.hiti[leadSel]);
-
-function modelStats(m){
-  if(isV2()){
-    const b  = MODEL.bias?.[m]?.[leadSel] || {};
-    // Þyngd og MAE fylgja breytunni sem er valin í flipunum
-    const w  = perVar() ? MODEL.weights?.[activeMetric]?.[leadSel]?.[m]
-                        : MODEL.weights?.[leadSel]?.[m];
-    const lm = MODEL.lead_mae?.[leadSel]?.[m];
-    const nv = lm?.n_var?.[activeMetric] ?? lm?.n;
-    return {b, w, mae:lm?.[activeMetric], n:nv};
+// ── STIGATAFLA ──────────────────────────────────────
+function renderSB(){
+  const to=Date.now(),from=to-S.sbDays*864e5,srcs=['jolly','metno','harmonie','mean'];let html='',tbl=[];
+  const H=S.sbMetric==='hit';
+  el('sbDesc').textContent=H?'Hlutfall klukkustunda þar sem spáin var nógu nálægt: hiti innan 1°, vindur innan 1 m/s, átt innan 30°, ský innan 20%, úrkoma rétt (rigning eða ekki). Lengri stika = betri.'
+    :'Meðalskekkja á móti mælingum á Egilsstöðum. Styttri stika = betri spá.';
+  for(const vk of ['hiti','vindur','att','urkoma','sky']){
+    const V=VARS[vk],P=pairs(vk,S.sbLead,from,to),n=P.length;
+    const m={};for(const s of srcs){const q=P.filter(p=>p.v[s]!=null);if(q.length>=0.8*n&&q.length)m[s]=H?q.filter(p=>hit(vk,p.v[s],p.o)).length/q.length*100:avg(q.map(p=>E(vk,p.v[s],p.o)));}
+    const ks=Object.keys(m).sort((a,b)=>H?m[b]-m[a]:m[a]-m[b]);if(!ks.length)continue;
+    const mx=H?100:Math.max(...ks.map(k=>m[k]))*1.05,dd=H?0:vk==='att'||vk==='sky'?0:vk==='urkoma'?2:1;
+    tbl.push([V.n,...srcs.map(s=>m[s])]);
+    html+=`<div class="sbv"><div class="vh"><b>${V.n}</b><span>${n} klst</span></div>${ks.map((k,i)=>`
+      <div class="bar ${i===0?'win':''}"><div class="nm">${NAMES[k]}${i===0?'<span class="crown">✓</span>':''}</div>
+      <div class="tr"><div class="fl" style="width:${m[k]/mx*100}%;background:${COL[k]||COL.mod};opacity:${k==='mean'?.55:1}"></div></div>
+      <div class="vl">${fmt(m[k],dd)}${H?'%':V.u}</div></div>`).join('')}</div>`;
   }
-  const b  = MODEL.biases?.[m] || {};
-  const w  = MODEL.weights?.[m];
-  const lm = MODEL.mae_history?.slice(-1)[0]?.mae?.[m];
-  return {b, w, mae:lm?.hiti, n:null};
+  el('sb').innerHTML=html||'<div class="note">Ekki næg gögn.</div>';
+  window._sbTbl=tbl;if(el('sbTbl').innerHTML)drawSbTbl();
+}
+function drawSbTbl(){const t=window._sbTbl||[];
+  el('sbTbl').innerHTML=`<table class="tbl"><tr><th></th><th>Jolly</th><th>yr.no</th><th>vedur.is</th><th>Meðaltal</th></tr>${t.map(r=>`<tr><td>${r[0]}</td>${r.slice(1).map(v=>`<td>${fmt(v,2)}</td>`).join('')}</tr>`).join('')}</table>`;}
+
+// ── ÞRÓUN ───────────────────────────────────────────
+function renderTrend(){
+  const vk=S.tr,V=VARS[vk],day=864e5,end=Math.floor(Date.now()/day)*day,start=end-30*day,srcs=['jolly','metno','harmonie'];
+  const ser=srcs.map(s=>({id:s,name:NAMES[s],color:COL[s],w:s==='jolly'?2.6:1.6,pts:[]}));
+  for(let d=start+7*day;d<=end;d+=day){const e=errs(vk,6,d-7*day,d,srcs);
+    srcs.forEach((s,i)=>{const n=e.jolly.length;ser[i].pts.push([d,n>=20&&e[s].length>=0.8*n?avg(e[s]):null]);});}
+  lineChart(el('trChart'),{x0:start+7*day,x1:end,series:ser,u:V.u,d:vk==='sky'||vk==='att'?0:2,yZero:true,height:190,gap:1.5*day,daily:true});
+  legend(el('trLegend'),srcs.map(s=>({name:NAMES[s],color:COL[s]})));
 }
 
-function setLead(L){
-  leadSel = String(L);
-  renderModelGrid();
-  renderSkill();
-  buildLearn();
+// ── VÆGI ────────────────────────────────────────────
+function renderWeights(){
+  const H=FC.hourly,i=Math.min(6,(H.used_weights||[]).length-1);
+  const uw=(H.used_weights||[])[i]||{},w=uw[{hiti:'hiti',vindur:'vindur',att:'att',urkoma:'urkoma',sky:'sky'}[S.w]]||{};
+  const tot=Object.values(w).reduce((a,b)=>a+(b||0),0)||1;
+  const arr=Object.entries(w).map(([m,v])=>[m,(v||0)/tot]).sort((a,b)=>b[1]-a[1]);
+  const mx=arr.length?arr[0][1]:1;
+  el('wBars').innerHTML=arr.map(([m,v],k)=>`<div class="wbar ${k<3?'top':''}"><span>${NAMES[m]||m}</span>
+    <div class="tr"><div class="fl" style="width:${v/mx*100}%;${m==='metno'?'background:'+COL.metno:m==='harmonie'?'background:'+COL.harmonie:''}"></div></div><span class="v">${Math.round(v*100)}%</span></div>`).join('')
+    +(S.w==='hiti'?'<div class="note">Í hita fær besta líkanið aukið vægi – það reyndist best í prófunum.</div>':S.w==='vindur'?'<div class="note">Vindvægið byggist á árangri síðustu 30 daga og er endurreiknað í hverri keyrslu.</div>':'');
 }
 
-// Bias-lina fylgir valinni breytu
-// Laerdur urkomuthroskuldur fyrir valid likan/spalengd
-let _thrModel=null;
-function thrLabel(){
-  if(!_thrModel) return '';
-  const st=(MODEL.precip_thr?.[_thrModel]||{})[leadSel];
-  if(!st) return '';
-  let bt=0, bf=-1;
-  Object.entries(st).forEach(([k,c])=>{
-    if(c.n<40) return;
-    const den=2*c.tp+c.fp+c.fn;
-    const f1=den?2*c.tp/den:0;
-    if(f1>bf){bf=f1;bt=parseFloat(k);}
-  });
-  if(bf<0) return '';
-  return ` <span style="color:var(--dim);font-size:.55rem">þrösk ${bt.toFixed(2)}mm</span>`;
-}
-
-function biasLine(b){
-  const f=(v,u,d)=> v===undefined||v===null ? '—'
-    : (v>=0?'+':'')+v.toFixed(d)+u;
-  if(activeMetric==='vindur') return `Vind: <b>${f(b.vindur,' m/s',2)}</b>`;
-  if(activeMetric==='att')    return `Átt: <b>${f(b.att,'°',1)}</b>`;
-  if(activeMetric==='sky')    return `Ský: <b>${f(b.sky,'%',1)}</b>`;
-  if(activeMetric==='urkoma') return `Úrk: <b>${b.urkoma_scale!=null
-      ?'×'+b.urkoma_scale.toFixed(2):'—'}</b>${thrLabel()}`;
-  return `Hiti: <b>${f(b.hiti,'°',2)}</b>`;
-}
-
-// Restleidretting a Jolly sjalfri - lykkjan er lokud
-function jollyResidual(){
-  const jb = (MODEL.jolly_bias||{})[leadSel];
-  if(!jb) return '';
-  const v = activeMetric==='urkoma'
-    ? (jb.urkoma_scale!=null?'×'+jb.urkoma_scale.toFixed(2):'—')
-    : (jb[activeMetric]!=null
-        ? (jb[activeMetric]>=0?'+':'')+jb[activeMetric].toFixed(
-            activeMetric==='hiti'||activeMetric==='vindur'?2:1)
-          + (UNIT_OF[activeMetric]||'')
-        : '—');
-  return `<div class="n-skill-note" style="margin-top:10px">
-    Restleiðrétting á Jolly við ${leadSel} klst: <b>${v}</b> — lærð af
-    hennar eigin mældu skekkju, því vegin blanda getur haft hlutdrægni
-    sem er ekki summa hlutanna.</div>`;
-}
-
-function renderModelGrid(){
-  // Spálengdarveljari
-  const lp = document.getElementById('nLeadPicker');
-  if(lp){
-    lp.innerHTML = isV2()
-      ? '<span class="n-lead-lbl">Spálengd</span>' + leadList().map(L=>
-          `<button class="n-lead${L===leadSel?' active':''}" onclick="setLead('${L}')">`
-          + `${L} klst</button>`).join('')
-      : '';
+// ── LEIÐRÉTTINGAR ───────────────────────────────────
+function renderCorr(){
+  const line=(LOG.match(/URKOMUSTUDLAR EFTIR ATT[^:]*:([^\n]+)/)||[])[1]||'';
+  const ks={};for(const m of line.matchAll(/(NA|NV|SA|SV|N|A|S|V)\s+([\d.]+)\s*\((\d+)\s*bl/g))ks[m[1]]={k:+m[2],n:+m[3]};
+  const order=['N','NA','A','SA','S','SV','V','NV'],cx=75,cy=75,R=52;
+  if(!Object.keys(ks).length){el('rose').innerHTML='<div class="note">Bíður eftir fyrstu keyrslu v8.0.</div>';}
+  else{
+    let s=`<svg viewBox="0 0 150 150" width="150" height="150">`;
+    [0.5,1].forEach(r=>s+=`<circle cx="${cx}" cy="${cy}" r="${R*r}" fill="none" stroke="rgba(255,255,255,${r===1?0.28:0.08})" ${r===1?'stroke-dasharray="3 3"':''}/>`);
+    order.forEach((d,i)=>{const o=ks[d];if(!o)return;const a0=(i*45-22.5+3-90)*Math.PI/180,a1=(i*45+22.5-3-90)*Math.PI/180,r=R*Math.min(o.k,1.2);
+      const p=(a,rr)=>`${cx+Math.cos(a)*rr},${cy+Math.sin(a)*rr}`;
+      s+=`<path d="M${cx},${cy} L${p(a0,r)} A${r},${r} 0 0 1 ${p(a1,r)} Z" fill="${d==='SA'?COL.jolly:'#aac6ea'}" opacity="${d==='SA'?0.95:0.45}"><title>${d}: ${Math.round(o.k*100)}%</title></path>`;
+      const la=(i*45-90)*Math.PI/180;s+=`<text x="${cx+Math.cos(la)*(R+13)}" y="${cy+Math.sin(la)*(R+13)+4}" font-size="10" text-anchor="middle" fill="${d==='SA'?'#f4f6fa':'#9aa2b4'}" font-weight="${d==='SA'?600:400}">${d}</text>`;});
+    el('rose').innerHTML=s+'</svg>';
   }
-  const mg=document.getElementById('nModelGrid');
-  mg.innerHTML=Object.keys(MC).map(m=>{
-    _thrModel=m;
-    const {b,w,mae,n}=modelStats(m);
-    const wp = (w===undefined||w===null) ? null : w*100;
-    const dead = wp!==null && wp<0.5;
-    const u = UNIT_OF[activeMetric]||'';
-    return`<div class="n-mc${dead?' n-mc-dead':''}" style="--accent:${MC[m]}">
-      <div class="n-mc-name" style="color:${MC[m]}">${MN[m]}</div>
-      <div class="n-mc-bias">${biasLine(b)}</div>
-      <div class="n-mc-mae">MAE ${mae!==undefined&&mae!==null?mae.toFixed(2)+u:'—'}${n?` · n=${n}`:''}</div>
-      <div class="n-mc-wlbl">Þyngd ${wp!==null?wp.toFixed(0)+'%':'—'}</div>
-      <div class="n-wbar"><div class="n-wfill" style="width:${wp!==null?Math.max(0,wp).toFixed(0):0}%"></div></div>
-    </div>`;
-  }).join('');
+  const sa=ks.SA;
+  const sorted=order.filter(d=>ks[d]).sort((a,b)=>ks[a].k-ks[b].k);
+  el('roseTxt').innerHTML=sa?`<div class="nc"><b>Suðaustanátt: ${Math.round(sa.k*100)}%</b><br>Í SA-átt mælist aðeins ${Math.round(sa.k*100)}% af úrkomunni sem líkönin spá – regnskuggi yfir Héraði. Byggt á ${sa.n} blautum klst.</div>
+    <div class="nc">Minnst skilar sér í ${sorted[0]}-átt (${Math.round(ks[sorted[0]].k*100)}%), mest í ${sorted[sorted.length-1]}-átt (${Math.round(ks[sorted[sorted.length-1]].k*100)}%).</div>`:'';
+  // nowcast
+  const items=[];
+  const t=LOG.match(/NOWCAST: mæling ([-\d.]+)° kl (\d\d:\d\d) á móti blöndu ([-\d.]+)°[^>]*-> frávik ([-+\d.]+)/);
+  if(t)items.push(['Hiti',`stöðin mældi <b>${fmt(+t[1])}°</b> kl. ${t[2]}, líkönin sögðu ${fmt(+t[3])}°`,+t[4],'°']);
+  const w=LOG.match(/NOWCAST VINDUR: maeling ([\d.]+) m\/s kl (\d\d:\d\d) a moti likonum ([\d.]+) -> fravik ([-+\d.]+)/);
+  if(w)items.push(['Vindur',`stöðin mældi <b>${fmt(+w[1])} m/s</b> kl. ${w[2]}, líkönin sögðu ${fmt(+w[3])} m/s`,+w[4],' m/s']);
+  const c=LOG.match(/NOWCAST SKY: METAR (\d+)% kl (\d\d:\d\d) á móti blöndu (\d+)% -> frávik ([-+\d]+)/);
+  if(c)items.push(['Ský',`flugvöllurinn sá <b>${c[1]}%</b> skýjahulu kl. ${c[2]}, líkönin sögðu ${c[3]}%`,+c[4],'%']);
+  el('ncList').innerHTML=items.length?items.map(([n,txt,d,u])=>`<div class="nc"><b>${n}</b> <span class="pill ${d<0?'dn':'up'}">${d>0?'+':''}${fmt(d,u==='%'?0:1)}${u}</span><br>${txt}. Jolly færir næstu klst að mælingunni og dregur smám saman úr því.</div>`).join('')
+    :'<div class="note">Engin nýleg mæling til að leiðrétta eftir.</div>';
 }
 
-
-// ── SKILL: er Jolly nakvaemari en besta einstaka likanid? ──────────────────
-// Skilyrt bias: hvernig leidrettingin breytist eftir vindatt og degi/nott
-const SECTORS=['N','A','S','V'];
-const SEC_LABEL={N:'Norðan',A:'Austan',S:'Sunnan',V:'Vestan'};
-function condBiasBlock(){
-  const cb=MODEL.cond_bias;
-  if(!cb || activeMetric==='urkoma') return '';
-  // Safna öllum líkönum sem hafa reiti fyrir þessa breytu+spálengd
-  const rows=[];
-  Object.keys(MC).forEach(m=>{
-    const cells=(cb[m]||{})[leadSel];
-    if(!cells) return;
-    ['dagur','nott'].forEach(dn=>{
-      SECTORS.forEach(sec=>{
-        const cell=`${sec}-${dn}`;
-        const e=(cells[cell]||{})[activeMetric];
-        if(e && e.n>=3){
-          rows.push({m,sec,dn,bias:-(e.sum/e.n),n:e.n});
-        }
-      });
-    });
-  });
-  if(!rows.length) return '';
-  // Sýna bara efstu 8 eftir |bias| - mest afgerandi
-  rows.sort((a,b)=>Math.abs(b.bias)-Math.abs(a.bias));
-  const top=rows.slice(0,8);
-  const u=UNIT_OF[activeMetric]||'';
-  const body=top.map(r=>{
-    const cls=r.bias>=0?'pos':'neg';
-    return `<div class="n-skill-row" style="grid-template-columns:76px 1fr 54px 48px">
-      <div class="n-skill-lead">${SEC_LABEL[r.sec]}</div>
-      <div class="n-skill-lead" style="color:var(--dim)">${r.dn} · ${MN[r.m]}</div>
-      <div class="n-skill-val ${cls}">${r.bias>=0?'+':''}${r.bias.toFixed(1)}${u}</div>
-      <div class="n-skill-vs">n=${r.n}</div>
-    </div>`;
-  }).join('');
-  return `<div class="n-skill" style="margin-top:12px">
-    <div class="n-skill-hd">Skilyrt leiðrétting · ${activeMetric} · ${leadSel} klst</div>
-    ${body}
-    <div class="n-skill-note">Sama líkan, ólík leiðrétting eftir vindátt og
-    tíma dags. Í Egilsstaðadal er vestanátt oft föhn (hlýrra en spáð) og
-    kyrrar nætur kaldari (kaldaloftspollun). Reitir með færri en 3 mælingar
-    nota almenna leiðréttingu.</div></div>`;
-}
-
-function renderSkill(){
-  const el=document.getElementById('nSkill');
-  if(!el) return;
-  const rows = MODEL.skill?.[activeMetric] || (activeMetric==='hiti'
-    ? (MODEL.skill && !MODEL.skill.hiti ? MODEL.skill : null) : null);
-  const unit = UNIT_OF[activeMetric]||'';
-  if(!rows || !Object.keys(rows).length){
-    el.innerHTML = `<div class="n-skill">
-      <div class="n-skill-hd">Jolly á móti besta líkani</div>
-      <div class="n-skill-empty">Bíð staðfestingar. Jolly-spáin er geymd við
-      útgáfu og mæld þegar veðrið gengur yfir — fyrstu tölur koma eftir
-      klukkustund, allar spálengdir eftir tvo daga.</div></div>`;
-    return;
-  }
-  let body='';
-  leadList().forEach(L=>{
-    const s=rows[L];
-    if(!s) return;
-    const ok = s.meaningful!==false;
-    const pct = s.skill*100;
-    const w = Math.min(100, Math.abs(pct)*2.5);
-    const cls = pct>0?'pos':'neg';
-    body += `<div class="n-skill-row">
-      <div class="n-skill-lead">${L} klst</div>
-      <div class="n-skill-bar">${ok?`<div class="n-skill-fill ${cls}"
-        style="${pct>0?'left:50%':'right:50%'};width:${w/2}%"></div>`:''}</div>
-      <div class="n-skill-vs">${s.best_model} ${s.best_mae.toFixed(2)}</div>
-      <div class="n-skill-val ${ok?cls:'na'}">${ok?(pct>0?'+':'')+pct.toFixed(1)+'%':'—'}</div>
-    </div>`;
-  });
-  el.innerHTML = `<div class="n-skill">
-    <div class="n-skill-hd">Jolly á móti besta líkani · ${activeMetric}</div>
-    ${body}
-    ${jollyResidual()}
-    ${condBiasBlock()}
-    <div class="n-skill-note">Grænt = Jolly nákvæmari en besta einstaka líkanið.
-    Talan við hlið er MAE (${unit}) þess líkans. «—» þýðir að skekkjan er
-    undir mælinákvæmni og hlutfallið því ekki marktækt.</div></div>`;
-}
-
-function renderNanar(){
-  const gen=new Date(FC.generated);
-  const age=Math.round((Date.now()-gen)/60000);
-  const as=age<60?`${age} mín`:`${Math.round(age/60)} klst`;
-  const runs = MODEL.runs ?? MODEL.training_days ?? 0;
-  const vp   = MODEL.verified_pairs;
-  const nMod = (MODEL.models_used||Object.keys(MC)).length;
-  document.getElementById('nPills').innerHTML=`
-    <div class="n-pill ok">🕐 Uppfært fyrir ${as}</div>
-    <div class="n-pill ${runs>24?'ok':'warn'}">🔁 ${runs} keyrslur</div>
-    ${vp!==undefined?`<div class="n-pill ${vp>500?'ok':'warn'}">✓ ${vp.toLocaleString('is-IS')} staðfest pör</div>`:''}
-    <div class="n-pill">📡 ${nMod} líkön</div>
-    ${isV2()?'<div class="n-pill ok">📐 Spástaðfesting v2.0</div>':''}
-  `;
-  // Sjálfgefin spálengd = sú sem hefur flest staðfest pör
-  if(isV2()){
-    let best=leadSel, bn=-1;
-    leadList().forEach(L=>{
-      const tot=Object.values(MODEL.lead_mae?.[L]||{})
-        .reduce((a,s)=>a+(s.n||0),0);
-      if(tot>bn){bn=tot;best=L;}
-    });
-    leadSel=best;
-  }
-  renderModelGrid();
-  renderSkill();
-  const at=document.getElementById('nAttrib');
-  if(at){
-    const src = FC.attribution || ['Open-Meteo','Veðurstofa Íslands'];
-    at.innerHTML = src.map(x=>`<span>${x}</span>`).join(' · ')
-      + `<br>Jolly ${(MODEL.version||'').startsWith('2')?'v2.1':'v1.x'}`
-      + ' · uppfærist á klukkustundar fresti';
-  }
-  buildLegend();buildChart();buildLearn();buildTable();
-}
-
-function setMetric(m,el){
-  activeMetric=m;
-  document.querySelectorAll('.n-tab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
-  renderModelGrid();   // þyngdir og MAE eru breytubundnar
-  renderSkill();
-  buildLegend();
-  buildChart();
-  buildLearn();
-}
-
-// null = sýna öll líkön. Annars lykill þess líkans sem er í fókus.
-let focusModel = null;
-
-// Hvaða gagnalykill á við hvern mæli
-function metricKey(metric){
-  return metric==='hiti'   ? 'model_temperatures'
-       : metric==='vindur' ? 'model_windspeeds'
-       : metric==='sky'    ? 'model_clouds'
-       : metric==='att'    ? 'model_winddirections'
-       :                     'model_precipitations';
-}
-const UNIT_OF = {hiti:'°C', vindur:'m/s', att:'°', urkoma:'mm', sky:'%'};
-
-// Hefur líkanið raunveruleg gögn fyrir þennan mæli?
-function modelHasData(m, metric){
-  const arr = FC.hourly[metricKey(metric)]?.[m];
-  return !!(arr && arr.some(v=>v!==null && v!==undefined));
-}
-
-function buildLegend(){
-  const wrap = document.querySelector('.n-leg');
-  if(!wrap) return;
-  let html = '<div class="n-leg-item locked">'
-           + '<div class="n-leg-dot" style="background:#4ade80"></div>Jolly</div>';
-  Object.keys(MC).forEach(m=>{
-    const has = modelHasData(m, activeMetric);
-    const cls = focusModel===m ? 'sel'
-              : (focusModel && focusModel!==m) ? 'dim'
-              : (!has ? 'dim' : '');
-    html += `<div class="n-leg-item ${cls}" data-m="${m}" onclick="setFocus('${m}')">`
-          + `<div class="n-leg-dot" style="background:${MC[m]}"></div>${MN[m]}</div>`;
-  });
-  wrap.innerHTML = html;
-
-  const hint = document.getElementById('nLegHint');
-  if(hint) hint.textContent = focusModel
-    ? `Sýnir ${MN[focusModel]} á móti Jolly — smelltu aftur til að sjá öll`
-    : 'Smelltu á líkan til að skoða það eitt á móti Jolly';
-}
-
-function setFocus(m){
-  focusModel = (focusModel===m) ? null : m;
-  buildLegend();
-  buildChart();
-}
-
-function buildChart(){
-  if(charts.m)charts.m.destroy();
-  const ctx=document.getElementById('mainChart').getContext('2d');
-  const T=FC.hourly.time.map(t=>{const d=new Date(t+'Z');return DAGAR[d.getUTCDay()]+' '+String(d.getUTCHours()).padStart(2,'0')+':00'});
-  const isBar=activeMetric==='urkoma';
-  const unit=activeMetric==='hiti'?'°C':activeMetric==='vindur'?'m/s':'mm';
-  const jd=activeMetric==='hiti'?FC.hourly.temperature:activeMetric==='vindur'?FC.hourly.windspeed:FC.hourly.precipitation;
-  const mk=metricKey(activeMetric);
-
-  // Hvaða líkön á að teikna
-  const keys = Object.keys(MC).filter(m=>modelHasData(m,activeMetric));
-  const shown = focusModel ? keys.filter(m=>m===focusModel) : keys;
-
-  // Skilaboð ef valið líkan hefur engin gögn fyrir þennan mæli
-  const nd = document.getElementById('nLegNoData');
-  if(nd){
-    if(focusModel && !modelHasData(focusModel,activeMetric)){
-      nd.style.display='block';
-      nd.textContent = `${MN[focusModel]} hefur engin ${activeMetric==='urkoma'?'úrkomu':activeMetric}gögn — aðeins Jolly sýnd.`;
-    } else if(!focusModel && keys.length===0){
-      nd.style.display='block';
-      nd.textContent = 'Engin líkanagögn fyrir þennan mæli — aðeins Jolly sýnd.';
-    } else { nd.style.display='none'; }
-  }
-
-  // Þegar eitt líkan er í fókus verður lína þess sterkari og heil
-  const sets=[
-    ...shown.map(m=>({
-      label:MN[m], data:FC.hourly[mk]?.[m]||[],
-      borderColor:MC[m], backgroundColor:'transparent',
-      borderWidth: focusModel?2.2:1.5,
-      pointRadius:0, tension:.3, spanGaps:true,
-      borderDash: focusModel?[]:[4,3],
-    })),
-    {label:'Jolly',data:jd,borderColor:'#4ade80',
-     backgroundColor:'rgba(74,222,128,.07)',borderWidth:2.5,
-     pointRadius:0,tension:.3,fill:!isBar},
-  ];
-
-  charts.m=new Chart(ctx,{type:isBar?'bar':'line',data:{labels:T,datasets:sets},options:{
-    responsive:true,interaction:{mode:'index',intersect:false},
-    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y!==null?c.parsed.y+' '+unit:'—'}`}}},
-    scales:{
-      x:{ticks:{color:'rgba(255,255,255,0.28)',font:{size:9},maxTicksLimit:10,maxRotation:45},grid:{color:'rgba(255,255,255,0.035)'}},
-      y:{ticks:{color:'rgba(255,255,255,0.28)'},grid:{color:'rgba(255,255,255,0.05)'},title:{display:true,text:unit,color:'rgba(255,255,255,0.18)'}}
-    }
-  }});
-}
-
-function buildLearn(){
-  if(charts.l)charts.l.destroy();
-  const ctx=document.getElementById('learnChart').getContext('2d');
-  const hist = isV2() ? MODEL.verify_history : MODEL.mae_history;
-  if(!hist?.length) return;
-  const h=hist.slice(-60);
-  // v2.0: verify_history[i].lead_mae[spálengd][líkan] = MAE
-  // v1.x: mae_history[i].mae[líkan].hiti
-  const pick = isV2()
-    ? (x,m)=> x.lead_mae?.[leadSel]?.[m] ?? null
-    : (x,m)=> x.mae?.[m]?.hiti ?? null;
-  const titleTxt = isV2()
-    ? `MAE hita — ${leadSel} klst spálengd (°C)`
-    : 'MAE hita eftir leiðréttingu (°C)';
-  charts.l=new Chart(ctx,{type:'line',data:{
-    labels:h.map(x=>x.date||x.time),
-    datasets:Object.keys(MC).map(m=>({label:MN[m],data:h.map(x=>pick(x,m)),
-      borderColor:MC[m],backgroundColor:'transparent',borderWidth:2,
-      pointRadius:2,tension:.3,spanGaps:true}))
-  },options:{responsive:true,
-    plugins:{legend:{labels:{color:'rgba(255,255,255,0.35)',font:{size:10},boxWidth:10}},
-             title:{display:true,text:titleTxt,color:'rgba(255,255,255,0.28)',font:{size:10}}},
-    scales:{x:{ticks:{color:'rgba(255,255,255,0.28)',font:{size:8},maxTicksLimit:8}},
-            y:{ticks:{color:'rgba(255,255,255,0.28)'},grid:{color:'rgba(255,255,255,0.05)'},
-               title:{display:true,text:'°C',color:'rgba(255,255,255,0.18)'}}}}});
-}
-
-function buildTable(){
-  const T=FC.hourly.time;
-  // Hvaða líkön hafa raunveruleg hitagögn?
-  const modelKeys=Object.keys(MC).filter(m=>{
-    const arr=FC.hourly.model_temperatures?.[m];
-    return arr && arr.some(v=>v!==null && v!==undefined);
-  });
-  const cols=modelKeys.length+4; // Tími, Jolly, [líkön], m/s, mm
-  let head=`<tr><th>Tími</th><th style="color:#4ade80">Jolly °C</th>`;
-  modelKeys.forEach(m=>head+=`<th style="color:${MC[m]}">${MN[m]}</th>`);
-  head+=`<th style="color:#4ade80">m/s</th><th style="color:#4ade80">mm</th></tr>`;
-  let h=head, ld='';
-  T.forEach((t,i)=>{
-    const d=new Date(t+'Z');
-    const ds=DAGAR[d.getUTCDay()]+' '+d.getUTCDate()+'/'+(d.getUTCMonth()+1);
-    if(ds!==ld){h+=`<tr class="d-hdr"><td colspan="${cols}">📅 ${ds}</td></tr>`;ld=ds;}
-    const jT=FC.hourly.temperature[i];
-    const jW=FC.hourly.windspeed[i];
-    const jP=FC.hourly.precipitation[i];
-    h+=`<tr><td class="nd">${String(d.getUTCHours()).padStart(2,'0')}:00</td>`
-      +`<td class="jv">${jT!==null?jT.toFixed(1):'—'}</td>`;
-    modelKeys.forEach(m=>{
-      const v=FC.hourly.model_temperatures?.[m]?.[i];
-      h+=`<td>${v!=null?v.toFixed(1):'<span class="nd">—</span>'}</td>`;
-    });
-    h+=`<td class="jv">${jW!==null?jW.toFixed(1):'—'}</td>`
-      +`<td>${jP!==null&&jP>0?jP.toFixed(2):'<span class="nd">—</span>'}</td></tr>`;
-  });
-  document.getElementById('nTable').innerHTML=h;
-}
-
-
-// ── LOGIN ────────────────────────────────────────────────────────────────────
-function openLogin(){
-  document.getElementById('loginModal').classList.add('open');
-  document.getElementById('loginError').textContent='';
-  document.getElementById('loginUser').value='';
-  document.getElementById('loginPass').value='';
-  setTimeout(()=>document.getElementById('loginUser').focus(),100);
-}
-function closeLogin(){ window.location.href='index.html'; }
-function tryLogin(){
-  const u=document.getElementById('loginUser').value.trim();
-  const p=document.getElementById('loginPass').value.trim();
-  if(u==='admin' && p==='admin'){
-    // Fela login-modalinn (EKKI fara a index) og syna Nanar
-    document.getElementById('loginModal').classList.remove('open');
-    document.getElementById('nanar').classList.add('open');
-    // Gogn eru thegar sott af load() vid opnun. Teikna aftur til oryggis
-    // ef their voru ekki tilbunir tha.
-    if(typeof renderNanar==='function' && typeof MODEL!=='undefined' && MODEL){
-      try{ renderNanar(); }catch(e){}
-    }
-  } else {
-    document.getElementById('loginError').textContent='Rangt notandanafn eða lykilorð';
-  }
-}
-function closeNanar(){ window.location.href='index.html'; }
-document.addEventListener('keydown', e=>{
-  if(e.key==='Enter' && document.getElementById('loginModal').classList.contains('open')){
-    tryLogin();
-  }
-  if(e.key==='Escape' && document.getElementById('loginModal').classList.contains('open')){
-    closeLogin();
-  }
-});
-
-load();
-
-
-/* ═══════════════════════════════════════════════════════════════
-   v5.0 DASHBOARD - allt hér les RAUNVERULEG gögn úr FC/MODEL/ARCH/
-   TRUTH/MAEHIST. Engin gervigögn.
-   ═══════════════════════════════════════════════════════════════ */
-const DVARS=['hiti','vindur','att','sky'];
-const DUNIT={hiti:'°',vindur:'m/s',att:'°',sky:'%'};
-const DKEY ={hiti:'model_temperatures',vindur:'model_windspeeds',
-             att:'model_winddirections',sky:'model_clouds'};
-let dCurVar='hiti', dOnModels=new Set(), dCharts={}, dWinStart=0;
-
-function dModelKeys(){ return Object.keys(MC||{}).filter(k=>k!=='jolly'); }
-
-function renderDashboard(){
-  if(!FC || !FC.hourly){ return; }
-  dOnModels = new Set(dModelKeys());
-  buildDashTabs();
-  buildDashPills();
-  drawDashFc();
-  buildTimeTravel();
-  drawDashTrend();
-  drawDashScatter();
-  drawDashLeaderboard();
-  drawDashHeat();
-}
-
-/* ── 1. SPÁTREKTIR ── */
-function buildDashTabs(){
-  document.getElementById('dVarTabs').innerHTML = DVARS.map(v=>
-    `<button class="n-tab${v===dCurVar?' active':''}" onclick="dSetVar('${v}',this)">${v}</button>`).join('');
-}
-function dSetVar(v, el){
-  dCurVar=v;
-  document.querySelectorAll('#dVarTabs .n-tab').forEach(x=>x.classList.toggle('active',x===el));
-  drawDashFc();
-}
-window.dSetVar=dSetVar;
-
-function buildDashPills(){
-  const keys=dModelKeys();
-  document.getElementById('dModelPills').innerHTML = keys.map(m=>
-    `<div class="dash-pill" data-m="${m}" onclick="dToggleModel('${m}')"
-      style="background:${MC[m]}2a;color:${MC[m]};border-color:${MC[m]}77">${MN[m]||m}</div>`
-  ).join('') + `<div class="dash-pill" style="background:#fff3;color:#fff;border-color:#fff9">JOLLY</div>`;
-}
-function dToggleModel(m){
-  const el=document.querySelector(`#dModelPills [data-m="${m}"]`);
-  if(dOnModels.has(m)){dOnModels.delete(m); el.classList.add('off');}
-  else{dOnModels.add(m); el.classList.remove('off');}
-  drawDashFc();
-}
-window.dToggleModel=dToggleModel;
-
-function drawDashFc(){
-  const H=FC.hourly, T=H.time||[];
-  if(!T.length) return;
-  // Sýna 48 klst glugga sem hægt er að skruna með sleðanum
-  const WIN=48, maxStart=Math.max(0,T.length-WIN);
-  const slider=document.getElementById('dWindowSlider');
-  slider.max=maxStart; slider.oninput=()=>{dWinStart=+slider.value; drawDashFc();};
-  const start=Math.min(dWinStart, maxStart), end=Math.min(start+WIN, T.length);
-  const idxs=Array.from({length:end-start},(_,i)=>start+i);
-  const lbls=idxs.map(i=>{const d=new Date(T[i]); return String(d.getHours()).padStart(2,'0')+':00';});
-  document.getElementById('dWindowLbl').textContent =
-    `${new Date(T[start]).toLocaleDateString('is-IS',{day:'2-digit',month:'2-digit'})} – `+
-    `${new Date(T[end-1]).toLocaleDateString('is-IS',{day:'2-digit',month:'2-digit'})}`;
-
-  const key=DKEY[dCurVar];
-  const sets=[];
-  dModelKeys().forEach(m=>{
-    if(!dOnModels.has(m)) return;
-    const arr=H[key]?.[m]; if(!arr) return;
-    sets.push({label:MN[m]||m,data:idxs.map(i=>arr[i]??null),
-      borderColor:MC[m],backgroundColor:MC[m],borderWidth:1.2,pointRadius:0,tension:.3});
-  });
-  // Jolly - lokaspáin (blandan) fyrir breytuna
-  const jkey = dCurVar==='hiti'?'temperature':dCurVar==='vindur'?'windspeed':
-               dCurVar==='att'?'winddirection':'cloud_cover';
-  const jd = H[jkey];
-  if(jd) sets.push({label:'JOLLY',data:idxs.map(i=>jd[i]??null),
-    borderColor:'#fff',backgroundColor:'#fff',borderWidth:3,pointRadius:0,tension:.3,order:0});
-
-  if(dCharts.fc) dCharts.fc.destroy();
-  dCharts.fc=new Chart(document.getElementById('dFcChart'),{type:'line',
-    data:{labels:lbls,datasets:sets},
-    options:{responsive:true,maintainAspectRatio:false,animation:false,
-      plugins:{legend:{display:false}},
-      scales:{x:{ticks:{maxTicksLimit:8,color:'#646d82',font:{size:9.5}},grid:{color:'rgba(255,255,255,0.04)'}},
-               y:{ticks:{color:'#646d82',font:{size:9.5}},grid:{color:'rgba(255,255,255,0.04)'}}}}});
-  document.getElementById('dFcTitle').textContent=
-    `${dCurVar[0].toUpperCase()+dCurVar.slice(1)} (${DUNIT[dCurVar]})`;
-}
-
-/* ── 2. TÍMAFLAKK ── */
-// Notar forecast_archive.json: fyrir HVERN gildistima eru margar
-// spalengdir (issue-tímar). Vid veljum gildistima og syna hvernig
-// spáin fyrir hann throadist eftir thvi sem naer dro, samanborid
-// vid raunverulega maelingu (obs_history.json).
-let dTravelTarget=null;
-function buildTimeTravel(){
-  const wrap=document.getElementById('dTimeTravelPicker');
-  if(!ARCH || !Object.keys(ARCH).length){
-    wrap.innerHTML='<span class="dash-n">Gögn ekki tiltæk enn — forecast_archive.json fannst ekki.</span>';
-    document.getElementById('dTravelChart').parentElement.style.display='none';
-    return;
-  }
-  document.getElementById('dTravelChart').parentElement.style.display='';
-  const times=Object.keys(ARCH).sort();
-  if(!dTravelTarget || !ARCH[dTravelTarget]) dTravelTarget=times[Math.max(0,times.length-6)];
-  wrap.innerHTML = times.slice(-8).map(t=>{
-    const hh=new Date(t).getHours();
-    return `<div class="dash-pill${t===dTravelTarget?'':' off'}" onclick="dPickTravel('${t}')"
-      style="background:rgba(170,198,234,.12);color:var(--chill);border-color:rgba(170,198,234,.4)">
-      ${String(hh).padStart(2,'0')}:00</div>`;
-  }).join('');
-  drawTimeTravel();
-}
-function dPickTravel(t){ dTravelTarget=t; buildTimeTravel(); }
-window.dPickTravel=dPickTravel;
-
-function drawTimeTravel(){
-  const entry = ARCH[dTravelTarget];
-  if(!entry){ return; }
-  const leads = Object.keys(entry).map(Number).sort((a,b)=>b-a); // 48..1
-  const jollySeries = leads.map(l=>{
-    const md=entry[String(l)]?.models?.jolly;
-    return md ? md.t : null;
-  });
-  // Raunmæling fyrir target-tímann, ef til
-  let obsVal=null;
-  if(OBSHIST){
-    const row=(Array.isArray(OBSHIST)?OBSHIST:OBSHIST.observations||[])
-      .find(o=>(o.time||'').slice(0,16)===dTravelTarget.slice(0,16));
-    if(row) obsVal = row.temperature ?? null;
-  }
-  const lbls = leads.map(l=>`-${l}kl`);
-  if(dCharts.travel) dCharts.travel.destroy();
-  dCharts.travel=new Chart(document.getElementById('dTravelChart'),{type:'line',
-    data:{labels:lbls,datasets:[
-      {label:'Jolly spáði',data:jollySeries,borderColor:'#fff',backgroundColor:'#fff',
-       borderWidth:2.5,pointRadius:4,tension:.25},
-      ...(obsVal!=null?[{label:'Varð í raun',data:leads.map(()=>obsVal),
-        borderColor:'#aac6ea',borderDash:[4,4],borderWidth:1.5,pointRadius:0}]:[])
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,animation:false,
-      plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:9,boxHeight:9,font:{size:10}}}},
-      scales:{x:{title:{display:true,text:'hve löngu fyrir gildistíma spáin var gerð',
-                  color:'#646d82',font:{size:9.5}},ticks:{color:'#646d82',font:{size:9.5}},grid:{display:false}},
-               y:{ticks:{color:'#646d82',font:{size:9.5}},grid:{color:'rgba(255,255,255,0.04)'}}}}});
-  const kl=new Date(dTravelTarget).toLocaleString('is-IS',
-    {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-  document.getElementById('dTravelNote').textContent =
-    `Gildistími: ${kl} · sýnir hita-spá Jolly eins og hún var þegar hún var gerð `+
-    `1 til 48 klst fyrir þennan tíma.`;
-}
-
-/* ── 3. BAKVIRK MAE ÞRÓUN ── */
-function drawDashTrend(){
-  const wrap=document.getElementById('dTrendChart').parentElement;
-  if(!MAEHIST || !MAEHIST.days || MAEHIST.days.length<2){
-    wrap.style.display='none';
-    document.getElementById('dTrendN').textContent='safnar gögnum - eitt gildi bætist við á dag';
-    document.querySelector('#dTrendChart').closest('.n-card').querySelector('.dash-hd')
-      .insertAdjacentHTML('afterend',
-        '<div class="dash-note">Sagan byrjaði að safnast '+
-        (MAEHIST&&MAEHIST.days&&MAEHIST.days[0]?MAEHIST.days[0].d:'nýlega')+
-        '. Línuritið birtist sjálfkrafa eftir nokkra daga.</div>');
-    return;
-  }
-  wrap.style.display='';
-  const days=MAEHIST.days;
-  const lbls=days.map(d=>d.d.slice(5));
-  const keys=['jolly',...dModelKeys().slice(0,4)]; // Jolly + 4 til að halda skýrleika
-  const sets=keys.map(m=>({
-    label:m==='jolly'?'JOLLY':(MN[m]||m),
-    data:days.map(d=>d[dCurVar]?.[m] ?? null),
-    borderColor:m==='jolly'?'#fff':MC[m],backgroundColor:m==='jolly'?'#fff':MC[m],
-    borderWidth:m==='jolly'?3:1.5,pointRadius:0,tension:.3,spanGaps:true}));
-  if(dCharts.trend) dCharts.trend.destroy();
-  dCharts.trend=new Chart(document.getElementById('dTrendChart'),{type:'line',
-    data:{labels:lbls,datasets:sets},
-    options:{responsive:true,maintainAspectRatio:false,animation:false,
-      plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:9,boxHeight:9,font:{size:10}}}},
-      scales:{x:{ticks:{maxTicksLimit:7,color:'#646d82',font:{size:9.5}},grid:{display:false}},
-               y:{title:{display:true,text:`MAE (${DUNIT[dCurVar]})`,color:'#646d82',font:{size:10}},
-                  ticks:{color:'#646d82',font:{size:9.5}},grid:{color:'rgba(255,255,255,0.04)'}}}}});
-  document.getElementById('dTrendN').textContent=`${days.length} dagar í sögu · ${dCurVar}`;
-}
-
-/* ── 4. SANNREYNINGARDREIFIRIT (truth.json - raunveruleg pör) ── */
-function drawDashScatter(){
-  const wrap=document.getElementById('dScatterChart').parentElement;
-  if(!TRUTH || !TRUTH.rows || !TRUTH.rows.length){
-    wrap.innerHTML='<div class="dash-note">truth.json fannst ekki eða er tómt ennþá.</div>';
-    return;
-  }
-  const rows=TRUTH.rows.filter(r=>r.v===dCurVar);
-  const byModel={};
-  rows.forEach(r=>{
-    (byModel[r.m]=byModel[r.m]||[]).push({x:r.ob, y:(r.fcc??r.fc)});
-  });
-  const keys=Object.keys(byModel);
-  if(!keys.length){
-    wrap.innerHTML='<div class="dash-note">Engin pör fyrir þessa breytu síðustu 24 klst.</div>';
-    return;
-  }
-  const allVals=rows.flatMap(r=>[r.ob,(r.fcc??r.fc)]);
-  const lo=Math.min(...allVals), hi=Math.max(...allVals);
-  const sets=[
-    {label:'Fullkomið',data:[{x:lo,y:lo},{x:hi,y:hi}],type:'line',
-     borderColor:'rgba(255,255,255,0.18)',borderWidth:1.5,pointRadius:0,borderDash:[4,4]},
-    ...keys.map(m=>({label:m==='jolly'?'JOLLY':(MN[m]||m),data:byModel[m],
-      backgroundColor:(m==='jolly'?'#fff':(MC[m]||'#888'))+'cc',
-      pointRadius:m==='jolly'?4:3,pointStyle:m==='jolly'?'star':'circle'}))
-  ];
-  if(dCharts.scatter) dCharts.scatter.destroy();
-  dCharts.scatter=new Chart(document.getElementById('dScatterChart'),{type:'scatter',
-    data:{datasets:sets},
-    options:{responsive:true,maintainAspectRatio:false,animation:false,
-      plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:9,boxHeight:9,font:{size:9.5}}}},
-      scales:{x:{title:{display:true,text:'Mæling',color:'#646d82',font:{size:9.5}},
-                  ticks:{color:'#646d82',font:{size:9.5}},grid:{color:'rgba(255,255,255,0.04)'}},
-               y:{title:{display:true,text:'Spá',color:'#646d82',font:{size:9.5}},
-                  ticks:{color:'#646d82',font:{size:9.5}},grid:{color:'rgba(255,255,255,0.04)'}}}}});
-}
-
-/* ── 5. LEIÐTOGATAFLA ── */
-let dLdrSort='mae', dLdrAsc=true;
-function dSortLdr(k){ if(dLdrSort===k) dLdrAsc=!dLdrAsc; else{dLdrSort=k;dLdrAsc=true;} drawDashLeaderboard(); }
-window.dSortLdr=dSortLdr;
-
-function drawDashLeaderboard(){
-  const bs = (typeof leadSel!=='undefined' && leadSel) ? leadSel : '6';
-  const lm = (MODEL.lead_mae||{})[bs] || {};
-  const w  = (MODEL.weights||{})[dCurVar]?.[bs] || {};
-  document.getElementById('dLdrSub').textContent = `${dCurVar} @${bs}klst`;
-
-  // Þróun: bera saman við gildið fyrir 3 dögum í mae_history, ef til
-  const days=MAEHIST?.days||[];
-  const prev = days.length>=4 ? days[days.length-4] : null;
-
-  let rows = dModelKeys().map(m=>{
-    const cur = lm[m]?.[dVarKey(dCurVar)];
-    const prevV = prev?.[dCurVar]?.[m];
-    let trend=0;
-    if(cur!=null && prevV!=null && prevV>0) trend=(prevV-cur)/prevV*100;
-    return {name:m, mae:cur, weight:Math.round((w[m]||0)*100), trend};
-  }).filter(r=>r.mae!=null);
-  const jc = lm.jolly?.[dVarKey(dCurVar)];
-  const jprev = prev?.[dCurVar]?.jolly;
-  let jtrend=0; if(jc!=null && jprev!=null && jprev>0) jtrend=(jprev-jc)/jprev*100;
-  if(jc!=null) rows.push({name:'jolly', mae:jc, weight:100, trend:jtrend});
-
-  if(!rows.length){
-    document.getElementById('dLdrBody').innerHTML =
-      `<tr><td colspan="5" class="dash-note" style="padding:12px 8px">Engin gögn fyrir þessa breytu/spálengd ennþá.</td></tr>`;
-    return;
-  }
-  rows.sort((a,b)=>{
-    let av=a[dLdrSort], bv=b[dLdrSort];
-    if(dLdrSort==='name'){av=MN[a.name]||a.name; bv=MN[b.name]||b.name;}
-    return (av>bv?1:av<bv?-1:0) * (dLdrAsc?1:-1);
-  });
-  document.getElementById('dLdrBody').innerHTML = rows.map((r,i)=>{
-    const tcls = r.trend>3?'up':r.trend<-3?'down':'flat';
-    const tsym = Math.abs(r.trend)<1 ? '—' : (r.trend>3?'batnar':r.trend<-3?'versnar':'stöðugt');
-    const color = r.name==='jolly' ? '#fff' : (MC[r.name]||'#888');
-    return `<tr>
-      <td class="rk">${i+1}</td>
-      <td class="mn"><span class="dot" style="background:${color}"></span>${r.name==='jolly'?'JOLLY':(MN[r.name]||r.name)}</td>
-      <td class="num">${r.mae!=null?r.mae.toFixed(2):'—'}${DUNIT[dCurVar]}</td>
-      <td class="num">${r.weight}%<div class="dash-wbar"><i style="width:${r.weight}%;background:${color}"></i></div></td>
-      <td class="num"><span class="dash-trend ${tcls}">${tsym}</span></td>
-    </tr>`;
-  }).join('');
-}
-function dVarKey(v){ return v; } // lead_mae er þegar lyklað eftir sama nafni og WEIGHT_VARS
-
-/* ── 6. REIT-ÞYNGDIR HITAKORT ── */
-function dHeatColor(pct){
-  const p=Math.max(0,Math.min(100,pct));
-  return `hsl(${4+(p/100)*130}, 62%, ${38+p*0.22}%)`;
-}
-function drawDashHeat(){
-  const wc = (MODEL.weights_cell||{})[dCurVar]||{};
-  const bs = (typeof leadSel!=='undefined' && leadSel) ? leadSel : '6';
-  const cells=wc[bs]||{};
-  const dirs=['N','A','S','V'];
-  const cellNames=dirs.map(d=>`${d}-dagur`);
-  let out=`<div class="dash-hd"><span>${dCurVar} @${bs}klst — efsta líkan í hverjum reit</span></div>`;
-  out+=`<div class="dash-heat-tbl"><div></div>`+
-       dirs.map(d=>`<div class="dash-heat-hd">${d}</div>`).join('')+
-       `<div class="dash-heat-lbl">Dagur</div>`;
-  cellNames.forEach(cn=>{
-    const w=cells[cn];
-    if(!w || !Object.keys(w).length){
-      out+=`<div class="dash-heat-cell thin">—</div>`;
-    } else {
-      const top=Object.entries(w).sort((a,b)=>b[1]-a[1])[0];
-      const pct=Math.round(top[1]*100);
-      out+=`<div class="dash-heat-cell" style="background:${dHeatColor(pct)}">
-        <div style="color:${pct>55?'#0a0d14':'#fff'}">${top[0]}</div>
-        <div class="v" style="color:${pct>55?'#0a0d1499':'#ffffffbb'}">${pct}%</div></div>`;
-    }
-  });
-  out+=`<div class="dash-heat-lbl">Nótt</div>`;
-  dirs.map(d=>`${d}-nott`).forEach(cn=>{
-    const w=cells[cn];
-    if(!w || !Object.keys(w).length){
-      out+=`<div class="dash-heat-cell thin">—</div>`;
-    } else {
-      const top=Object.entries(w).sort((a,b)=>b[1]-a[1])[0];
-      const pct=Math.round(top[1]*100);
-      out+=`<div class="dash-heat-cell" style="background:${dHeatColor(pct)}">
-        <div style="color:${pct>55?'#0a0d14':'#fff'}">${top[0]}</div>
-        <div class="v" style="color:${pct>55?'#0a0d1499':'#ffffffbb'}">${pct}%</div></div>`;
-    }
-  });
-  out+=`</div><div class="dash-note">Tómir reitir (—) hafa ekki náð nógu mörgum pörum til að fá eigið vægi ennþá og nota almennu þyngdirnar.</div>`;
-  document.getElementById('dHeatCard').innerHTML=out;
-}
-
+// ── STÝRINGAR ───────────────────────────────────────
+seg(el('varSeg'),['hiti','vindur','kvidur','urkoma','sky','thr'].map(k=>[k,{sky:'Ský',thr:'Þrýstingur'}[k]||VARS[k].n]),S.v,k=>{S.v=k;renderTimeline();});
+seg(el('leadSeg'),[[1,'1'],[6,'6'],[24,'24'],[48,'48 klst']],S.lead,k=>{S.lead=+k;renderTimeline();});
+seg(el('sbLead'),[[1,'1 klst'],[6,'6 klst'],[24,'24 klst'],[48,'48 klst']],S.sbLead,k=>{S.sbLead=+k;renderSB();});
+seg(el('sbDays'),[[7,'7 d'],[30,'30 d']],S.sbDays,k=>{S.sbDays=+k;renderSB();});
+seg(el('sbMetric'),[['mae','Meðalskekkja'],['hit','Hittni']],S.sbMetric,k=>{S.sbMetric=k;renderSB();});
+const V5=['hiti','vindur','att','urkoma','sky'].map(k=>[k,{sky:'Ský'}[k]||VARS[k].n]);
+seg(el('wfVar'),V5,S.wf,k=>{S.wf=k;renderWF();});
+seg(el('wfLead'),[[1,'1'],[6,'6'],[24,'24'],[48,'48 klst']],S.wfLead,k=>{S.wfLead=+k;renderWF();});
+seg(el('svVar'),[['hiti','Hiti'],['vindur','Vindur'],['urkoma','Úrkoma'],['sky','Ský']],S.sv,k=>{S.sv=k;renderSV();});
+seg(el('svLead'),[[1,'1'],[6,'6'],[24,'24'],[48,'48 klst']],S.svLead,k=>{S.svLead=+k;renderSV();});
+seg(el('trSeg'),['hiti','vindur','att','urkoma','sky'].map(k=>[k,VARS[k].n]),S.tr,k=>{S.tr=k;renderTrend();});
+seg(el('wSeg'),['hiti','vindur','att','urkoma','sky'].map(k=>[k,VARS[k].n]),S.w,k=>{S.w=k;renderWeights();});
+el('allTog').onclick=()=>{S.all=!S.all;el('allTog').classList.toggle('on',S.all);renderTimeline();};
+el('sbTblBtn').onclick=()=>{if(el('sbTbl').innerHTML){el('sbTbl').innerHTML='';el('sbTblBtn').textContent='Sýna sem töflu';}else{drawSbTbl();el('sbTblBtn').textContent='Fela töflu';}};
+let _rt;addEventListener('resize',()=>{clearTimeout(_rt);_rt=setTimeout(()=>{if(ROWS.length){renderTimeline();renderTrend();renderSV();}},200);});
+el('foot').innerHTML='Mælingar: Veðurstofa Íslands (stöð 4271 og 571) · METAR BIEG<br>Líkön: Open-Meteo · MET Norway · Veðurstofa Íslands';
+load().catch(e=>{el('statusCard').innerHTML=`<div class="status"><div class="badge bad">${ICON.warn}</div><div><div class="st1">Næ ekki í gögn</div><div class="st2">${e.message}</div></div></div>`;});
 </script>
-</body>
-</html>
+</body></html>
