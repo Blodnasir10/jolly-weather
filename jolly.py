@@ -236,6 +236,12 @@ SAGA I STUTTU MALI:
         LIFANDI MORK: METAR-vedurkodi (SN/RA/DZ...) vistadur i ptype_history.json
         og mork snjos/rigningar laerd ur honum. Nowcast: fyrstu 2 klst fylgja
         urkomugerd sem maelist nuna.
+  v8.4  RAKI VARANLEGA SKRADUR (aeins gagnasofnun, spain obreytt): langtimasafnid
+        faer daggarmark og rakastig (spad og maelt), votlukuluhita (maelt),
+        urkomugerd (spad og maelt ur METAR) og arstid (haust/vetur/vor/sumar).
+        Spasafnid geymir daggarmark/raka hvers likans og Jolly. Daggarmark
+        stodvar 4271 (aukastafir) er nu ekki yfirskrifad med heiltolu METAR.
+        Grunnur fyrir arstida- og adstaedubundna leidrettingu.
 """
 
 
@@ -272,7 +278,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "8.3"
+JOLLY_VERSION = "8.4"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -320,7 +326,15 @@ VERIFY_COLS = ["valid_time", "lead", "src", "month", "hour",
                # [v7.0] vindkvida: spa og maeling (stod 4271, fg)
                "g_fc", "g_ob",
                # [v7.1] thrystingur: spa (sjavarmal/yfirbord), maeling, throun
-               "pm_fc", "ps_fc", "pr_ob", "dp_fc", "dp_ob"]
+               "pm_fc", "ps_fc", "pr_ob", "dp_fc", "dp_ob",
+               # [v8.4] raki, urkomugerd og arstid
+               "td_fc", "td_ob", "rh_fc", "rh_ob", "tw_ob", "pt_fc", "pt_ob",
+               "season"]
+
+def season_of(month):
+    """[v8.4] Vedurfraedilegar arstidir."""
+    return {12: "vetur", 1: "vetur", 2: "vetur", 3: "vor", 4: "vor", 5: "vor",
+            6: "sumar", 7: "sumar", 8: "sumar"}.get(int(month), "haust")
 ARCHIVE_HORIZON   = 48      # hversu langt fram vid geymum spa til stadfestingar
 LEAD_BUCKETS      = [1, 3, 6, 12, 24, 48]
 LR                = 0.12    # grunn-laerdomshraedi
@@ -1461,10 +1475,10 @@ def fetch_and_store_observations(metar_obs):
         t   = m["time"]
         rec = by_t.get(t, {"time": t})
         for k in ("cloud_cover", "cloud_base_ft", "cloud_layers",
-                  "visibility", "dewpoint", "metar_auto", "metar_ncd",
+                  "visibility", "metar_auto", "metar_ncd",
                   "ptype_ob", "wx"):
             rec[k] = m.get(k)
-        for k in ("temperature", "windspeed", "winddirection"):
+        for k in ("temperature", "windspeed", "winddirection", "dewpoint"):
             if rec.get(k) is None: rec[k] = m[k]
         rec["has_metar"] = True
         by_t[t] = rec
@@ -1717,7 +1731,9 @@ def archive_forecast(fc, extras):
                        # [v7.0] vindkvida - spad en aldrei sannreynt fyrr
                        "g": g("windgusts_10m"),
                        # [v7.1] thrystingur: sjavarmal og vid yfirbord likans
-                       "pm": g("pressure_msl"), "ps": g("surface_pressure")}
+                       "pm": g("pressure_msl"), "ps": g("surface_pressure"),
+                       # [v8.4] raki
+                       "td": g("dew_point_2m"), "rh": g("relative_humidity_2m")}
                 if any(v is not None for v in rec.values()):
                     models[m] = rec
 
@@ -1733,7 +1749,7 @@ def archive_forecast(fc, extras):
                    "c": total_cloud(ge("cloud_low"), ge("cloud_mid"),
                                     ge("cloud_high"), ge("cloud_cover")),
                    "cl": ge("cloud_low"), "cm": ge("cloud_mid"), "ch": ge("cloud_high"),
-                   "g": ge("windgust")}
+                   "g": ge("windgust"), "td": ge("dewpoint")}
             if any(v is not None for v in rec.values()):
                 models[k] = rec
 
@@ -1788,7 +1804,11 @@ def archive_jolly(arch, fcast):
                "d": H["winddirection"][i],
                "p": H["precipitation"][i], "c": H["cloud_cover"][i],
                "g": H["windgust"][i],
-               "pm": (H.get("pressure") or [None] * (i + 1))[i]}
+               "pm": (H.get("pressure") or [None] * (i + 1))[i],
+               # [v8.4] daggarmark, raki og urkomugerd Jolly
+               "td": (H.get("dewpoint") or [None] * (i + 1))[i],
+               "rh": (H.get("humidity") or [None] * (i + 1))[i],
+               "pt": (H.get("ptype") or [None] * (i + 1))[i]}
         # is_day er skilyrding - geymt a gildistima svo stadfesting viti thad
         arch.setdefault(t, {}).setdefault(str(lead), {}) \
             ["is_day"] = H["is_day"][i]
@@ -2493,6 +2513,22 @@ def verify_and_train(arch, obs_history, model):
     print("STADFESTING:")
     obs_by_t = {o["time"]: o for o in obs_history}
 
+    def _hum_obs(o):
+        """[v8.4] (daggarmark, rakastig, votlukuluhiti) maelt. Stod 4271
+        (aukastafir) fyrst; annars METAR-daggarmark."""
+        t, rh, td = o.get("temperature"), o.get("humidity"), o.get("dewpoint")
+        try:
+            if t is not None and rh is not None and rh > 0:
+                g = math.log(min(rh, 100.0) / 100.0) + 17.62 * t / (243.12 + t)
+                td = 243.12 * g / (17.62 - g)
+            elif t is not None and td is not None:
+                rh = 100.0 * _esat(min(td, t)) / _esat(t)
+            tw = wet_bulb(t, td=td) if (t is not None and td is not None) else None
+            r = lambda x, n=1: round(x, n) if x is not None else None
+            return r(td), r(rh, 0), r(tw)
+        except Exception:
+            return None, None, None
+
     def _dp_obs(vt):
         """[v7.1] Mæld þrýstingsþróun (hPa/klst) síðustu 3 klst við gildistíma."""
         try:
@@ -2637,6 +2673,12 @@ def verify_and_train(arch, obs_history, model):
                         "pm_fc": fcv.get("pm"), "ps_fc": fcv.get("ps"),
                         "pr_ob": o.get("pressure"), "dp_fc": entry.get("dp_h"),
                         "dp_ob": _dp_obs(vt),
+                        "td_fc": fcv.get("td"), "td_ob": _hum_obs(o)[0],
+                        "rh_fc": fcv.get("rh"), "rh_ob": _hum_obs(o)[1],
+                        "tw_ob": _hum_obs(o)[2],
+                        "pt_fc": fcv.get("pt"),
+                        "pt_ob": o.get("ptype_ob") or ("none" if o.get("has_metar") else None),
+                        "season": season_of(vt[5:7]),
                     })
             if done:
                 entry["done"] = done
@@ -3701,6 +3743,7 @@ def make_forecast(fc, extras, model, obs=None):
                                           # HVERRAR breytu, thessa klukkustund
                     "icon": [], "condition": [], "beaufort": [],
                     "wetbulb": [], "ptype": [],   # [v8.3] urkomugerd
+                    "dewpoint": [], "humidity": [],  # [v8.4]
                     "model_temperatures":   {m: [] for m in ALL_KEYS},
                     "model_windspeeds":     {m: [] for m in ALL_KEYS},
                     "model_winddirections": {m: [] for m in ALL_KEYS},
@@ -4059,6 +4102,12 @@ def make_forecast(fc, extras, model, obs=None):
         if _pt_now and lead <= 2 and (prec or 0) > 0.05:
             _pt = _pt_now
         J["hourly"]["wetbulb"].append(round(_tw, 1) if _tw is not None else None)
+        _tdj = _rhj = None
+        if temp is not None and _t_raw is not None and _td_raw is not None:
+            _tdj = temp - max(0.0, _t_raw - _td_raw)
+            _rhj = 100.0 * _esat(_tdj) / _esat(temp)
+        J["hourly"]["dewpoint"].append(round(_tdj, 1) if _tdj is not None else None)
+        J["hourly"]["humidity"].append(round(_rhj) if _rhj is not None else None)
         J["hourly"]["ptype"].append(_pt if (prec or 0) > 0.05 else None)
         J["hourly"]["icon"].append(
             determine_icon(cloud, prec, temp, is_day, vis, wind, cape, _pt))
