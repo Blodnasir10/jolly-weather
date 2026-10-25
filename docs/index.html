@@ -276,10 +276,14 @@ function windArrow(deg,size){
 // kind ræðst af skýjahulu + úrkomu + hita. dropar/korn = fjöldi úr mm.
 function precipCount(mm){ return mm<=0 ? 0 : Math.min(6, Math.ceil(mm)); }
 
-function wxKind(cloud, precip, temp){
+// [v8.3] Úrkomugerð kemur úr spánni (votlukúluhiti + lifandi mörk).
+// Ef hana vantar (t.d. liðnar klst) er notaður hiti og sömu mörk.
+let PTL={snow:0.6,rain:1.6};
+function wxKind(cloud, precip, temp, pt){
   if(precip>=0.1){
-    if(temp<=-1) return 'snow';
-    if(temp<3)   return 'sleet';
+    if(pt==='snow'||pt==='sleet'||pt==='rain') return pt;
+    if(temp<=PTL.snow) return 'snow';
+    if(temp<PTL.rain)  return 'sleet';
     return 'rain';
   }
   // Thurrt: skila 'dry' - wxIcon notar tha skyjahulu-threpin beint.
@@ -401,7 +405,8 @@ function wxIcon(size, kind, mm, isNight, cover){
       Q59 20 59 31 Q59 40 47 40Z" fill="url(#${cid}hl)"/></g>`;
 
   // Úrkoma - fjöldi eftir mm
-  const n=precipCount(mm);
+  let n=precipCount(mm);
+  if(kind==='sleet' && n>0) n=Math.max(n,2);   // slydda sýnir alltaf korn + dropa
   let fall='';
   if(n>0 && (kind==='rain'||kind==='sleet'||kind==='snow')){
     const layout=fallLayout(n);
@@ -586,14 +591,15 @@ const DAGAR=['Sunnudagur','Mánudagur','Þriðjudagur','Miðvikudagur','Fimmtuda
 function render(FC){
   const H=FC.hourly||{};
   const T=H.temperature||[], W=H.windspeed||[], D=H.winddirection||[],
-        P=H.precipitation||[], C=H.cloud_cover||[], times=H.time||[];
+        P=H.precipitation||[], C=H.cloud_cover||[], times=H.time||[], K=H.ptype||[];
+  if(FC.ptype_limits) PTL={snow:FC.ptype_limits.snow,rain:FC.ptype_limits.rain};
   const nowH=new Date().getHours();
   applySky(nowH);
 
   // ── NÚNA-FLÍS ──
   const t0=Math.round(T[0]??0);
   const c0=C[0], p0=P[0]||0, w0=W[0]||0, d0=D[0]??0;
-  const kind0=wxKind(c0,p0,t0);
+  const kind0=wxKind(c0,p0,T[0]??0,K[0]);
   document.getElementById('heroIcon').innerHTML=wxIcon(92,kind0,p0,isNightHour(nowH),c0)
     + `<div class="hwind">${windSvg(w0,40)}</div>`;
   document.getElementById('heroTemp').textContent=t0;
@@ -619,7 +625,7 @@ function render(FC){
   const r06=_sum(1,7), r612=_sum(7,13);
   const hrOf=i=>times[i]?new Date(times[i]).getHours():nowH;
   const col=(lbl,i,rain,rlbl,cls)=>{
-    const t=Math.round(T[i]??0), k=wxKind(C[i],P[i]||0,t);
+    const t=Math.round(T[i]??0), k=wxKind(C[i],P[i]||0,T[i]??0,K[i]);
     const dry=Math.round(rain*10)===0;
     return `<div class="col ${cls||''}"><div class="k">${lbl}</div>
       <div class="ic">${wxIcon(34,k,P[i]||0,isNightHour(hrOf(i)),C[i])}</div>
@@ -651,7 +657,7 @@ function render(FC){
   let hh='';
   for(let i=0;i<Math.min(24,times.length);i++){
     const hr=fmtHour(times[i]);
-    const kind=wxKind(C[i],P[i]||0,Math.round(T[i]??0));
+    const kind=wxKind(C[i],P[i]||0,T[i]??0,K[i]);
     const night=isNightHour(new Date(times[i]).getHours());
     // Skýjahula námunduð að næstu 5%; úrkoma aðeins ef hún námundast í ≥0.1 mm
     const cc=C[i]!=null?Math.round(C[i]/5)*5:null;
@@ -685,7 +691,7 @@ function renderDays(FC){
     if(byT[t] && !past) {} else if(byT[t]) return;
     byT[t]={t,day:t.slice(0,10),hr:+t.slice(11,13),past,
       T:(S.temperature||[])[i],W:(S.windspeed||[])[i],D:(S.winddirection||[])[i],
-      G:(S.windgust||[])[i],P:(S.precipitation||[])[i],C:(S.cloud_cover||[])[i]};
+      G:(S.windgust||[])[i],P:(S.precipitation||[])[i],C:(S.cloud_cover||[])[i],K:(S.ptype||[])[i]};
   });
   add(HP,true); add(H,false);
   const byDay={}; Object.values(byT).forEach(r=>(byDay[r.day]=byDay[r.day]||[]).push(r));
@@ -702,6 +708,8 @@ function renderDays(FC){
       return {lbl,T:avg(r.map(x=>x.T)),P:r.reduce((s,x)=>s+(x.P||0),0),
         W:avg(r.map(x=>x.W||0)),D:(Math.atan2(sx,cx)*180/Math.PI+360)%360,
         G:Math.max(...r.map(x=>x.G||0)),C:avg(r.map(x=>x.C||0)),
+        K:(()=>{const w={}; r.forEach(x=>{const k=x.K||wxKind(0,1,x.T); if((x.P||0)>0) w[k]=(w[k]||0)+x.P;});
+          const ks=Object.keys(w); return ks.length?ks.sort((a,b)=>w[b]-w[a])[0]:null;})(),
         past:r.every(x=>x.past),mid:(a+b)/2};
     });
     const all=rs.filter(x=>x.T!=null);
@@ -741,7 +749,7 @@ function renderDays(FC){
     </svg>`;
     const cols=d.per.map(p=>{
       if(!p) return `<div class="pc empty"><div class="pl">–</div></div>`;
-      const kind=wxKind(p.C,p.P,p.T), night=isNightHour(Math.floor(p.mid));
+      const kind=wxKind(p.C,p.P,p.T,p.K), night=isNightHour(Math.floor(p.mid));
       return `<div class="pc${p.past?' past':''}">
         <div class="pl">${p.lbl}</div>
         <div class="pi">${wxIcon(40,kind,p.P,night,p.C)}</div>
