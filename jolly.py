@@ -229,6 +229,13 @@ SAGA I STUTTU MALI:
   v8.2  SAMANTEKT: docs/data/summary.json skrifud i hverri keyrslu (arangur
         sidustu 14 daga: Jolly / vedur.is / yr.no / medaltal hnattlikana) fyrir
         Um-siduna. Engin breyting a spanni sjalfri.
+  v8.3  URKOMUGERD: snjor/slydda/rigning akvardad ut fra VOTLUKULUHITA (hiti +
+        daggarmark) i stad hita eingongu. Adur: snjor adeins <= -0.5 (vefur:
+        <= -1), svo 24.okt synd slydda/rigning medan snjoadi vid -0.5..+0.8 i
+        mettudu lofti. Ein regla fyrir takn, texta og vef (hourly.ptype).
+        LIFANDI MORK: METAR-vedurkodi (SN/RA/DZ...) vistadur i ptype_history.json
+        og mork snjos/rigningar laerd ur honum. Nowcast: fyrstu 2 klst fylgja
+        urkomugerd sem maelist nuna.
 """
 
 
@@ -265,7 +272,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "8.2"
+JOLLY_VERSION = "8.3"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -902,7 +909,87 @@ def lead_bucket(h):
 #  Hvada takn og ordalag birtist a vefnum fyrir gefnar adstaedur.
 # ═══════════════════════════════════════════════════════════════════════
 
-def determine_icon(cloud, precip, temp, is_day, vis, wind, cape=None):
+# [v8.3] ── URKOMUGERD: votlukuluhiti + lifandi mork ──
+PT_SNOW_DEF, PT_RAIN_DEF = 0.6, 1.6     # Tw <= snjor -> snjor, Tw >= regn -> rigning
+PT_HALF  = 0.5                          # halft slyddubil um laerda midju
+PT_PRIOR = 20                           # vaegi sjalfgefinna marka (jafngildi n tilvika)
+PT_LIMITS = {"snow": PT_SNOW_DEF, "rain": PT_RAIN_DEF, "n_snow": 0, "n_rain": 0,
+             "src": "sjalfgefid"}
+PTYPE_FILE = DATA_DIR / "ptype_history.json"
+
+def _esat(t):
+    return 6.112 * math.exp(17.62 * t / (243.12 + t))
+
+def wet_bulb(t, td=None, rh=None, p=1000.0):
+    """Votlukuluhiti (C) med helmingunaradferd a sálmalsjofnu.
+    Skilar t ef raka vantar."""
+    if t is None:
+        return None
+    try:
+        if td is not None:
+            e = _esat(min(td, t))
+        elif rh is not None:
+            e = _esat(t) * max(1.0, min(100.0, rh)) / 100.0
+        else:
+            return t
+        lo, hi = t - 25.0, t
+        for _ in range(40):
+            tw = (lo + hi) / 2
+            f = _esat(tw) - 6.6e-4 * (1 + 0.00115 * tw) * p * (t - tw) - e
+            if f > 0: hi = tw
+            else: lo = tw
+        return round((lo + hi) / 2, 2)
+    except (ValueError, OverflowError):
+        return t
+
+def precip_type(temp, tw=None):
+    x = tw if tw is not None else temp
+    if x is None: return "rain"
+    if x <= PT_LIMITS["snow"]: return "snow"
+    if x >= PT_LIMITS["rain"]: return "rain"
+    return "sleet"
+
+def fit_ptype_limits(obs):
+    """[v8.3] Safnar maeldri urkomugerd (METAR) asamt votlukuluhita i
+    ptype_history.json og laerir mork snjos/rigningar. Med litlum gognum
+    er dregid ad sjalfgefnum morkum (0.6 / 1.6)."""
+    try:
+        hist = json.loads(PTYPE_FILE.read_text()) if PTYPE_FILE.exists() else []
+    except Exception:
+        hist = []
+    seen = {h["time"] for h in hist}
+    for o in obs or []:
+        pt, t = o.get("ptype_ob"), o.get("temperature")
+        if not pt or t is None or o["time"] in seen:
+            continue
+        rh = o.get("humidity"); td = o.get("dewpoint")
+        tw = wet_bulb(t, rh=rh) if rh is not None else wet_bulb(t, td=td)
+        hist.append({"time": o["time"], "t": t, "tw": tw, "pt": pt, "wx": o.get("wx", "")})
+        seen.add(o["time"])
+    hist = sorted(hist, key=lambda h: h["time"])[-5000:]
+    try:
+        save_json(PTYPE_FILE, hist)
+    except Exception as _e:
+        print(f"  (ptype_history ekki vistad: {_e})")
+    sn = [h["tw"] for h in hist if h["pt"] == "snow" and h.get("tw") is not None]
+    rn = [h["tw"] for h in hist if h["pt"] == "rain" and h.get("tw") is not None]
+    m0 = (PT_SNOW_DEF + PT_RAIN_DEF) / 2
+    m, n = m0, min(len(sn), len(rn))
+    if len(sn) >= 5 and len(rn) >= 5:
+        best = None
+        for k in range(-20, 41):
+            c = k / 10.0
+            err = sum(1 for x in sn if x > c) + sum(1 for x in rn if x <= c)
+            if best is None or err < best[0] or (err == best[0] and abs(c - m0) < abs(best[1] - m0)):
+                best = (err, c)
+        m = (n * best[1] + PT_PRIOR * m0) / (n + PT_PRIOR)
+    m = max(0.3, min(2.0, m))
+    PT_LIMITS.update({"snow": round(m - PT_HALF, 2), "rain": round(m + PT_HALF, 2),
+                      "n_snow": len(sn), "n_rain": len(rn),
+                      "src": "laert" if n >= 5 else "sjalfgefid"})
+    return PT_LIMITS
+
+def determine_icon(cloud, precip, temp, is_day, vis, wind, cape=None, pt=None):
     dn = "day" if is_day else "night"
     p  = precip or 0
     if vis is not None and vis < 1000:
@@ -914,10 +1001,7 @@ def determine_icon(cloud, precip, temp, is_day, vis, wind, cape=None):
         return f"thunderstorms-{dn}-rain" if (cloud is not None and cloud < 85) \
                else "thunderstorms-rain"
     if p > 0.05:
-        if   temp is None:  pt = "rain"
-        elif temp <= -0.5:  pt = "snow"
-        elif temp <= 2.0:   pt = "sleet"
-        else:               pt = "rain"
+        if pt is None: pt = precip_type(temp)
         showery = cloud is not None and cloud < 80
         if pt == "rain" and p < 0.25 and not showery: return "drizzle"
         if p > 2.5: return f"extreme-{pt}"
@@ -932,7 +1016,7 @@ def determine_icon(cloud, precip, temp, is_day, vis, wind, cape=None):
     if c >= 10: return f"partly-cloudy-{dn}"
     return f"clear-{dn}"
 
-def describe(cloud, precip, temp, vis, wind, cape=None):
+def describe(cloud, precip, temp, vis, wind, cape=None, pt=None):
     p = precip or 0
     if vis is not None and vis < 1000:
         return "Frostþoka" if (temp is not None and temp < 0) else "Þoka"
@@ -943,11 +1027,12 @@ def describe(cloud, precip, temp, vis, wind, cape=None):
         return "Þrumuveður"
     if p > 0.05:
         showery = cloud is not None and cloud < 80
-        if temp is not None and temp <= -0.5:
+        if pt is None: pt = precip_type(temp)
+        if pt == "snow":
             if showery:  return "Él"
             if p > 2.5:  return "Mikil snjókoma"
             return "Snjókoma"
-        if temp is not None and temp <= 2.0:
+        if pt == "sleet":
             return "Slydduél" if showery else "Slydda"
         if p < 0.25 and not showery: return "Súld"
         if showery:  return "Skúrir"
@@ -1161,6 +1246,20 @@ def cloud_class(pct):
 
 CLOUD_OKTAS = {"FEW": 19, "SCT": 44, "BKN": 75, "OVC": 100}
 
+_WX_RE = re.compile(r"(?<!\S)(?:[+-]|VC)?(?:SH|TS|FZ|BL|DR|MI|BC|PR)?((?:DZ|RA|SN|SG|PL|GS|GR|UP)+)(?!\S)")
+
+def metar_ptype(line):
+    """[v8.3] Urkomugerd ur METAR-vedurkoda: (snow|sleet|rain|None, kodar)."""
+    body = line.split(" RMK")[0]
+    codes = [m.group(0) for m in _WX_RE.finditer(body)]
+    if not codes:
+        return None, ""
+    s = "".join(m for m in codes)
+    has_s = any(x in s for x in ("SN", "SG", "PL", "GS"))
+    has_r = any(x in s for x in ("RA", "DZ"))
+    pt = "sleet" if (has_s and has_r) else ("snow" if has_s else ("rain" if has_r else None))
+    return pt, " ".join(codes)
+
 def parse_metar(line):
     try:
         if ICAO not in line[:24]: return None
@@ -1214,6 +1313,7 @@ def parse_metar(line):
                 # maelirinn ser yfirleitt ekki ofar en ~3-4 km
                 "metar_auto": bool(re.search(r"\bAUTO\b", line)),
                 "metar_ncd": bool(re.search(r"\bNCD\b", line)),
+                "ptype_ob": metar_ptype(line)[0], "wx": metar_ptype(line)[1],
                 "cloud_layers": layers, "visibility": vis, "temperature": temp,
                 "dewpoint": dew,
                 "windspeed": round(wkt * 0.514444, 1) if wkt is not None else None,
@@ -1361,7 +1461,8 @@ def fetch_and_store_observations(metar_obs):
         t   = m["time"]
         rec = by_t.get(t, {"time": t})
         for k in ("cloud_cover", "cloud_base_ft", "cloud_layers",
-                  "visibility", "dewpoint", "metar_auto", "metar_ncd"):
+                  "visibility", "dewpoint", "metar_auto", "metar_ncd",
+                  "ptype_ob", "wx"):
             rec[k] = m.get(k)
         for k in ("temperature", "windspeed", "winddirection"):
             if rec.get(k) is None: rec[k] = m[k]
@@ -3599,6 +3700,7 @@ def make_forecast(fc, extras, model, obs=None):
                     "used_weights": [],  # [v5.2] raunveruleg thyngd HVERS gjafa,
                                           # HVERRAR breytu, thessa klukkustund
                     "icon": [], "condition": [], "beaufort": [],
+                    "wetbulb": [], "ptype": [],   # [v8.3] urkomugerd
                     "model_temperatures":   {m: [] for m in ALL_KEYS},
                     "model_windspeeds":     {m: [] for m in ALL_KEYS},
                     "model_winddirections": {m: [] for m in ALL_KEYS},
@@ -3611,6 +3713,23 @@ def make_forecast(fc, extras, model, obs=None):
                    "precipitation_total": [], "wind_avg": [],
                    "wind_dir_dominant": [], "wind_dir_dominant_deg": [],
                    "cloud_avg": [], "icon": [], "condition": []}}
+
+    # [v8.3] Urkomugerd: lifandi mork + hvad fellur nuna
+    _pt_now = None
+    try:
+        _pl = fit_ptype_limits(obs)
+        J["ptype_limits"] = dict(_pl)
+        print(f"  URKOMUGERD: snjor Tw<={_pl['snow']:.2f} | rigning Tw>={_pl['rain']:.2f} "
+              f"({_pl['src']}; maelt snjor {_pl['n_snow']}, regn {_pl['n_rain']})")
+        _rec = [o for o in (obs or []) if o.get("has_metar")]
+        if _rec:
+            _lo = _rec[-1]
+            _age = (now - parse_t(_lo["time"])).total_seconds() / 3600
+            if _age <= 1.6 and _lo.get("ptype_ob"):
+                _pt_now = _lo["ptype_ob"]
+                print(f"  URKOMUGERD NUNA (METAR {_lo['time']}): {_pt_now} [{_lo.get('wx','')}]")
+    except Exception as _e:
+        print(f"  (urkomugerd sleppt: {_e})")
 
     for t in fut[:120]:
         lead = max(0, int((parse_t(t) - now).total_seconds() // 3600))
@@ -3931,10 +4050,20 @@ def make_forecast(fc, extras, model, obs=None):
         J["hourly"]["cloud_high"].append(round(c_high) if c_high is not None else None)
         J["hourly"]["visibility"].append(round(vis) if vis is not None else None)
         J["hourly"]["is_day"].append(1 if is_day else 0)
+        # [v8.3] votlukuluhiti: daggarmarksbil likana lagt a hita Jolly
+        _t_raw, _td_raw = avg_raw("temperature_2m"), avg_raw("dew_point_2m")
+        _tw = temp
+        if temp is not None and _t_raw is not None and _td_raw is not None:
+            _tw = wet_bulb(temp, td=temp - max(0.0, _t_raw - _td_raw))
+        _pt = precip_type(temp, _tw)
+        if _pt_now and lead <= 2 and (prec or 0) > 0.05:
+            _pt = _pt_now
+        J["hourly"]["wetbulb"].append(round(_tw, 1) if _tw is not None else None)
+        J["hourly"]["ptype"].append(_pt if (prec or 0) > 0.05 else None)
         J["hourly"]["icon"].append(
-            determine_icon(cloud, prec, temp, is_day, vis, wind, cape))
+            determine_icon(cloud, prec, temp, is_day, vis, wind, cape, _pt))
         J["hourly"]["condition"].append(
-            describe(cloud, prec, temp, vis, wind, cape))
+            describe(cloud, prec, temp, vis, wind, cape, _pt))
         J["hourly"]["beaufort"].append(beaufort(wind))
 
     # Dagleg samantekt
