@@ -77,11 +77,11 @@
   <p class="note">* Ekki er hægt að sækja spár símaappanna beint, svo hér er notað meðaltal hnattlíkananna sem þau byggja á. Það er nálgun.</p>
 
   <h2>Hverju hefur þetta skilað?</h2>
-  <p id="resTxt">Síðustu vikur hefur Jolly verið nákvæmari en bæði yr.no og vedur.is í flestum samanburðum, mest næstu klukkustundirnar.</p>
+  <p id="resTxt">Árangurinn er mældur stöðugt: hver einasta spá er borin saman við það sem síðan mælist á Egilsstaðaflugvelli. Hér eru nýjustu tölurnar, reiknaðar úr síðustu 14 dögum.</p>
   <div class="nums">
     <div class="num"><b id="n1">–</b><span id="n1s">skekkja í hita næstu klst</span></div>
-    <div class="num"><b id="n2">–</b><span>minni skekkja í vindátt en yr.no</span></div>
-    <div class="num"><b id="n3">–</b><span>minni skekkja í skýjahulu næstu klst</span></div>
+    <div class="num"><b id="n2">–</b><span id="n2s">skekkja í vindátt miðað við yr.no</span></div>
+    <div class="num"><b id="n3">–</b><span id="n3s">skekkja í skýjahulu næstu klst</span></div>
   </div>
   <p class="note" id="upd">Tölurnar eru reiknaðar sjálfkrafa á klukkutíma fresti úr mælingum síðustu 14 daga. Samanburð dag fyrir dag má sjá á síðunni „Nánari upplýsingar“.</p>
 
@@ -97,10 +97,17 @@ function fill(S){
   document.getElementById('cJ').textContent=fmt(t.jolly)+'°';
   document.getElementById('n1').textContent=fmt(t1.jolly)+'°';
   document.getElementById('n1s').innerHTML=`skekkja í hita næstu klst<br>(yr.no ${fmt(t1.yr)}° · vedur.is ${fmt(t1.vedur)}°)`;
-  const pct=(a,b)=>a!=null&&b?Math.round((1-a/b)*100)+'%':'–';
-  document.getElementById('n2').textContent=pct(dr.jolly,dr.yr);
-  const others=[sk.yr,sk.vedur,sk.glob].filter(x=>x!=null);
-  document.getElementById('n3').textContent=others.length?pct(sk.jolly,Math.min(...others)):'–';
+  // Hlutfallslegur munur: rétt orðalag hvort sem Jolly er betri, svipuð eða lakari
+  const cmpTxt=(a,b,what,ref)=>{
+    if(a==null||!b) return ['–',what];
+    const p=Math.round((1-a/b)*100);
+    if(Math.abs(p)<3) return ['≈',`svipuð skekkja ${what} og ${ref}`];
+    return p>0?[p+'%',`minni skekkja ${what} en ${ref}`]:[Math.abs(p)+'%',`meiri skekkja ${what} en ${ref}`];
+  };
+  const set=(id,[v,t])=>{document.getElementById(id).textContent=v;document.getElementById(id+'s').textContent=t;};
+  set('n2',cmpTxt(dr.jolly,dr.yr,'í vindátt','yr.no'));
+  const oth=[['yr.no',sk.yr],['vedur.is',sk.vedur],['símaspá',sk.glob]].filter(x=>x[1]!=null).sort((a,b)=>a[1]-b[1]);
+  set('n3',oth.length?cmpTxt(sk.jolly,oth[0][1],'í skýjahulu næstu klst',oth[0][0]):['–','skekkja í skýjahulu næstu klst']);
   if(S.updated){const d=new Date(S.updated.replace('Z',':00Z'));
     document.getElementById('upd').textContent=`Reiknað sjálfkrafa úr mælingum síðustu ${S.days||14} daga · síðast uppfært ${d.getUTCDate()}.${d.getUTCMonth()+1}. kl. ${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}. Samanburð dag fyrir dag má sjá á síðunni „Nánari upplýsingar“.`;}
 }
