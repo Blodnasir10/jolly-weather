@@ -242,6 +242,10 @@ SAGA I STUTTU MALI:
         Spasafnid geymir daggarmark/raka hvers likans og Jolly. Daggarmark
         stodvar 4271 (aukastafir) er nu ekki yfirskrifad med heiltolu METAR.
         Grunnur fyrir arstida- og adstaedubundna leidrettingu.
+  v8.5  METDAGAR: docs/data/records.json skrifud i hverri keyrslu ur
+        langtimasafninu (maelingar): heitasti, kaldasti, hvassasti (mesta
+        kvida) og urkomumesti dagur - fra upphafi og fyrir hvern almanaksmanud
+        (oll ar). Forsidan synir thetta nedst. Spain obreytt.
 """
 
 
@@ -278,7 +282,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "8.4"
+JOLLY_VERSION = "8.5"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -3496,6 +3500,67 @@ def fit_gust_model():
 # [v8.2] ── SAMANTEKT fyrir Um-sidu: litil JSON-skra med nyjustu arangurstolum ──
 SUMMARY_DAYS = 14
 
+# [v8.5] ── METDAGAR fyrir forsidu ──
+REC_MIN_T_HOURS = 20     # dagur telst med i hita/vind ef >= 20 klst maeldar
+REC_MIN_P_HOURS = 18     # og i urkomu ef >= 18 klst urkomumaelingar
+
+def write_records():
+    """[v8.5] Heitasti/kaldasti/hvassasti/urkomumesti dagur fra upphafi og
+    fyrir hvern almanaksmanud (oll ar), reiknad ur maelingum i langtimasafni."""
+    import csv as _csv
+    def fl(x):
+        try: return float(x)
+        except (TypeError, ValueError): return None
+    obs = {}
+    for f in sorted(VERIFY_DIR.glob("*.csv")):
+        with open(f) as fh:
+            for r in _csv.DictReader(fh):
+                vt = r.get("valid_time")
+                if vt and vt not in obs:
+                    obs[vt] = (fl(r.get("t_ob")), fl(r.get("g_ob")), fl(r.get("p_ob")))
+                else:
+                    o = obs.get(vt)
+                    if o and (o[0] is None or o[1] is None or o[2] is None):
+                        n = (fl(r.get("t_ob")), fl(r.get("g_ob")), fl(r.get("p_ob")))
+                        obs[vt] = tuple(a if a is not None else b for a, b in zip(o, n))
+    days = {}
+    for vt, (t, g, p) in obs.items():
+        d = days.setdefault(vt[:10], {"T": [], "G": [], "P": []})
+        if t is not None: d["T"].append(t)
+        if g is not None: d["G"].append(g)
+        if p is not None: d["P"].append(p)
+    stats = {}
+    for d, v in days.items():
+        s = {}
+        if len(v["T"]) >= REC_MIN_T_HOURS:
+            s["hot"] = max(v["T"]); s["cold"] = min(v["T"])
+        if len(v["G"]) >= REC_MIN_T_HOURS:
+            s["wind"] = max(v["G"])
+        if len(v["P"]) >= REC_MIN_P_HOURS:
+            s["wet"] = round(sum(v["P"]), 1)
+        if s: stats[d] = s
+    def best(items):
+        out = {}
+        for k, better in (("hot", max), ("cold", min), ("wind", max), ("wet", max)):
+            c = [(d, s[k]) for d, s in items if k in s]
+            if c:
+                d, v = better(c, key=lambda x: x[1])
+                out[k] = {"d": d, "v": round(v, 1)}
+        return out
+    items = sorted(stats.items())
+    rec = {"updated": fmt_t(datetime.now(timezone.utc)),
+           "since": items[0][0] if items else None,
+           "met": best(items),
+           "months": {str(m): best([(d, s) for d, s in items if int(d[5:7]) == m])
+                      for m in range(1, 13)},
+           "years": {str(m): sorted({d[:4] for d, _ in items if int(d[5:7]) == m})
+                     for m in range(1, 13)}}
+    rec["months"] = {m: v for m, v in rec["months"].items() if v}
+    save_json(DATA_DIR / "records.json", rec)
+    _m = rec["met"]
+    print("  METDAGAR: " + " | ".join(f"{k} {v['v']} ({v['d']})" for k, v in _m.items())
+          + f" | {len(rec['months'])} manudir med gogn")
+
 def write_summary():
     """Reiknar nokkrar einfaldar arangurstolur sidustu SUMMARY_DAYS daga
     ur verify-safninu og vistar i docs/data/summary.json."""
@@ -4682,6 +4747,10 @@ def _run():
     save(model, fcast)
     try:
         write_summary()          # [v8.2]
+    except Exception as _e:
+        print(f"  (samantekt sleppt: {_e})")
+    try:
+        write_records()          # [v8.5]
     except Exception as _e:
         print(f"  (samantekt sleppt: {_e})")
     try:
