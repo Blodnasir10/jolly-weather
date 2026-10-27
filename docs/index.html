@@ -256,6 +256,14 @@
   .rt.new::after{content:"nýtt met";position:absolute;right:5px;top:6px;font-size:8px;letter-spacing:.04em;color:var(--hot)}
   .rg4.fade .rt{opacity:0;transform:translateY(6px)}
   .rnote{font-size:11px;color:var(--faint);text-align:center;margin-top:10px;line-height:1.5}
+
+  /* ── Næturfrost ── */
+  .fbar{display:flex;align-items:center;gap:6px;margin:6px 4px 2px;padding:6px 10px;border-radius:10px;
+    background:rgba(170,198,234,.10);color:#cfe0fb;font-size:11.5px}
+  .fbar b{font-weight:600}
+  .pc{position:relative}
+  .fcorner{position:absolute;right:2px;top:-1px;width:16px;height:16px;border-radius:50%;background:rgba(170,198,234,.18);
+    display:flex;align-items:center;justify-content:center}
 </style></head>
 <body>
   <div class="sky" id="sky"></div><div class="glow" id="glow"></div>
@@ -736,7 +744,7 @@ function wxWarnings(rows){
   else if(rows.some(r=>r.T<=0) && rows.some(r=>r.T>0)) out.push({w:0,txt:'Hiti í kringum frostmark'});
   if(gmax>=10) out.push({w:1,txt:'Kviður allt að '+Math.round(gmax)+' m/s'});
   const r0=rows[0], v=(r0.W||0)*3.6, wc=v<4.8?r0.T:13.12+0.6215*r0.T-11.37*Math.pow(v,.16)+0.3965*r0.T*Math.pow(v,.16);
-  if(wc<=r0.T-3) out.push({w:0,txt:'Finnst eins og '+deg(wc)});
+  if(wc<=r0.T-3) out.push({w:0,txt:'Upplifir hitann sem '+deg(wc)});
   return out;
 }
 root.wxText=wxText; root.wxWarnings=wxWarnings; root.wxDir8=d=>DIR8[sect(d)];
@@ -748,7 +756,7 @@ const D8S=['N','NA','A','SA','S','SV','V','NV'];
 const d8s=d=>D8S[Math.round(((d%360)+360)%360/45)%8];
 function nowRows(FC){
   const H=FC.hourly||{}, t=H.time||[];
-  return t.map((x,i)=>({h:new Date(x).getHours(),T:(H.temperature||[])[i],P:(H.precipitation||[])[i]||0,
+  return t.map((x,i)=>({day:x.slice(0,10),h:new Date(x).getHours(),T:(H.temperature||[])[i],P:(H.precipitation||[])[i]||0,
     K:(H.ptype||[])[i],W:(H.windspeed||[])[i]||0,D:(H.winddirection||[])[i]||0,G:(H.windgust||[])[i]||0,C:(H.cloud_cover||[])[i]}));
 }
 function nowDetail(k){
@@ -761,7 +769,23 @@ function nowDetail(k){
      <div>${wxIcon(30,wxKind(r.C,r.P,r.T,r.K),r.P,isNightHour(r.h),r.C)}</div>
      <div class="tt">${Math.round(r.T)}°</div><div class="pp">${r.P>=0.1?f1(r.P):''}</div>
      <div class="wd">${windArrow(r.D,9)}${d8s(r.D)} ${Math.round(r.W)}</div></div>`).join('')}</div>
-   ${warn.length?`<div class="nwarn">${warn.map(w=>`<span class="${w.w?'':'n'}">${w.txt}</span>`).join('')}</div>`:''}`;
+   ${warn.length?`<div class="nwarn">${warn.map(w=>`<span class="${w.w?'':'n'}">${w.txt}</span>`).join('')}</div>`:''}
+   ${nowFrost(rows)}`;
+}
+// Næturfrost í opna reitnum: ef tímabilið nær yfir nótt (kl. 21–09) með frosti
+function nowFrost(rows){
+  const nd=d=>new Date(new Date(d+'T12:00').getTime()+864e5).toISOString().slice(0,10);
+  const key=r=>r.h>=21?nd(r.day):(r.h<=9?r.day:null);
+  const nights=[...new Set(rows.map(key).filter(Boolean))];
+  const tom=nd(new Date().toISOString().slice(0,10));
+  for(const k of nights){
+    const all=NOW.rows.filter(r=>key(r)===k && r.T!=null); if(!all.length) continue;
+    const mn=Math.min(...all.map(r=>r.T)); if(mn>=0) continue;
+    const dg=(Math.round(mn)<0?'−'+Math.abs(Math.round(mn)):'0')+'°';
+    const when=k===tom?'í nótt':'aðfaranótt '+VDG[new Date(k+'T12:00').getDay()];
+    return `<div class="fbar" style="margin:10px 0 0"><svg width=\"10\" height=\"10\" viewBox=\"0 0 24 24\"><g stroke=\"#cfe0fb\" stroke-width=\"2.4\" stroke-linecap=\"round\"><path d=\"M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9\"/></g></svg><span><b>Næturfrost</b> ${when}, niður í ${dg}</span></div>`;
+  }
+  return '';
 }
 function nowTap(k){
   const det=document.getElementById('nowDet'), din=document.getElementById('nowDin');
@@ -938,6 +962,7 @@ function render(FC){
     `Berum saman og leiðréttum gögn frá mörgum veðurlíkönum.`;
 }
 
+const VDG=['sunnudags','mánudags','þriðjudags','miðvikudags','fimmtudags','föstudags','laugardags'];
 function renderDays(FC){
   // [Næstu dagar v2] Fjögur föst tímabil + hitakúrfa. Liðin tímabil í dag
   // koma úr FC.hourly_past (eins og þeim var spáð) og birtast dauf.
@@ -988,6 +1013,12 @@ function renderDays(FC){
     const dt=new Date(d.day+'T12:00');
     const name=d.day===today?'Í dag':VD[dt.getDay()];
     const date=`${dt.getDate()}. ${MN[dt.getMonth()]}`;
+    // Næturfrost: aðfaranótt næsta dags, kl. 21–09 (merkt á daginn á undan)
+    const nx=new Date(dt.getTime()+864e5).toISOString().slice(0,10);
+    const ngt=Object.values(byT).filter(r=>r.T!=null&&((r.day===d.day&&r.hr>=21)||(r.day===nx&&r.hr<=9)));
+    const fmin=ngt.length?Math.min(...ngt.map(r=>r.T)):99;
+    const frost=fmin<0, fdeg=(Math.round(fmin)<0?'−'+Math.abs(Math.round(fmin)):'0')+'°';
+    const nxName=VDG[new Date(nx+'T12:00').getDay()];
     // hitakúrfa: punktar undir hitatölum, mjúk lína, litur eftir hita
     const pts=d.per.map((p,i)=>p?{x:50+i*100,y:30-((p.T-gmin)/span)*22,c:tcol(p.T)}:null);
     const ok=pts.filter(p=>p);
@@ -1003,10 +1034,10 @@ function renderDays(FC){
       <path d="M${ok.length?ok[ok.length-1].x:400},${ok.length?ok[ok.length-1].y:20} L400,${ok.length?ok[ok.length-1].y:20}" stroke="${ok.length?ok[ok.length-1].c:'#7fb3ff'}" stroke-width="1.6" opacity=".35" fill="none"/>
       ${pts.map((p,i)=>p?`<circle cx="${p.x}" cy="${p.y}" r="4.2" fill="${p.c}" opacity="${d.per[i].past?.45:1}"/>`:'').join('')}
     </svg>`;
-    const cols=d.per.map(p=>{
+    const cols=d.per.map((p,i)=>{
       if(!p) return `<div class="pc empty"><div class="pl">–</div></div>`;
       const kind=wxKind(p.C,p.P,p.T,p.K), night=isNightHour(Math.floor(p.mid));
-      return `<div class="pc${p.past?' past':''}">
+      return `<div class="pc${p.past?' past':''}">${frost&&i===3?`<span class="fcorner" title="Næturfrost, niður í ${fdeg}"><svg width="10" height="10" viewBox="0 0 24 24"><g stroke="#cfe0fb" stroke-width="2.4" stroke-linecap="round"><path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9"/></g></svg></span>`:''}
         <div class="pl">${p.lbl}</div>
         <div class="pi">${wxIcon(40,kind,p.P,night,p.C)}</div>
         <div class="pt" style="color:${tcol(p.T)}">${Math.round(p.T)}°</div>
@@ -1027,7 +1058,7 @@ function renderDays(FC){
         <div class="chev"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
       <div class="dcurve">${curve}</div>
-      <div class="dopen">
+      <div class="dopen">${frost?`<div class="fbar"><svg width="10" height="10" viewBox="0 0 24 24"><g stroke="#cfe0fb" stroke-width="2.4" stroke-linecap="round"><path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9"/></g></svg><span><b>Næturfrost</b> aðfaranótt ${nxName}, niður í ${fdeg}</span></div>`:''}
         <div class="pxrow">${ext}</div>
         <div class="dsum">
           <div class="sr"><span>Lágmark / Hámark</span><b><i style="color:${tcol(d.tmin)}">${Math.round(d.tmin)}°</i> / <i style="color:${tcol(d.tmax)}">${Math.round(d.tmax)}°</i></b></div>
