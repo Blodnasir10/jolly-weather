@@ -1,15 +1,15 @@
 STADA  OK - ekkert athugavert
 ================================================================
-JOLLY v8.5  2026-10-27 22:48 UTC
+JOLLY v8.5  2026-10-27 23:05 UTC
 Eiginleg spastadfesting eftir spalengd | 9 gjafar | stod 571 + BIEG
 ================================================================
 METAR BIEG:
-  OK 24 faerslur | nyjust 2026-10-27T22:00 sky=100% botn=3400ft | aldur 0.8 klst
+  OK 24 faerslur | nyjust 2026-10-27T23:00 sky=100% botn=4300ft | aldur 0.1 klst
 MAELING stod 4271 (Egilsstadaflugvollur):
-  OK 2026-10-27T23:00 | hiti=6.6 vindur=6.1 att=277.0
-  URKOMA stod 571: 2026-10-27T22:00 | 0.1 mm/klst
+  OK 2026-10-27T23:00 | hiti=6.3 vindur=6.3 att=284.0
+  URKOMA stod 571: 2026-10-27T23:00 | 0.1 mm/klst
   METAR skyjagogn a 24 timapunkta
-  720 maelingar geymdar (708 med skyjahulu)
+  720 maelingar geymdar (709 med skyjahulu)
 OPEN-METEO:
   OK 168 timapunktar
     dmi     168 gildi
@@ -20,45 +20,83 @@ OPEN-METEO:
     mfr     145 gildi
     gfs     168 gildi
 HARMONIE (Vedurstofa):
-  OK 105 timapunktar (105 med skyjahulu ur vedurtexta - grof)
+  OK 107 timapunktar (107 med skyjahulu ur vedurtexta - grof)
 MET NORWAY (api.met.no):
-  OK 89 timapunktar (89 med skyjahulu)
+  304 obreytt - skyndiminni (89 timapunktar)
 LIKAN:
-  Hladid v2.x - 1930 keyrslur, 337622 stadfest por
+  Hladid v2.x - 1931 keyrslur, 337622 stadfest por
 SPASAFN:
-  Geymdi 6 spalengdir fyrir utgafu 2026-10-27T22:00
-  Safnid: 121 gildistimar (hreinsadi 0)
+  Geymdi 6 spalengdir fyrir utgafu 2026-10-27T23:00
+  Safnid: 121 gildistimar (hreinsadi 1)
 STADFESTING:
-  Ekkert nytt til stadfestingar
-  (safnid: 121 gildistimar, 444 thegar stadfest, maelingar: 720)
+  5 NY stadfest por a 1 gildistimum
+  KRUFNING @1klst sky (maeling 100.0):
+  Langtimasafn: +1 radir | 68547 samtals | 3 man (2026-08 - 2026-10)
+    metno kemur AFTUR INN i att @6klst (3 godar spar i rod)
+  [hiti]
+     1 klst  Jolly   0.69C  besti metno      0.38  -> -81.5% lakari  (n=966)
+     3 klst  Jolly   1.20C  besti metno      0.35  -> -100.0% lakari  (n=967)
+     6 klst  Jolly   1.40C  besti ecmwf      0.37  -> -100.0% lakari  (n=967)
+    12 klst  Jolly   0.92C  besti dmi        0.38  -> -100.0% lakari  (n=965)
+    24 klst  Jolly   0.88C  besti metno      0.48  -> -82.6% lakari  (n=964)
+    48 klst  Jolly   1.21C  besti ecmwf      0.39  -> -100.0% lakari  (n=961)
+  [vindur]
+     1 klst  Jolly   1.67m/s  besti icon       1.49  -> -11.7% lakari  (n=966)
+     3 klst  Jolly   2.82m/s  besti icon       1.42  -> -99.2% lakari  (n=967)
+     6 klst  Jolly   3.11m/s  besti icon       1.60  -> -94.8% lakari  (n=967)
+    12 klst  Jolly   3.32m/s  besti icon       1.67  -> -98.8% lakari  (n=965)
+    24 klst  Jolly   3.15m/s  besti harmonie   1.64  -> -91.8% lakari  (n=964)
+    48 klst  Jolly   3.60m/s  besti ecmwf      2.03  -> -77.6% lakari  (n=961)
+  [att]
+     1 klst  Jolly  23.54gr  besti metno      9.26  -> -100.0% lakari  (n=735)
+     3 klst  Jolly  27.04gr  besti icon      12.59  -> -100.0% lakari  (n=736)
+     6 klst  Jolly  20.60gr  besti icon      10.64  -> -93.7% lakari  (n=736)
+    12 klst  Jolly  21.08gr  besti ecmwf     11.64  -> -81.0% lakari  (n=737)
+    24 klst  Jolly  17.05gr  besti ecmwf      9.73  -> -75.2% lakari  (n=741)
+    48 klst  Jolly  13.84gr  besti ecmwf      9.67  -> -43.0% lakari  (n=741)
+  [urkoma]
+     1 klst  Jolly   0.31mm  besti gfs        0.25  -> -25.3% lakari  (n=631)
+     3 klst  Jolly   0.34mm  besti gfs        0.25  -> -35.3% lakari  (n=620)
+     6 klst  Jolly   0.28mm  besti ukmo       0.24  -> -16.4% lakari  (n=617)
+    12 klst  Jolly   0.31mm  besti knmi       0.24  -> -29.3% lakari  (n=615)
+    24 klst  Jolly   0.37mm  besti dmi        0.25  -> -48.6% lakari  (n=606)
+    48 klst  Jolly   0.58mm  besti dmi        0.38  -> -53.6% lakari  (n=588)
+  [sky]
+     1 klst  Jolly   0.42%  besti dmi        0.08  ->      - (MAE undir maelinakvaemni)  (n=916)
+     3 klst  Jolly   1.10%  besti dmi        0.08  ->      - (MAE undir maelinakvaemni)  (n=907)
+     6 klst  Jolly   1.38%  besti dmi        0.08  ->      - (MAE undir maelinakvaemni)  (n=907)
+    12 klst  Jolly   1.33%  besti dmi        0.07  ->      - (MAE undir maelinakvaemni)  (n=908)
+    24 klst  Jolly   1.20%  besti ukmo       0.07  ->      - (MAE undir maelinakvaemni)  (n=906)
+    48 klst  Jolly   1.31%  besti dmi        0.08  ->      - (MAE undir maelinakvaemni)  (n=901)
+  Haest thyngd @6klst -> hiti: ecmwf 14% | vindur: icon 13% | att: icon 16% | urkoma: dmi 17% | sky: dmi 16%
 SPA:
   HITALEIDRETTING: laerd fyrir 6 spalengdir (1, 3, 6, 12, 24, 48 klst)
   VINDVAEGI (RMSE 30 d) @6klst: mfr 0.26 metno 0.22 icon 0.14 ukmo 0.13 ecmwf 0.06 harmonie 0.05 gfs 0.05 knmi 0.05 dmi 0.05
   SA-REGNSKUGGI: studull 0.52 | SA sidustu 120 d: spad 306.6 mm, maelt 157.0 mm, 165 blautar klst (n=581)
-  URKOMUSTUDLAR EFTIR ATT (lifandi): N 0.62 (300 bl.) | NA 0.61 (56 bl.) | A 0.83 (71 bl.) | SA 0.52 (165 bl.) | S 0.92 (240 bl.) | SV 1.20 (58 bl.) | V 0.51 (27 bl.) | NV 0.61 (54 bl.)
+  URKOMUSTUDLAR EFTIR ATT (lifandi): N 0.62 (300 bl.) | NA 0.61 (56 bl.) | A 0.83 (71 bl.) | SA 0.52 (165 bl.) | S 0.92 (240 bl.) | SV 1.20 (58 bl.) | V 0.51 (28 bl.) | NV 0.61 (54 bl.)
   KVIDULIKAN: 6 spalengdir | @6klst maelt = 1.06 + 0.91 x blanda (n=646) | vaegi: mfr 0.28 ecmwf 0.27 icon 0.19 ukmo 0.19
-  NOWCAST: mæling 6.6° kl 23:00 á móti blöndu 4.4° (leidrett) -> frávik +2.22° (aldur -0.2 klst)
-  THRYSTINGUR: maeldur 967.2 hPa kl 23:00 | likon 968.7 | fravik -1.5
-  NOWCAST VINDUR: maeling 6.1 m/s kl 23:00 a moti likonum 3.3 -> fravik +2.8 (aldur -0.2 klst)
-  NOWCAST SKY: METAR 100% kl 22:00 á móti blöndu 99% -> frávik +1 (aldur 0.8 klst)
-  URKOMUGERD: snjor Tw<=0.60 | rigning Tw>=1.60 (sjalfgefid; maelt snjor 3, regn 57)
-  URKOMUGERD NUNA (METAR 2026-10-27T22:00): rain [-DZ]
+  NOWCAST: mæling 6.3° kl 23:00 á móti blöndu 4.4° (leidrett) -> frávik +1.88° (aldur 0.1 klst)
+  THRYSTINGUR: maeldur 967.7 hPa kl 23:00 | likon 968.9 | fravik -1.2
+  NOWCAST VINDUR: maeling 6.3 m/s kl 23:00 a moti likonum 3.3 -> fravik +3.0 (aldur 0.1 klst)
+  NOWCAST SKY: METAR 100% kl 23:00 á móti blöndu 99% -> frávik +1 (aldur 0.1 klst)
+  URKOMUGERD: snjor Tw<=0.60 | rigning Tw>=1.60 (sjalfgefid; maelt snjor 3, regn 58)
+  URKOMUGERD NUNA (METAR 2026-10-27T23:00): rain [-RA]
   [SPA-GREINING @0klst - berid saman vid maelingu ofar]
-    hiti  : blanda 4.54 +0.22 -> 4.58
-    vindur: blanda 3.38 +0.28 -> 3.38
-    att   : blanda 249.0 +9.8 -> 249.0
-    sky   : blanda 99.28 +0.4 -> 100
-    medlimir i blondu: hiti=8 vindur=8 sky=8 att=8 (af 9)
-    leidrettir medlimir hiti: [3.3, 4.4, 4.5, 4.7, 4.7, 4.9, 3.6, 4.7]
-    leidrettir medlimir vind: [1.9, 3.1, 3.2, 3.5, 2.3, 2.5, 6.7, 4.2]
-  [SPA-GREINING @1klst - berid saman vid maelingu ofar]
-    hiti  : blanda 4.42 +0.22 -> 6.72
-    vindur: blanda 3.54 +0.28 -> 6.31
-    att   : blanda 254.4 +9.8 -> 254.4
+    hiti  : blanda 4.43 +0.14 -> 6.41
+    vindur: blanda 3.53 +0.24 -> 6.51
+    att   : blanda 257.1 +10.8 -> 257.1
     sky   : blanda 99.49 +0.4 -> 100
     medlimir i blondu: hiti=8 vindur=8 sky=8 att=8 (af 9)
-    leidrettir medlimir hiti: [3.4, 4.4, 4.3, 4.4, 4.8, 5.0, 3.8, 4.6]
+    leidrettir medlimir hiti: [3.4, 4.4, 4.3, 4.4, 4.9, 5.0, 3.8, 4.6]
     leidrettir medlimir vind: [1.4, 4.8, 2.9, 3.9, 2.3, 2.7, 7.3, 4.1]
+  [SPA-GREINING @1klst - berid saman vid maelingu ofar]
+    hiti  : blanda 4.49 +0.14 -> 6.04
+    vindur: blanda 3.51 +0.24 -> 5.65
+    att   : blanda 251.3 +10.8 -> 251.3
+    sky   : blanda 99.79 +0.4 -> 100
+    medlimir i blondu: hiti=9 vindur=9 sky=9 att=9 (af 9)
+    leidrettir medlimir hiti: [3.7, 4.2, 4.2, 4.1, 5.0, 5.2, 4.0, 5.0, 4.3]
+    leidrettir medlimir vind: [1.3, 2.7, 2.7, 4.0, 2.2, 3.2, 6.1, 4.0, 4.0]
   OK 120 klst | 6 dagar | 20 timaraufir fylltar
   Jolly skrad i safnid: 6 spalengdir
 YFIRLIT (@6 klst):
@@ -74,7 +112,7 @@ YFIRLIT (@6 klst):
   metno       0.4  12%   2.1  10%  12.5  14%   0.3  12%   0.6  11% 
   --------------------------------------------------------------
   JOLLY       1.4   -    3.1   -   20.6   -    0.3   -    1.4   -  
-  restbias@1klst  (VIRK: - | OVIRK: hiti,vindur,att,sky)   hiti +0.22  vind +0.28  att +9.8  urk x0.62  sky +0.4
+  restbias@1klst  (VIRK: - | OVIRK: hiti,vindur,att,sky)   hiti +0.14  vind +0.24  att +10.8  urk x0.60  sky +0.4
   restbias@3klst  (VIRK: - | OVIRK: hiti,vindur,att,sky)   hiti +1.65  vind +1.01  att +10.7  urk x0.60  sky +1.2
   restbias@6klst  (VIRK: - | OVIRK: hiti,vindur,att,sky)   hiti +2.06  vind +1.01  att +11.2  urk x0.60  sky +1.9
   restbias@12klst  (VIRK: - | OVIRK: hiti,vindur,att,sky)   hiti +1.07  vind +1.01  att +10.9  urk x0.65  sky +1.5
@@ -93,7 +131,7 @@ YFIRLIT HITA VID ALLAR SPALENGDIR (MAE í °C, þyngd í svigum):
   harmonie   0.57(11%)  0.88( 8%)  0.62(10%)  0.55(12%)  0.76(10%)  0.81( 9%)
   metno      0.38(14%)  0.35(15%)  0.42(12%)  0.39(13%)  0.48(13%)  0.58(10%)
   ---------------------------------------------------------------------------
-  jolly     0.72(n965) 1.20(n967) 1.40(n967) 0.92(n965) 0.88(n964) 1.21(n961)
+  jolly     0.69(n966) 1.20(n967) 1.40(n967) 0.92(n965) 0.88(n964) 1.21(n961)
   SKILYRT HITABIAS (@1 klst, reitir med >= 3 por):
     dmi       N-dagur -0.11(n1830)  A-dagur -0.21(n680)  S-dagur -0.07(n3421)  V-dagur +0.34(n696)  N-nott +0.09(n193)  A-nott -0.07(n63)  S-nott -0.24(n271)  V-nott -0.19(n36)
     knmi      N-dagur -0.12(n1830)  A-dagur -0.19(n680)  S-dagur -0.02(n3421)  V-dagur +0.39(n696)  N-nott -0.06(n193)  A-nott -0.01(n63)  S-nott -0.21(n271)  V-nott -0.19(n36)
@@ -461,6 +499,29 @@ YFIRLIT HITA VID ALLAR SPALENGDIR (MAE í °C, þyngd í svigum):
     sky     S-dagur    dmi 16% | knmi 15% | gfs 13%
     sky     S-nott     dmi 14% | knmi 13% | gfs 12%
     sky     V-dagur    icon 14% | metno 13% | ecmwf 13%
+SANNLEIKSMAELIR (hraar tolur, sidustu 24 klst, @1klst)
+  gjafi             hiti   vindur      att      sky   (leidrett eins og spain gerir)
+  dmi              1.56     3.31    35.00     0.00   (1.56 3.31 35.00 0.00)
+  knmi             1.75     3.59    37.09     0.00   (1.75 3.59 37.09 0.00)
+  ecmwf            1.35     3.78    22.73     0.50   (1.35 3.78 22.73 0.45)
+  icon             1.11     2.88    17.18     0.59   (1.11 2.88 17.18 0.59)
+  ukmo             0.92     4.32    32.32     0.09   (0.92 4.32 32.32 0.09)
+  mfr              0.82     2.75    22.68     2.64   (0.82 2.75 22.68 2.36)
+  gfs              1.67     2.39    23.73     0.00   (1.67 2.39 23.73 0.00)
+  harmonie         0.74     2.98    18.12     9.09   (0.74 2.98 18.12 0.41)
+  metno            1.20     2.32    22.95     1.07   (1.20 2.32 22.95 0.86)
+  ----------------------------------------------
+  JOLLY            0.59     1.41    18.02     0.22   (0.59 1.41 18.02 0.22)
+  n = 24 por
+    hiti    Jolly   0.59 | hrair   1.24 (+52%) | leidrettir   1.24 (+52%) | besti   0.74 (+20%)
+    vindur  Jolly   1.41 | hrair   3.14 (+55%) | leidrettir   3.14 (+55%) | besti   2.32 (+39%)
+    att     Jolly  18.02 | hrair  25.76 (+30%) | leidrettir  25.76 (+30%) | besti  17.18 (-5%)
+    sky     Jolly   0.22 | hrair   1.55 (+86%) | leidrettir   0.53 (+59%) | besti   0.00 (+0%)
+  EFTIR REIT (leidrett MAE, vindatt x dagur/nott):
+    reitur           hiti   vindur      att      sky     n
+    N-dagur          0.48     1.19    11.89     0.12    18
+    S-dagur          0.70     4.96    65.30     1.00     1
+    V-dagur          0.99     1.50    39.03     0.40     5
   FALLIN LIKON @1klst (0 vaegi, enn maeld, geta komid aftur):
     att: dmi, harmonie, knmi, mfr
     sky: ecmwf, harmonie, icon, metno, mfr, ukmo
@@ -469,7 +530,7 @@ YFIRLIT HITA VID ALLAR SPALENGDIR (MAE í °C, þyngd í svigum):
     att: dmi, harmonie, mfr
     sky: ecmwf, harmonie, icon, metno, mfr, ukmo
   FALLIN LIKON @6klst (0 vaegi, enn maeld, geta komid aftur):
-    att: dmi, knmi, metno
+    att: dmi, knmi
     sky: ecmwf, harmonie, icon, metno, mfr, ukmo
   FALLIN LIKON @12klst (0 vaegi, enn maeld, geta komid aftur):
     sky: ecmwf, harmonie, icon, metno, mfr, ukmo
@@ -511,35 +572,35 @@ VISTAD
   (att adeins vid vind >= 2 m/s)
   breyta                 1kl     3kl     6kl    12kl    24kl    48kl
   hiti    Jolly         0.46    0.71    0.89    1.12    1.33    1.83
-          medaltal      1.10    1.11    1.11    1.06    1.16    1.53
+          medaltal      1.11    1.11    1.11    1.06    1.16    1.53
           yr.no         1.17    1.20    1.23    1.19    1.27    1.60
           vedur.is      1.15    1.19    1.22    1.16    1.27    2.07
           besta         0.94    0.95    0.94    1.05    1.21    1.47
-          n              166     167     167     166     165     164
-  vindur  Jolly         0.93    1.33    1.41    1.53    1.54    1.69
-          medaltal      1.45    1.45    1.44    1.52    1.52    1.72
+          n              167     167     167     166     165     164
+  vindur  Jolly         0.92    1.33    1.41    1.53    1.54    1.69
+          medaltal      1.46    1.45    1.44    1.52    1.52    1.72
           yr.no         1.49    1.55    1.58    1.60    1.57    1.74
           vedur.is      1.50    1.48    1.53    1.53    1.47    2.02
           besta         1.41    1.40    1.42    1.44    1.47    1.74
-          n              166     167     167     166     165     164
-  att     Jolly        20.28   18.89   18.70   18.68   26.02   26.63
-          medaltal     21.34   21.03   22.09   24.61   28.33   27.64
-          yr.no        24.05   29.07   30.35   34.35   36.54   34.77
+          n              167     167     167     166     165     164
+  att     Jolly        20.38   18.89   18.70   18.68   26.02   26.63
+          medaltal     21.54   21.03   22.09   24.61   28.33   27.64
+          yr.no        24.10   29.07   30.35   34.35   36.54   34.77
           vedur.is     30.97   31.26   28.93   23.58   39.52   46.63
-          besta        22.49   21.47   24.17   23.58   29.92   33.11
-          n               94      95      96      96      96      94
-  sky     Jolly         5.15    9.42   10.60   13.41   15.73   20.59
-          medaltal     12.04   11.69   11.58   11.50   11.47   12.85
-          yr.no        11.44   11.94   11.41   12.03   12.01   11.51
+          besta        22.95   21.47   24.17   23.58   29.92   33.11
+          n               95      95      96      96      96      94
+  sky     Jolly         5.11    9.42   10.60   13.41   15.73   20.59
+          medaltal     11.98   11.69   11.58   11.50   11.47   12.85
+          yr.no        11.36   11.94   11.41   12.03   12.01   11.51
           vedur.is     16.49   15.86   14.00   14.83   14.02   17.98
-          besta         8.95    9.05   10.52   10.66   10.32   11.51
-          n              151     148     148     148     149     146
+          besta         8.89    9.05   10.52   10.66   10.32   11.51
+          n              152     148     148     148     149     146
   urkoma  Jolly         0.25    0.24    0.24    0.25    0.27    0.31
           medaltal      0.31    0.29    0.29    0.27    0.30    0.35
-          yr.no         0.44    0.45    0.41    0.39    0.35    0.41
+          yr.no         0.45    0.45    0.41    0.39    0.35    0.41
           vedur.is         -       -       -       -       -       -
           besta         0.28    0.26    0.28    0.26    0.29    0.35
-          n              145     143     144     143     143     141
+          n              146     143     144     143     143     141
 ================================================================
 Thyngdir hiti    @6klst: ecmwf 14% | knmi 14% | metno 12% | gfs 11%
 Thyngdir vindur  @6klst: icon 13% | gfs 13% | knmi 12% | dmi 11%
@@ -549,10 +610,10 @@ Thyngdir sky     @6klst: dmi 16% | knmi 15% | gfs 14% | ecmwf 11%
 
 STADA  OK - ekkert athugavert
 
-Keyrslur 1931 | stadfest por 337622
-Jolly hiti    a moti besta likani: 1kl -91% | 3kl -100% | 6kl -100% | 12kl -100% | 24kl -83% | 48kl -100%
-Jolly vindur  a moti besta likani: 1kl -27% | 3kl -99% | 6kl -95% | 12kl -99% | 24kl -92% | 48kl -78%
+Keyrslur 1932 | stadfest por 337627
+Jolly hiti    a moti besta likani: 1kl -81% | 3kl -100% | 6kl -100% | 12kl -100% | 24kl -83% | 48kl -100%
+Jolly vindur  a moti besta likani: 1kl -12% | 3kl -99% | 6kl -95% | 12kl -99% | 24kl -92% | 48kl -78%
 Jolly att     a moti besta likani: 1kl -100% | 3kl -100% | 6kl -94% | 12kl -81% | 24kl -75% | 48kl -43%
-Jolly urkoma  a moti besta likani: 1kl -37% | 3kl -35% | 6kl -16% | 12kl -29% | 24kl -49% | 48kl -54%
+Jolly urkoma  a moti besta likani: 1kl -25% | 3kl -35% | 6kl -16% | 12kl -29% | 24kl -49% | 48kl -54%
 Jolly sky     a moti besta likani: 1kl +0% | 3kl +0% | 6kl +0% | 12kl +0% | 24kl +0% | 48kl +0%
 ================================================================
