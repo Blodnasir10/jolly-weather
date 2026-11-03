@@ -1,8 +1,8 @@
 {
   "version": "2.0",
   "created": "2026-06-24T00:32:50.944399+00:00",
-  "runs": 2098,
-  "verified_pairs": 379877,
+  "runs": 2099,
+  "verified_pairs": 379882,
   "lead_buckets": [
     1,
     3,
@@ -887,18 +887,18 @@
         "urkoma": 0.004
       },
       "jolly": {
-        "hiti": 1.089,
-        "vindur": 1.682,
-        "att": 17.634,
+        "hiti": 1.156,
+        "vindur": 1.695,
+        "att": 17.546,
         "urkoma": 0.004,
-        "sky": 18.774,
-        "n": 1127,
+        "sky": 17.961,
+        "n": 1128,
         "n_var": {
-          "hiti": 1127,
-          "vindur": 1127,
-          "att": 841,
-          "sky": 1063,
-          "urkoma": 772
+          "hiti": 1128,
+          "vindur": 1128,
+          "att": 842,
+          "sky": 1064,
+          "urkoma": 773
         }
       }
     },
@@ -1657,68 +1657,6 @@
     }
   },
   "verify_history": [
-    {
-      "time": "2026-10-04 00:00",
-      "n_pairs": 245,
-      "lead_mae": {
-        "1": {
-          "dmi": 1.103,
-          "knmi": 1.07,
-          "ecmwf": 0.963,
-          "icon": 0.979,
-          "ukmo": 0.826,
-          "mfr": 1.049,
-          "gfs": 1.132,
-          "harmonie": 1.242,
-          "metno": 0.881
-        },
-        "3": {
-          "dmi": 1.089,
-          "knmi": 1.065,
-          "ecmwf": 0.868,
-          "icon": 0.907,
-          "ukmo": 0.827,
-          "mfr": 1.026,
-          "gfs": 1.155,
-          "harmonie": 1.086,
-          "metno": 0.925
-        },
-        "6": {},
-        "12": {
-          "dmi": 1.058,
-          "knmi": 1.019,
-          "ecmwf": 0.983,
-          "icon": 0.9,
-          "ukmo": 0.758,
-          "mfr": 0.871,
-          "gfs": 1.066,
-          "harmonie": 1.168,
-          "metno": 0.985
-        },
-        "24": {
-          "dmi": 0.78,
-          "knmi": 0.84,
-          "ecmwf": 1.086,
-          "icon": 0.954,
-          "ukmo": 0.725,
-          "mfr": 1.005,
-          "gfs": 1.026,
-          "harmonie": 0.867,
-          "metno": 0.935
-        },
-        "48": {
-          "dmi": 1.124,
-          "knmi": 1.015,
-          "ecmwf": 0.869,
-          "icon": 1.014,
-          "ukmo": 1.151,
-          "mfr": 1.101,
-          "gfs": 1.247,
-          "harmonie": 1.148,
-          "metno": 0.907
-        }
-      }
-    },
     {
       "time": "2026-10-04 01:00",
       "n_pairs": 234,
@@ -51909,20 +51847,32 @@
           "metno": 0.971
         }
       }
+    },
+    {
+      "time": "2026-11-03 17:00",
+      "n_pairs": 5,
+      "lead_mae": {
+        "1": {},
+        "3": {},
+        "6": {},
+        "12": {},
+        "24": {},
+        "48": {}
+      }
     }
   ],
-  "last_updated": "2026-11-03T16:46:03.228160+00:00",
+  "last_updated": "2026-11-03T17:06:19.869224+00:00",
   "migrated_from": "1.0",
   "skill": {
     "hiti": {
       "1": {
-        "jolly_mae": 1.089,
+        "jolly_mae": 1.156,
         "best_model": "mfr",
         "best_mae": 0.696,
-        "skill": -0.5647,
+        "skill": -0.6609,
         "meaningful": true,
         "mean_member": 0.775,
-        "n": 1127
+        "n": 1128
       },
       "3": {
         "jolly_mae": 0.997,
@@ -51972,13 +51922,13 @@
     },
     "vindur": {
       "1": {
-        "jolly_mae": 1.682,
+        "jolly_mae": 1.695,
         "best_model": "gfs",
         "best_mae": 1.122,
-        "skill": -0.4991,
+        "skill": -0.5107,
         "meaningful": true,
         "mean_member": 1.554,
-        "n": 1127
+        "n": 1128
       },
       "3": {
         "jolly_mae": 1.622,
@@ -52028,13 +51978,13 @@
     },
     "att": {
       "1": {
-        "jolly_mae": 17.634,
+        "jolly_mae": 17.546,
         "best_model": "dmi",
         "best_mae": 9.512,
-        "skill": -0.8539,
+        "skill": -0.8446,
         "meaningful": true,
         "mean_member": 17.135,
-        "n": 841
+        "n": 842
       },
       "3": {
         "jolly_mae": 18.947,
@@ -52108,7 +52058,7 @@
         "skill": 0.0,
         "meaningful": false,
         "mean_member": 0.004,
-        "n": 772
+        "n": 773
       },
       "24": {
         "jolly_mae": 0.004,
@@ -52140,13 +52090,13 @@
     },
     "sky": {
       "1": {
-        "jolly_mae": 18.774,
+        "jolly_mae": 17.961,
         "best_model": "metno",
         "best_mae": 18.445,
-        "skill": -0.0178,
+        "skill": 0.0262,
         "meaningful": true,
         "mean_member": 24.478,
-        "n": 1063
+        "n": 1064
       },
       "3": {
         "jolly_mae": 34.023,
@@ -54306,10 +54256,10 @@
   },
   "jolly_bias": {
     "1": {
-      "hiti": -0.3738107165722191,
-      "vindur": -0.3239354740206837,
-      "att": 9.298683925519459,
-      "sky": -6.606965709794844,
+      "hiti": -0.6800961445948861,
+      "vindur": -0.5356270886969606,
+      "att": 9.622841854457123,
+      "sky": -7.254129824619463,
       "urkoma_scale": 0.9595125760000001
     },
     "3": {
@@ -63166,20 +63116,20 @@
       "last": 31.101246569727664
     },
     "jolly|1|hiti": {
-      "run": 1,
-      "last": 1.3977918090582688
+      "run": 2,
+      "last": 1.2761892834277795
     },
     "jolly|1|vindur": {
-      "run": 0,
-      "last": 2.626436961340132
+      "run": 1,
+      "last": 1.4660645259793164
     },
     "jolly|1|att": {
       "run": 0,
-      "last": 16.19868392551945
+      "last": -7.601316074480547
     },
     "jolly|1|sky": {
       "run": 0,
-      "last": -7.507915579312322
+      "last": 5.393034290205156
     },
     "dmi|3|hiti": {
       "run": 0,
@@ -64924,8 +64874,8 @@
           "streak": 0
         },
         "ukmo": {
-          "out": true,
-          "streak": 2
+          "out": false,
+          "streak": 0
         },
         "mfr": {
           "out": false,
@@ -64962,8 +64912,8 @@
           "streak": 0
         },
         "ukmo": {
-          "out": true,
-          "streak": 2
+          "out": false,
+          "streak": 0
         },
         "mfr": {
           "out": false,
@@ -65076,8 +65026,8 @@
           "streak": 0
         },
         "ukmo": {
-          "out": true,
-          "streak": 2
+          "out": false,
+          "streak": 0
         },
         "mfr": {
           "out": false,
