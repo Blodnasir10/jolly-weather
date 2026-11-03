@@ -246,6 +246,14 @@ SAGA I STUTTU MALI:
         langtimasafninu (maelingar): heitasti, kaldasti, hvassasti (mesta
         kvida) og urkomumesti dagur - fra upphafi og fyrir hvern almanaksmanud
         (oll ar). Forsidan synir thetta nedst. Spain obreytt.
+  v8.6  HNJUKATHEYR - GAGNASOFNUN (spain obreytt): i hverri keyrslu er saektur
+        vindur og hiti i 850 hPa (~1500 m) yfir Egilsstodum og sjavarmals-
+        thrystingur vid Kirkjubaejarklaustur (ECMWF). Thrystimunur Klaustur-
+        Egilsstadir + haloftavindur eru visar a hnjukatheyr. Geymt i spasafni
+        og langtimasafni (ws850_fc, wd850_fc, t850_fc, dpk_fc).
+        Endurspilun 10.sept-3.nov a sogulegum spam syndi ad leidretting a
+        thessum grunni baetti EKKI spana enn (of fa tilvik) - thvi bara
+        sofnun i bili; endurmetid thegar fleiri hnjukatheysdagar hafa safnast.
 """
 
 
@@ -282,7 +290,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "8.5"
+JOLLY_VERSION = "8.6"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -333,7 +341,9 @@ VERIFY_COLS = ["valid_time", "lead", "src", "month", "hour",
                "pm_fc", "ps_fc", "pr_ob", "dp_fc", "dp_ob",
                # [v8.4] raki, urkomugerd og arstid
                "td_fc", "td_ob", "rh_fc", "rh_ob", "tw_ob", "pt_fc", "pt_ob",
-               "season"]
+               "season",
+               # [v8.6] hnjukatheysvisar (spad): 850 hPa vindur/hiti, thrystimunur
+               "ws850_fc", "wd850_fc", "t850_fc", "dpk_fc"]
 
 def season_of(month):
     """[v8.4] Vedurfraedilegar arstidir."""
@@ -1503,6 +1513,36 @@ def fetch_and_store_observations(metar_obs):
 #  Open-Meteo (7 likon), MET Norway, HARMONIE ur XML Vedurstofunnar.
 # ═══════════════════════════════════════════════════════════════════════
 
+# [v8.6] ── HNJUKATHEYSVISAR: haloftavindur + thrystimunur yfir halendid ──
+FOEHN_UP = (63.79, -18.05)   # Kirkjubaejarklaustur - handan halendisins i SV-att
+FOEHN = {}                   # gildistimi -> {ws850, wd850, t850, dpk}
+
+def fetch_foehn():
+    """[v8.6] ECMWF: vindur/hiti i 850 hPa yfir Egilsstodum og sjavarmals-
+    thrystingur vid Egilsstadi og Klaustur. dpk = p(Klaustur) - p(Egilsstadir):
+    jakvaett = loft rekid yfir halendid ur SV (hnjukatheysadstaedur)."""
+    global FOEHN
+    url = (f"https://api.open-meteo.com/v1/forecast?latitude={LAT},{FOEHN_UP[0]}"
+           f"&longitude={LON},{FOEHN_UP[1]}&models=ecmwf_ifs025&timezone=UTC"
+           f"&wind_speed_unit=ms&past_days=1&forecast_days=4"
+           f"&hourly=pressure_msl,wind_speed_850hPa,wind_direction_850hPa,temperature_850hPa")
+    try:
+        d = fetch_url(url)
+        a, b = d[0]["hourly"], d[1]["hourly"]
+        out = {}
+        for i, t in enumerate(a["time"]):
+            pe, pk = a["pressure_msl"][i], b["pressure_msl"][i]
+            out[t] = {"ws850": a["wind_speed_850hPa"][i], "wd850": a["wind_direction_850hPa"][i],
+                      "t850": a["temperature_850hPa"][i],
+                      "dpk": round(pk - pe, 2) if pe is not None and pk is not None else None}
+        FOEHN = out
+        nowk = fmt_t(datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0))
+        f0 = out.get(nowk, {})
+        print(f"HNJUKATHEYSVISAR: {len(out)} klst | nuna 850hPa {f0.get('ws850')} m/s "
+              f"fra {f0.get('wd850')} gr, thrystimunur Klaustur-Egs {f0.get('dpk')} hPa")
+    except Exception as e:
+        print(f"  (hnjukatheysvisar sleppt: {e})")
+
 def fetch_forecasts():
     print("OPEN-METEO:")
     url = (f"https://api.open-meteo.com/v1/forecast"
@@ -1775,6 +1815,8 @@ def archive_forecast(fc, extras):
                 if idx - 3 >= 0 and idx < len(pa) \
                    and pa[idx] is not None and pa[idx - 3] is not None:
                     slot["dp_h"] = round((pa[idx] - pa[idx - 3]) / 3.0, 3)
+            if vt in FOEHN:                  # [v8.6]
+                slot["fx"] = FOEHN[vt]
             n_new += 1
 
     # Hreinsa gamalt - stadfest eda utrunnid
@@ -2683,6 +2725,10 @@ def verify_and_train(arch, obs_history, model):
                         "pt_fc": fcv.get("pt"),
                         "pt_ob": o.get("ptype_ob") or ("none" if o.get("has_metar") else None),
                         "season": season_of(vt[5:7]),
+                        "ws850_fc": (entry.get("fx") or {}).get("ws850"),
+                        "wd850_fc": (entry.get("fx") or {}).get("wd850"),
+                        "t850_fc": (entry.get("fx") or {}).get("t850"),
+                        "dpk_fc": (entry.get("fx") or {}).get("dpk"),
                     })
             if done:
                 entry["done"] = done
@@ -4735,6 +4781,7 @@ def _run():
     print("LIKAN:")
     model = load_model()
 
+    fetch_foehn()                           # [v8.6]
     arch  = archive_forecast(fc, extras)
     model = verify_and_train(arch, obs, model)
     fcast = make_forecast(fc, extras, model, obs)
