@@ -836,7 +836,7 @@ function drawRec(anim){
   document.getElementById('rTitle').textContent=title; document.getElementById('rSub').textContent=sub;
   const curKey=new Date().toISOString().slice(0,7);
   const out=document.getElementById('rOut');
-  out.innerHTML=`<div class="rg4 ${anim?'fade':''}">${RK.map(k=>{const r=P&&P[k];
+  out.innerHTML=`<div class="rg4 ${anim?'fade':''}">${RK.map(k=>{const r0=P&&P[k], r=(r0&&!(k==='wet'&&!(r0.v>0)))?r0:null;   // 0 mm = engin úrkoma enn
     if(!r) return `<div class="card rt empty" style="--c:${RCOL[k]}"><div class="ic">${RIC[k](20)}</div><div class="v">–</div><div class="l">${RSH[k]}</div><div class="d">&nbsp;</div></div>`;
     const isNew=RSEL==='met'&&r.d.slice(0,7)===curKey;
     return `<div class="card rt ${isNew?'new':''}" style="--c:${RCOL[k]}"><div class="ic">${RIC[k](20)}</div><div class="v">${RVAL[k](r)}</div><div class="l">${RSH[k]}</div><div class="d">${rdd(r.d)}</div></div>`;}).join('')}</div>`;
