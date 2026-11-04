@@ -254,6 +254,8 @@ SAGA I STUTTU MALI:
         Endurspilun 10.sept-3.nov a sogulegum spam syndi ad leidretting a
         thessum grunni baetti EKKI spana enn (of fa tilvik) - thvi bara
         sofnun i bili; endurmetid thegar fleiri hnjukatheysdagar hafa safnast.
+  v8.7  hourly_obs: maelingar lidinna klukkustunda dagsins sendar med spanni
+        svo "Naestu dagar" synir raunverulegan hita i dag (adur: gamla spain).
 """
 
 
@@ -290,7 +292,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "8.6"
+JOLLY_VERSION = "8.7"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -4556,6 +4558,26 @@ def save_log(tee):
 
 
 
+def build_hourly_obs(obs, fcast):
+    """[v8.7] Maelingar lidinna klukkustunda dagsins (fra kl. 00 ad fyrstu
+    spaklukkustund), svo forsidan syni raunverulegan hita i dag."""
+    times = (fcast.get("hourly") or {}).get("time") or []
+    if not times or not obs:
+        return {}
+    first = times[0]
+    day0 = first[:10] + "T00:00"
+    keys = ("temperature", "windspeed", "winddirection", "windgust",
+            "precipitation", "cloud_cover")
+    out = {k: [] for k in ("time",) + keys}
+    for o in sorted(obs, key=lambda x: x.get("time", "")):
+        t = o.get("time", "")
+        if not (day0 <= t < first) or o.get("temperature") is None:
+            continue
+        out["time"].append(t)
+        for k in keys:
+            out[k].append(o.get(k))
+    return out
+
 def build_hourly_past(arch, fcast):
     """[v7.8] Lidnar klukkustundir dagsins EINS OG THEIM VAR SPAD, ur spasafninu
     (stysta spalengd sem til er). "Naestu dagar" synir thaer daufar."""
@@ -4790,6 +4812,10 @@ def _run():
         fcast["hourly_past"] = build_hourly_past(arch, fcast)
     except Exception as _e:
         print(f"  (lidnar klst dagsins: {_e})")
+    try:
+        fcast["hourly_obs"] = build_hourly_obs(obs, fcast)      # [v8.7]
+    except Exception as _e:
+        print(f"  (maelingar dagsins: {_e})")
     print_coverage(model, fc, extras)
     save(model, fcast)
     try:
