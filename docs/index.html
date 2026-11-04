@@ -264,6 +264,12 @@
   .pc{position:relative}
   .fcorner{position:absolute;right:2px;top:-1px;width:16px;height:16px;border-radius:50%;background:rgba(170,198,234,.18);
     display:flex;align-items:center;justify-content:center}
+
+  /* ── [v8.7] Næstu dagar: tímaröð og mældar klst ── */
+  .tline{position:relative;height:12px;margin:-2px 24px 2px 54px;font-size:8.5px;color:var(--faint)}
+  .tline span{position:absolute;transform:translateX(-50%);top:0}
+  .tline .tnow{top:-1px;color:var(--ink);background:#1d2438;padding:0 3px;border-radius:4px}
+  .pc.meas .pi,.pc.meas .pl{opacity:.6}
 </style></head>
 <body>
   <div class="sky" id="sky"></div><div class="glow" id="glow"></div>
@@ -963,81 +969,85 @@ function render(FC){
 }
 
 const VDG=['sunnudags','mánudags','þriðjudags','miðvikudags','fimmtudags','föstudags','laugardags'];
+// Tímaröð undir hitalínu (00–21), „núna“ í dag
+function tline(isToday,NOWH){
+  const hs=[0,3,6,9,12,15,18,21];
+  return `<div class="tline">${hs.filter(h=>!isToday||Math.abs(h-NOWH)>1).map(h=>`<span style="left:${((h+0.5)/24*100).toFixed(2)}%">${String(h).padStart(2,'0')}</span>`).join('')}${isToday?`<span class="tnow" style="left:${((NOWH+0.5)/24*100).toFixed(2)}%">núna</span>`:''}</div>`;
+}
 function renderDays(FC){
-  // [Næstu dagar v2] Fjögur föst tímabil + hitakúrfa. Liðin tímabil í dag
-  // koma úr FC.hourly_past (eins og þeim var spáð) og birtast dauf.
-  const H=FC.hourly||{}, HP=FC.hourly_past||{};
+  // [v8.7] Hæsti/lægsti hiti tímabils, klukkustundalína, mælingar liðinna klst, tímaröð
+  const NOWH=new Date().getHours();
+  const H=FC.hourly||{}, HP=FC.hourly_past||{}, HO=FC.hourly_obs||{};
   const byT={};
-  const add=(S,past)=>(S.time||[]).forEach((t,i)=>{
-    if(byT[t] && !past) {} else if(byT[t]) return;
-    byT[t]={t,day:t.slice(0,10),hr:+t.slice(11,13),past,
+  const add=(S,past,meas)=>(S.time||[]).forEach((t,i)=>{
+    if(byT[t]) return;
+    byT[t]={t,day:t.slice(0,10),hr:+t.slice(11,13),past,meas,
       T:(S.temperature||[])[i],W:(S.windspeed||[])[i],D:(S.winddirection||[])[i],
       G:(S.windgust||[])[i],P:(S.precipitation||[])[i],C:(S.cloud_cover||[])[i],K:(S.ptype||[])[i]};
   });
-  add(HP,true); add(H,false);
+  add(HO,true,true); add(HP,true,false); add(H,false,false);   // mæling > gömul spá > ný spá
   const byDay={}; Object.values(byT).forEach(r=>(byDay[r.day]=byDay[r.day]||[]).push(r));
-  const PER=[[0,6,'Nótt'],[6,12,'Morgun'],[12,18,'Seinni partur'],[18,24,'Kvöld']];
+  const PER=[[0,6,'Nótt','min'],[6,12,'Morgun','max'],[12,18,'Seinni partur','max'],[18,24,'Kvöld','min']];
   const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
   const today=(H.time||[''])[0].slice(0,10);
   let days=Object.keys(byDay).sort().map(day=>{
-    const rs=byDay[day];
-    const per=PER.map(([a,b,lbl])=>{
+    const rs=byDay[day].sort((a,b)=>a.hr-b.hr);
+    const per=PER.map(([a,b,lbl,mode])=>{
       const r=rs.filter(x=>x.hr>=a&&x.hr<b&&x.T!=null);
       if(!r.length) return null;
+      const ext=r.reduce((p,x)=>(mode==='max'?x.T>p.T:x.T<p.T)?x:p, r[0]);
       let sx=0,cx=0; r.forEach(x=>{const w=Math.max(.3,x.W||0);
         sx+=w*Math.sin((x.D||0)*Math.PI/180); cx+=w*Math.cos((x.D||0)*Math.PI/180);});
-      return {lbl,T:avg(r.map(x=>x.T)),P:r.reduce((s,x)=>s+(x.P||0),0),
+      return {lbl,mode,T:ext.T,th:ext.hr,P:r.reduce((s,x)=>s+(x.P||0),0),
         W:avg(r.map(x=>x.W||0)),D:(Math.atan2(sx,cx)*180/Math.PI+360)%360,
         G:Math.max(...r.map(x=>x.G||0)),C:avg(r.map(x=>x.C||0)),
         K:(()=>{const w={}; r.forEach(x=>{const k=x.K||wxKind(0,1,x.T); if((x.P||0)>0) w[k]=(w[k]||0)+x.P;});
           const ks=Object.keys(w); return ks.length?ks.sort((a,b)=>w[b]-w[a])[0]:null;})(),
-        past:r.every(x=>x.past),mid:(a+b)/2};
+        past:r.every(x=>x.past),meas:r.every(x=>x.meas),mid:(a+b)/2};
     });
     const all=rs.filter(x=>x.T!=null);
-    return {day,per,tmin:Math.min(...all.map(x=>x.T)),tmax:Math.max(...all.map(x=>x.T)),
+    return {day,rs:all,per,tmin:Math.min(...all.map(x=>x.T)),tmax:Math.max(...all.map(x=>x.T)),
       psum:rs.reduce((s,x)=>s+(x.P||0),0),gmax:Math.max(...rs.map(x=>x.G||0))};
   }).filter(d=>d.day===today || d.per.every(p=>p)).slice(0,6);
 
-  const temps=days.flatMap(d=>d.per.filter(p=>p).map(p=>p.T));
+  const temps=days.flatMap(d=>d.rs.map(r=>r.T));
   const gmin=Math.min(...temps), gmax=Math.max(...temps), span=Math.max(4,gmax-gmin);
-  const tcol=t=>{ // kalt=blátt, hlýtt=appelsínurautt (fíngert)
-    const f=Math.max(0,Math.min(1,(t-gmin)/span));
-    const c1=[127,179,255], c2=[255,138,92];
+  const tcol=t=>{const f=Math.max(0,Math.min(1,(t-gmin)/span)); const c1=[127,179,255], c2=[255,138,92];
     return `rgb(${c1.map((v,i)=>Math.round(v+(c2[i]-v)*f)).join(',')})`;};
   const VD=['Sun.','Mán.','Þri.','Mið.','Fim.','Fös.','Lau.'];
   const MN=['jan.','feb.','mar.','apr.','maí','jún.','júl.','ág.','sep.','okt.','nóv.','des.'];
   const gustCls=g=>g>=20?'gst red':(g>=12?'gst':'');
+  const X=h=>(h+0.5)/24*400, Y=t=>31-((t-gmin)/span)*25;
 
   let html='';
   days.forEach((d,di)=>{
     const dt=new Date(d.day+'T12:00');
     const name=d.day===today?'Í dag':VD[dt.getDay()];
     const date=`${dt.getDate()}. ${MN[dt.getMonth()]}`;
-    // Næturfrost: aðfaranótt næsta dags, kl. 21–09 (merkt á daginn á undan)
     const nx=new Date(dt.getTime()+864e5).toISOString().slice(0,10);
     const ngt=Object.values(byT).filter(r=>r.T!=null&&((r.day===d.day&&r.hr>=21)||(r.day===nx&&r.hr<=9)));
     const fmin=ngt.length?Math.min(...ngt.map(r=>r.T)):99;
     const frost=fmin<0, fdeg=(Math.round(fmin)<0?'−'+Math.abs(Math.round(fmin)):'0')+'°';
     const nxName=VDG[new Date(nx+'T12:00').getDay()];
-    // hitakúrfa: punktar undir hitatölum, mjúk lína, litur eftir hita
-    const pts=d.per.map((p,i)=>p?{x:50+i*100,y:30-((p.T-gmin)/span)*22,c:tcol(p.T)}:null);
-    const ok=pts.filter(p=>p);
-    let path='';
-    ok.forEach((p,i)=>{ if(!i){path=`M${p.x},${p.y}`;return;}
-      const q=ok[i-1], mx=(q.x+p.x)/2; path+=` C${mx},${q.y} ${mx},${p.y} ${p.x},${p.y}`;});
+    // klukkustundalína: mæld (heil) og spáð (ljósari)
+    const P=d.rs.map(r=>({x:X(r.hr),y:Y(r.T),c:tcol(r.T),m:r.meas}));
+    const seg=arr=>arr.map((p,i)=>(i?'L':'M')+p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ');
+    const mi=P.map(p=>p.m).lastIndexOf(true);
+    const measPts=mi>=0?P.slice(0,mi+1):[], fcPts=mi>=0?P.slice(mi):P;
     const gid='tg'+di;
-    const stops=ok.map(p=>`<stop offset="${(p.x/400*100).toFixed(1)}%" stop-color="${p.c}"/>`).join('');
+    const stops=P.map(p=>`<stop offset="${(p.x/400*100).toFixed(1)}%" stop-color="${p.c}"/>`).join('');
+    const dots=d.per.map(p=>p?`<circle cx="${X(p.th)}" cy="${Y(p.T)}" r="3.6" fill="${tcol(p.T)}" opacity="${p.past&&!p.meas?.45:1}"/>`:'').join('');
     const curve=`<svg class="tcurve" viewBox="0 0 400 36" preserveAspectRatio="none">
       <defs><linearGradient id="${gid}" x1="0" x2="400" gradientUnits="userSpaceOnUse">${stops}</linearGradient></defs>
-      <path d="M0,${ok[0]?ok[0].y:20} L${ok[0]?ok[0].x:0},${ok[0]?ok[0].y:20}" stroke="${ok[0]?ok[0].c:'#7fb3ff'}" stroke-width="1.6" opacity=".35" fill="none"/>
-      <path d="${path}" stroke="url(#${gid})" stroke-width="2.2" fill="none" stroke-linecap="round"/>
-      <path d="M${ok.length?ok[ok.length-1].x:400},${ok.length?ok[ok.length-1].y:20} L400,${ok.length?ok[ok.length-1].y:20}" stroke="${ok.length?ok[ok.length-1].c:'#7fb3ff'}" stroke-width="1.6" opacity=".35" fill="none"/>
-      ${pts.map((p,i)=>p?`<circle cx="${p.x}" cy="${p.y}" r="4.2" fill="${p.c}" opacity="${d.per[i].past?.45:1}"/>`:'').join('')}
+      ${measPts.length>1?`<path d="${seg(measPts)}" stroke="url(#${gid})" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`:''}
+      ${fcPts.length>1?`<path d="${seg(fcPts)}" stroke="url(#${gid})" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" ${measPts.length?'stroke-dasharray="4 3" opacity=".85"':''}/>`:''}
+      ${[6,12,18].map(h=>`<line x1="${h/24*400}" x2="${h/24*400}" y1="2" y2="36" stroke="rgba(255,255,255,.08)" stroke-width="1"/>`).join('')+(d.day===today?`<line x1="${X(NOWH)}" x2="${X(NOWH)}" y1="0" y2="36" stroke="rgba(255,255,255,.35)" stroke-width="1.2" stroke-dasharray="2 2"/>`:'')}
+      ${dots}
     </svg>`;
     const cols=d.per.map((p,i)=>{
       if(!p) return `<div class="pc empty"><div class="pl">–</div></div>`;
       const kind=wxKind(p.C,p.P,p.T,p.K), night=isNightHour(Math.floor(p.mid));
-      return `<div class="pc${p.past?' past':''}">${frost&&i===3?`<span class="fcorner" title="Næturfrost, niður í ${fdeg}"><svg width="10" height="10" viewBox="0 0 24 24"><g stroke="#cfe0fb" stroke-width="2.4" stroke-linecap="round"><path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9"/></g></svg></span>`:''}
+      return `<div class="pc${p.past&&!p.meas?' past':''}${p.meas?' meas':''}">${frost&&i===3?`<span class="fcorner" title="Næturfrost, niður í ${fdeg}"><svg width="10" height="10" viewBox="0 0 24 24"><g stroke="#cfe0fb" stroke-width="2.4" stroke-linecap="round"><path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9"/></g></svg></span>`:''}
         <div class="pl">${p.lbl}</div>
         <div class="pi">${wxIcon(40,kind,p.P,night,p.C)}</div>
         <div class="pt" style="color:${tcol(p.T)}">${Math.round(p.T)}°</div>
@@ -1045,7 +1055,7 @@ function renderDays(FC){
     const ext=d.per.map(p=>{
       if(!p) return `<div class="px"></div>`;
       const wet=p.P>=0.05;
-      return `<div class="px${p.past?' past':''}">
+      return `<div class="px${p.past&&!p.meas?' past':''}">
         <div class="pp${wet?' wet':''}">${fmtRain(p.P)} mm</div>
         <div class="pw">${windArrow(p.D,12)}<span>${fmtHalf(p.W)} m/s</span></div>
         ${p.G>=12?`<div class="${gustCls(p.G)}">Kviður ${fmtHalf(p.G)} m/s</div>`:''}
@@ -1058,6 +1068,7 @@ function renderDays(FC){
         <div class="chev"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
       <div class="dcurve">${curve}</div>
+      ${tline(d.day===today,NOWH)}
       <div class="dopen">${frost?`<div class="fbar"><svg width="10" height="10" viewBox="0 0 24 24"><g stroke="#cfe0fb" stroke-width="2.4" stroke-linecap="round"><path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9"/></g></svg><span><b>Næturfrost</b> aðfaranótt ${nxName}, niður í ${fdeg}</span></div>`:''}
         <div class="pxrow">${ext}</div>
         <div class="dsum">
