@@ -256,6 +256,13 @@ SAGA I STUTTU MALI:
         sofnun i bili; endurmetid thegar fleiri hnjukatheysdagar hafa safnast.
   v8.7  hourly_obs: maelingar lidinna klukkustunda dagsins sendar med spanni
         svo "Naestu dagar" synir raunverulegan hita i dag (adur: gamla spain).
+  v8.8  URKOMUGERD laerir lika af SLYDDU: snjomork laerd ur snjo a moti
+        slyddu/rigningu, rigningarmork ur snjo+slyddu a moti rigningu. Adur var
+        slyddu sleppt. Nottina 8.-9.nov maeldist slydda vid Tw 0.0-0.2, sem eldri
+        mork (snjor <= 0.6) hefdu kallad snjo.
+  v8.9  METDAGAR uppfaerast strax: adur taldist dagur ekki med fyrr en 20 klst
+        voru maeldar, svo nytt met (t.d. -7.6 ad morgni 10.nov) birtist ekki
+        fyrr en um kvoldid. Nu telst hver maeld klukkustund strax.
 """
 
 
@@ -292,7 +299,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "8.7"
+JOLLY_VERSION = "8.9"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -1002,21 +1009,34 @@ def fit_ptype_limits(obs):
     except Exception as _e:
         print(f"  (ptype_history ekki vistad: {_e})")
     sn = [h["tw"] for h in hist if h["pt"] == "snow" and h.get("tw") is not None]
+    sl = [h["tw"] for h in hist if h["pt"] == "sleet" and h.get("tw") is not None]
     rn = [h["tw"] for h in hist if h["pt"] == "rain" and h.get("tw") is not None]
-    m0 = (PT_SNOW_DEF + PT_RAIN_DEF) / 2
-    m, n = m0, min(len(sn), len(rn))
-    if len(sn) >= 5 and len(rn) >= 5:
+
+    def _split(lo, hi, c0):
+        """[v8.8] Besta skilgildi c: 'lo' a ad vera <= c, 'hi' > c."""
         best = None
         for k in range(-20, 41):
             c = k / 10.0
-            err = sum(1 for x in sn if x > c) + sum(1 for x in rn if x <= c)
-            if best is None or err < best[0] or (err == best[0] and abs(c - m0) < abs(best[1] - m0)):
+            err = sum(1 for x in lo if x > c) + sum(1 for x in hi if x <= c)
+            if best is None or err < best[0] or (err == best[0] and abs(c - c0) < abs(best[1] - c0)):
                 best = (err, c)
-        m = (n * best[1] + PT_PRIOR * m0) / (n + PT_PRIOR)
-    m = max(0.3, min(2.0, m))
-    PT_LIMITS.update({"snow": round(m - PT_HALF, 2), "rain": round(m + PT_HALF, 2),
-                      "n_snow": len(sn), "n_rain": len(rn),
-                      "src": "laert" if n >= 5 else "sjalfgefid"})
+        return best[1]
+
+    # Snjomork: snjor a moti slyddu+rigningu. Upplysandi: snjor og slydda nalaegt morkunum.
+    s_lim, n_s = PT_SNOW_DEF, len(sn) + len(sl)
+    if n_s >= 5 and (sl or rn):
+        c = _split(sn, sl + rn, PT_SNOW_DEF)
+        s_lim = (n_s * c + PT_PRIOR * PT_SNOW_DEF) / (n_s + PT_PRIOR)
+    # Rigningarmork: snjor+slydda a moti rigningu.
+    r_lim, n_r = PT_RAIN_DEF, min(len(sn) + len(sl), len(rn))
+    if n_r >= 5:
+        c = _split(sn + sl, rn, PT_RAIN_DEF)
+        r_lim = (n_r * c + PT_PRIOR * PT_RAIN_DEF) / (n_r + PT_PRIOR)
+    s_lim = max(-1.0, min(1.5, s_lim))
+    r_lim = max(s_lim + 0.3, min(3.0, r_lim))
+    PT_LIMITS.update({"snow": round(s_lim, 2), "rain": round(r_lim, 2),
+                      "n_snow": len(sn), "n_sleet": len(sl), "n_rain": len(rn),
+                      "src": "laert" if (n_s >= 5 or n_r >= 5) else "sjalfgefid"})
     return PT_LIMITS
 
 def determine_icon(cloud, precip, temp, is_day, vis, wind, cape=None, pt=None):
@@ -3549,8 +3569,8 @@ def fit_gust_model():
 SUMMARY_DAYS = 14
 
 # [v8.5] ── METDAGAR fyrir forsidu ──
-REC_MIN_T_HOURS = 20     # dagur telst med i hita/vind ef >= 20 klst maeldar
-REC_MIN_P_HOURS = 18     # og i urkomu ef >= 18 klst urkomumaelingar
+REC_MIN_T_HOURS = 1      # [v8.9] hver maeld klst telst strax (adur 20)
+REC_MIN_P_HOURS = 1      # [v8.9] (adur 18)
 
 def write_records():
     """[v8.5] Heitasti/kaldasti/hvassasti/urkomumesti dagur fra upphafi og
@@ -3876,7 +3896,7 @@ def make_forecast(fc, extras, model, obs=None):
         _pl = fit_ptype_limits(obs)
         J["ptype_limits"] = dict(_pl)
         print(f"  URKOMUGERD: snjor Tw<={_pl['snow']:.2f} | rigning Tw>={_pl['rain']:.2f} "
-              f"({_pl['src']}; maelt snjor {_pl['n_snow']}, regn {_pl['n_rain']})")
+              f"({_pl['src']}; maelt snjor {_pl['n_snow']}, slydda {_pl.get('n_sleet', 0)}, regn {_pl['n_rain']})")
         _rec = [o for o in (obs or []) if o.get("has_metar")]
         if _rec:
             _lo = _rec[-1]
