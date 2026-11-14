@@ -263,6 +263,17 @@ SAGA I STUTTU MALI:
   v8.9  METDAGAR uppfaerast strax: adur taldist dagur ekki med fyrr en 20 klst
         voru maeldar, svo nytt met (t.d. -7.6 ad morgni 10.nov) birtist ekki
         fyrr en um kvoldid. Nu telst hver maeld klukkustund strax.
+  v9.0  METDAGAR: klukkustund metsins skrad ("t") svo forsidan geti synt
+        "nytt met" i 24 klst fra thvi metid fell - baedi a metum fra upphafi
+        og manadarmetum. "nd" = fjoldi daga med gogn i manudinum (manadarmet
+        eru ekki merkt ny fyrstu dagana, thegar allt er "met").
+  v9.1  HITALEIDRETTING SER VINDATT: v7.9 sa adeins vindhrada og laerdi af
+        hnjukathey (hvass S/V-vindur = likon of kold) ad ALLUR hvass vindur
+        thydi +4°. Hvoss nordanatt 14.nov: spad +3.4° thegar oll likon syndu
+        frost. Nu: tvaer nyjar breytur (vindur x sunnanthattur, vindur x
+        nordanthattur) og minni lengt 300 -> 900 klst. Bakprof 1.okt-13.nov:
+        hvoss N-att 2.2° -> 0.4°, heild 6kl 1.17->1.12, 12kl 1.23->1.19,
+        24kl 1.29->1.25, 48kl 1.45->1.39.
 """
 
 
@@ -299,7 +310,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "8.9"
+JOLLY_VERSION = "9.1"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -3324,7 +3335,7 @@ NOWCAST_MAX_LEAD = 12    # [v7.9] < 12 klst (var 6; endurspilun: 6kl 0.92->0.90,
 # Vindhradi skyrir 17% af villudreifni: logn -> likon 1.0° of hly, >7 m/s ->
 # 0.9° of kold. Kyrrar heidskirar naetur: 1.66° -> 1.03°. Allar spalengdir betri.
 TEMP_REGIME_ON  = True
-TEMP_REGIME_N   = 300
+TEMP_REGIME_N   = 900     # [v9.1] var 300; vindatt tharf lengra minni
 TEMP_REGIME_MIN = 120
 TEMP_REGIME_LAM = 3.0
 NOWCAST_MAX_AGE  = 3     # ekki nota mælingu eldri en 3 klst
@@ -3332,8 +3343,17 @@ SKY_NOWCAST_MAX_LEAD = 12   # [v6.8] ský: < 12 klst (endurspilun, tau 6 best)
 WIND_NOWCAST_MAX_LEAD = 12  # [v7.4] vindur: < 12 klst
 WIND_NOWCAST_TAU = 3.0      # [v7.4] endurspilun: tau 3 best (1kl 1.20 -> 1.08)
 
-def temp_regime_feats(ws, cf, hour, dp):
-    """[v7.9] Breytur sem eru THEKKTAR vid utgafu (spad, ekki maelt)."""
+def _circ_mean_deg(ds):
+    """[v9.1] Hringmedaltal vindatta (gradur); None ef engin gogn."""
+    ds = [d for d in ds if d is not None]
+    if not ds: return None
+    s = sum(math.sin(math.radians(d)) for d in ds)
+    c = sum(math.cos(math.radians(d)) for d in ds)
+    return math.degrees(math.atan2(s, c)) % 360.0
+
+def temp_regime_feats(ws, cf, hour, dp, wd=None):
+    """[v7.9] Breytur sem eru THEKKTAR vid utgafu (spad, ekki maelt).
+    [v9.1] wd = spad vindatt -> vindur x sunnan-/nordanthattur."""
     ws = min(max(ws or 0.0, 0.0), 12.0)
     cf = min(max(cf if cf is not None else 50.0, 0.0), 100.0)
     night = 1.0 if (hour < 6 or hour >= 21) else 0.0
@@ -3341,8 +3361,13 @@ def temp_regime_feats(ws, cf, hour, dp):
     clear = (100.0 - cf) / 100.0
     calm = min(max((3.0 - ws) / 3.0, 0.0), 1.0)
     dp = max(-2.0, min(2.0, dp or 0.0))
+    if wd is None:
+        s_ = n_ = 0.0
+    else:
+        s_ = max(0.0, math.cos(math.radians(wd - 210.0)))   # S-SV-V (hnjukatheyr)
+        n_ = max(0.0, math.cos(math.radians(wd - 10.0)))    # N-NA (kold hafatt)
     return [1.0, ws, math.log1p(ws), night, clear, night * clear * calm,
-            calm * night, day, dp]
+            calm * night, day, dp, ws * s_, ws * n_]
 
 def _ridge(rows, ys, lam):
     """Ridge-adhvarf an numpy (9x9 kerfi, Gauss-eyding). Fasti ekki refsadur."""
@@ -3372,7 +3397,7 @@ def fit_temp_regime():
     """[v7.9] Laerir hitaleidrettingu per spalengd ur langtimasafninu."""
     import csv as _csv
     rows = []
-    for f in sorted(VERIFY_DIR.glob("*.csv"))[-2:]:
+    for f in sorted(VERIFY_DIR.glob("*.csv"))[-3:]:   # [v9.1] 3 man. (900 klst)
         with open(f) as fh:
             rows += list(_csv.DictReader(fh))
     def fl(x):
@@ -3381,11 +3406,11 @@ def fit_temp_regime():
     grp = {}
     for r in rows:
         k = (r["valid_time"], int(r["lead"]))
-        g = grp.setdefault(k, {"t": [], "w": [], "c": [], "ob": None, "dp": None})
+        g = grp.setdefault(k, {"t": [], "w": [], "c": [], "d": [], "ob": None, "dp": None})
         if r["src"] == JOLLY_KEY:
             g["dp"] = fl(r.get("dp_fc"))
             continue
-        for key, col in (("t", "t_fc"), ("w", "w_fc"), ("c", "c_fc")):
+        for key, col in (("t", "t_fc"), ("w", "w_fc"), ("c", "c_fc"), ("d", "d_fc")):
             v = fl(r.get(col))
             if v is not None: g[key].append(v)
         if g["ob"] is None: g["ob"] = fl(r.get("t_ob"))
@@ -3396,7 +3421,8 @@ def fit_temp_regime():
                       and g["w"] and g["c"])[-TEMP_REGIME_N:]
         if len(data) < TEMP_REGIME_MIN: continue
         X = [temp_regime_feats(sum(g["w"]) / len(g["w"]), sum(g["c"]) / len(g["c"]),
-                               int(vt[11:13]), g["dp"]) for vt, g in data]
+                               int(vt[11:13]), g["dp"], _circ_mean_deg(g["d"]))
+             for vt, g in data]
         y = [sum(g["t"]) / len(g["t"]) - g["ob"] for vt, g in data]
         b = _ridge(X, y, TEMP_REGIME_LAM)
         if b: coefs[str(L)] = b
@@ -3592,28 +3618,29 @@ def write_records():
                         n = (fl(r.get("t_ob")), fl(r.get("g_ob")), fl(r.get("p_ob")))
                         obs[vt] = tuple(a if a is not None else b for a, b in zip(o, n))
     days = {}
-    for vt, (t, g, p) in obs.items():
+    for vt, (t, g, p) in sorted(obs.items()):
         d = days.setdefault(vt[:10], {"T": [], "G": [], "P": []})
-        if t is not None: d["T"].append(t)
-        if g is not None: d["G"].append(g)
-        if p is not None: d["P"].append(p)
+        if t is not None: d["T"].append((t, vt))
+        if g is not None: d["G"].append((g, vt))
+        if p is not None: d["P"].append((p, vt))
     stats = {}
     for d, v in days.items():
-        s = {}
+        s = {}                               # [v9.0] (gildi, klukkustund)
         if len(v["T"]) >= REC_MIN_T_HOURS:
             s["hot"] = max(v["T"]); s["cold"] = min(v["T"])
         if len(v["G"]) >= REC_MIN_T_HOURS:
             s["wind"] = max(v["G"])
         if len(v["P"]) >= REC_MIN_P_HOURS:
-            s["wet"] = round(sum(v["P"]), 1)
+            _wet = [vt for p, vt in v["P"] if p > 0]
+            s["wet"] = (round(sum(p for p, _ in v["P"]), 1), _wet[-1] if _wet else v["P"][-1][1])
         if s: stats[d] = s
     def best(items):
         out = {}
         for k, better in (("hot", max), ("cold", min), ("wind", max), ("wet", max)):
-            c = [(d, s[k]) for d, s in items if k in s]
+            c = [(d, s[k][0], s[k][1]) for d, s in items if k in s]
             if c:
-                d, v = better(c, key=lambda x: x[1])
-                out[k] = {"d": d, "v": round(v, 1)}
+                d, v, t = better(c, key=lambda x: x[1])
+                out[k] = {"d": d, "v": round(v, 1), "t": t}
         return out
     items = sorted(stats.items())
     rec = {"updated": fmt_t(datetime.now(timezone.utc)),
@@ -3624,6 +3651,7 @@ def write_records():
            "years": {str(m): sorted({d[:4] for d, _ in items if int(d[5:7]) == m})
                      for m in range(1, 13)}}
     rec["months"] = {m: v for m, v in rec["months"].items() if v}
+    rec["nd"] = {str(m): len({d for d, _ in items if int(d[5:7]) == m}) for m in range(1, 13)}
     save_json(DATA_DIR / "records.json", rec)
     _m = rec["met"]
     print("  METDAGAR: " + " | ".join(f"{k} {v['v']} ({v['d']})" for k, v in _m.items())
@@ -3727,8 +3755,10 @@ def make_forecast(fc, extras, model, obs=None):
         except Exception as _e:
             print(f"  (kvidulikan sleppt: {_e})")
     def _feats_at(_i):
-        _ws, _cs = [], []
+        _ws, _cs, _ds = [], [], []
         for _api in MODELS.values():
+            _d = fc["hourly"].get(f"winddirection_10m_{_api}", [])
+            if _i < len(_d) and _d[_i] is not None: _ds.append(_d[_i])
             _a = fc["hourly"].get(f"windspeed_10m_{_api}", [])
             if _i < len(_a) and _a[_i] is not None: _ws.append(_a[_i])
             _c = total_cloud(*[(fc["hourly"].get(f"{k}_{_api}", []) or [None] * (_i + 1))[_i]
@@ -3741,7 +3771,8 @@ def make_forecast(fc, extras, model, obs=None):
                 and _pm[_i - 3] is not None else None)
         _hr = int(fc["hourly"]["time"][_i][11:13])
         return temp_regime_feats(sum(_ws) / len(_ws) if _ws else None,
-                                 sum(_cs) / len(_cs) if _cs else None, _hr, _dpi)
+                                 sum(_cs) / len(_cs) if _cs else None, _hr, _dpi,
+                                 _circ_mean_deg(_ds))
     # [v6.6] Frávik nýjustu hitamælingar frá HRÁU meðaltali líkana á mælitíma
     _nc_anom, _nc_tobs = None, None
     try:
