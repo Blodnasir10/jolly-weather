@@ -277,6 +277,19 @@ SAGA I STUTTU MALI:
   v9.2  OPEN-METEO ENDURREYNT: 13.-14.nov fell um 40% keyrslna thvi tenging vid
         Open-Meteo rann ut a tima (SSL handshake) og keyrslan hrundi. Nu er
         reynt allt ad 4 sinnum (10/20/40 sek bid) adur en gefist er upp.
+  v9.3  SOLARNOTT I HITALEIDRETTINGU: "nott" var kl. 21-06 allt arid, en i
+        november er dimmt fra um kl. 16 til 9 og kuldapollurinn styrkist med
+        vetrinum. Nu er nott = sol meira en 2° undir sjondeildarhring og
+        dagur = sol yfir 8°. Bakprof 10.sep-14.nov: heidskirar lognnaetur
+        @6kl 1.31->1.28, @12kl 1.38->1.34; november @12kl 1.40->1.38;
+        annad obreytt (heild 1.20).
+        HRAGAGNASAFN: hver keyrsla skrifar eina thjappada skra i
+        archive/AAAA-MM/DDTHH.json.gz (utan vefsidunnar, aldrei endurskrifud):
+        hra spa hvers likans (allar breytur, allar klst 6 daga fram), spa
+        Jolly, hvad hvert leidrettingarlag gerdi vid hitann, og hraar
+        maelingar/METAR. Likan er adeins geymt thegar spa thess breytist
+        ("same_as" visar annars a skrana med gognunum). Tilgangur: bakprof
+        a ollum spalengdum adur en breytingar fara inn.
 """
 
 
@@ -313,7 +326,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "9.2"
+JOLLY_VERSION = "9.3"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -840,6 +853,55 @@ def load_json(path, default):
             return json.load(f)
     except Exception:
         return default
+
+# [v9.3] HRAGAGNASAFN - sja utgafusogu
+ARCHIVE_RAW_ON  = True
+ARCHIVE_RAW_DIR = Path("archive")
+_LAYER_LOG = []          # eitt dict per spaklukkustund, fyllt i make_forecast
+
+def archive_raw(fc, extras, fcast, obs, metar):
+    import gzip, hashlib
+    now = datetime.now(timezone.utc)
+    d = ARCHIVE_RAW_DIR / now.strftime("%Y-%m")
+    d.mkdir(parents=True, exist_ok=True)
+    name = now.strftime("%dT%H") + ".json.gz"
+    ref = f"{d.name}/{name}"
+    st_path = ARCHIVE_RAW_DIR / "state.json"
+    state = load_json(st_path, {})
+    rec = {"run": now.strftime("%Y-%m-%dT%H:%M:%SZ"), "version": JOLLY_VERSION,
+           "sources": {}}
+    n_new = n_same = 0
+    def put(key, payload):
+        nonlocal n_new, n_same
+        raw = json.dumps(payload, separators=(",", ":"), sort_keys=True, default=str)
+        h = hashlib.sha256(raw.encode()).hexdigest()[:16]
+        prev = state.get(key)
+        if prev and prev.get("h") == h and prev.get("f") != ref:
+            rec["sources"][key] = {"same_as": prev["f"]}; n_same += 1
+        else:
+            rec["sources"][key] = {"data": payload}
+            state[key] = {"h": h, "f": ref}; n_new += 1
+    if fc and fc.get("hourly"):
+        hh = fc["hourly"]
+        put("om_time", hh.get("time"))
+        for k, api in MODELS.items():
+            suf = "_" + api
+            put(k, {var[:-len(suf)]: v for var, v in hh.items() if var.endswith(suf)})
+    for k, v in (extras or {}).items():
+        if v is not None: put(k, v)
+    rec["jolly"] = {k: v for k, v in (fcast.get("hourly") or {}).items()
+                    if not k.startswith("model_")}
+    rec["layers"] = _LAYER_LOG
+    rec["obs"] = obs[-6:] if isinstance(obs, list) else None
+    rec["metar"] = metar[-6:] if isinstance(metar, list) else None
+    rec["foehn"] = globals().get("FOEHN")
+    blob = gzip.compress(json.dumps(rec, separators=(",", ":"), default=str,
+                                    ensure_ascii=False).encode("utf-8"), 9)
+    with open(d / name, "wb") as f:
+        f.write(blob)
+    save_json(st_path, state)
+    print(f"  HRAGAGNASAFN: {ref} {len(blob) / 1024:.1f} KB "
+          f"({n_new} gjafar nyir, {n_same} obreyttir)")
 
 def save_json(path, obj):
     with open(path, "w") as f:
@@ -3363,13 +3425,32 @@ def _circ_mean_deg(ds):
     c = sum(math.cos(math.radians(d)) for d in ds)
     return math.degrees(math.atan2(s, c)) % 360.0
 
-def temp_regime_feats(ws, cf, hour, dp, wd=None):
+def sun_elevation(vt):
+    """[v9.3] Solarhaed (gradur) yfir Egilsstodum a UTC-tima 'YYYY-MM-DDTHH:MM'."""
+    d = datetime.fromisoformat(vt[:16])
+    n = d.timetuple().tm_yday
+    h = d.hour + d.minute / 60.0
+    dec = math.radians(-23.44 * math.cos(2 * math.pi * (n + 10) / 365.0))
+    lat = math.radians(LAT)
+    ha = math.radians(15.0 * (h - 12.0) + LON)
+    return math.degrees(math.asin(math.sin(lat) * math.sin(dec)
+                                  + math.cos(lat) * math.cos(dec) * math.cos(ha)))
+
+def temp_regime_feats(ws, cf, hour, dp, wd=None, vt=None):
     """[v7.9] Breytur sem eru THEKKTAR vid utgafu (spad, ekki maelt).
-    [v9.1] wd = spad vindatt -> vindur x sunnan-/nordanthattur."""
+    [v9.1] wd = spad vindatt -> vindur x sunnan-/nordanthattur.
+    [v9.3] vt = gildistimi -> nott/dagur eftir solarhaed i stad klukku."""
     ws = min(max(ws or 0.0, 0.0), 12.0)
     cf = min(max(cf if cf is not None else 50.0, 0.0), 100.0)
     night = 1.0 if (hour < 6 or hour >= 21) else 0.0
     day = 1.0 if 12 <= hour < 18 else 0.0
+    if vt:                                   # [v9.3] solarnott
+        try:
+            _el = sun_elevation(vt)
+            night = 1.0 if _el < -2.0 else 0.0
+            day = 1.0 if _el > 8.0 else 0.0
+        except Exception:
+            pass
     clear = (100.0 - cf) / 100.0
     calm = min(max((3.0 - ws) / 3.0, 0.0), 1.0)
     dp = max(-2.0, min(2.0, dp or 0.0))
@@ -3433,7 +3514,7 @@ def fit_temp_regime():
                       and g["w"] and g["c"])[-TEMP_REGIME_N:]
         if len(data) < TEMP_REGIME_MIN: continue
         X = [temp_regime_feats(sum(g["w"]) / len(g["w"]), sum(g["c"]) / len(g["c"]),
-                               int(vt[11:13]), g["dp"], _circ_mean_deg(g["d"]))
+                               int(vt[11:13]), g["dp"], _circ_mean_deg(g["d"]), vt)
              for vt, g in data]
         y = [sum(g["t"]) / len(g["t"]) - g["ob"] for vt, g in data]
         b = _ridge(X, y, TEMP_REGIME_LAM)
@@ -3784,7 +3865,7 @@ def make_forecast(fc, extras, model, obs=None):
         _hr = int(fc["hourly"]["time"][_i][11:13])
         return temp_regime_feats(sum(_ws) / len(_ws) if _ws else None,
                                  sum(_cs) / len(_cs) if _cs else None, _hr, _dpi,
-                                 _circ_mean_deg(_ds))
+                                 _circ_mean_deg(_ds), fc["hourly"]["time"][_i])
     # [v6.6] Frávik nýjustu hitamælingar frá HRÁU meðaltali líkana á mælitíma
     _nc_anom, _nc_tobs = None, None
     try:
@@ -4137,11 +4218,15 @@ def make_forecast(fc, extras, model, obs=None):
 
         temp, wind, prec = wa(T), wa(W), wa(P)
         wdir, cloud      = wang(D), wa(C)
+        _lg = {"t": t, "bl": temp, "wb": wind, "pb": prec, "cb": cloud}   # [v9.3]
         if _trc and temp is not None and i is not None:   # [v7.9]
             try:
                 temp = round(temp - temp_regime_corr(_trc, max(1, lead), _feats_at(i)), 2)
             except Exception:
                 pass
+
+        _lg["tr"] = (round(temp - _lg["bl"], 2)
+                     if temp is not None and _lg["bl"] is not None else None)
 
         # --- RESTLEIDRETTING A JOLLY ---
         # Blondan sjalf getur haft hlutdraegni sem er ekki summa hlutanna.
@@ -4179,10 +4264,15 @@ def make_forecast(fc, extras, model, obs=None):
         J["hourly"]["rb_hiti"].append(_rb)
 
         # [v6.6] Nowcast á fyrstu klukkustundirnar, dvínar með aldri frávíksins
+        _t_pre_nc = temp
         if _nc_anom is not None and temp is not None and lead < NOWCAST_MAX_LEAD:
             _ag = (parse_t(t) - _nc_tobs).total_seconds() / 3600
             if _ag >= 0:
                 temp = round(temp + _nc_anom * math.exp(-_ag / NOWCAST_TAU), 2)
+        _lg["rb"] = _rb
+        _lg["nc"] = (round(temp - _t_pre_nc, 2)
+                     if temp is not None and _t_pre_nc is not None else None)
+        _LAYER_LOG.append(_lg)
         if _ncw_anom is not None and wind is not None and lead < WIND_NOWCAST_MAX_LEAD:
             _agw2 = (parse_t(t) - _ncw_tobs).total_seconds() / 3600
             if _agw2 >= 0:
@@ -4881,6 +4971,11 @@ def _run():
         print(f"  (maelingar dagsins: {_e})")
     print_coverage(model, fc, extras)
     save(model, fcast)
+    if ARCHIVE_RAW_ON:
+        try:
+            archive_raw(fc, extras, fcast, obs, metar)     # [v9.3]
+        except Exception as _e:
+            print(f"  (hragagnasafn sleppt: {_e})")
     try:
         write_summary()          # [v8.2]
     except Exception as _e:
