@@ -290,6 +290,11 @@ SAGA I STUTTU MALI:
         maelingar/METAR. Likan er adeins geymt thegar spa thess breytist
         ("same_as" visar annars a skrana med gognunum). Tilgangur: bakprof
         a ollum spalengdum adur en breytingar fara inn.
+  v9.4  NOWCAST HITA MIDAR VID RETTA BLONDU: fravik nyjustu maelingar var
+        reiknad a moti OVEGNU medaltali 7 likana en lagt ofan a VEGNA,
+        leidretta blondu Jolly. Thegar likon eru osammala (15.nov kl 19:
+        -3° til -11°) munar miklu: maelt -3.7°, Jolly syndi -1.4°. Nu er
+        fravikid faert yfir a vegnu blonduna (fannst med nyja lagasafninu).
 """
 
 
@@ -326,7 +331,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "9.3"
+JOLLY_VERSION = "9.4"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -3868,6 +3873,7 @@ def make_forecast(fc, extras, model, obs=None):
                                  _circ_mean_deg(_ds), fc["hourly"]["time"][_i])
     # [v6.6] Frávik nýjustu hitamælingar frá HRÁU meðaltali líkana á mælitíma
     _nc_anom, _nc_tobs = None, None
+    _nc_fixed = False        # [v9.4]
     try:
         _cand = [o for o in (obs or []) if o.get("temperature") is not None]
         if _cand:
@@ -4264,6 +4270,24 @@ def make_forecast(fc, extras, model, obs=None):
         J["hourly"]["rb_hiti"].append(_rb)
 
         # [v6.6] Nowcast á fyrstu klukkustundirnar, dvínar með aldri frávíksins
+        if _nc_anom is not None and not _nc_fixed and temp is not None and i is not None:
+            _nc_fixed = True     # [v9.4] fravik midad vid vegnu blonduna, einu sinni
+            try:
+                _v9 = []
+                for _api in MODELS.values():
+                    _a9 = fc["hourly"].get(f"temperature_2m_{_api}", [])
+                    if i < len(_a9) and _a9[i] is not None:
+                        _v9.append(_a9[i])
+                if len(_v9) >= 5:
+                    _um = sum(_v9) / len(_v9)
+                    if _trc:
+                        _um -= temp_regime_corr(_trc, 1, _feats_at(i))
+                    _off = _um - temp
+                    _nc_anom = _nc_anom + _off
+                    print(f"  NOWCAST (v9.4): ovegid medaltal {_um:.1f}° en vegin blanda "
+                          f"{temp:.1f}° -> fravik faert um {_off:+.2f}° i {_nc_anom:+.2f}°")
+            except Exception as _e:
+                print(f"  (nowcast-faersla sleppt: {_e})")
         _t_pre_nc = temp
         if _nc_anom is not None and temp is not None and lead < NOWCAST_MAX_LEAD:
             _ag = (parse_t(t) - _nc_tobs).total_seconds() / 3600
