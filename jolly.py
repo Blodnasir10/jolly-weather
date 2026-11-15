@@ -274,6 +274,9 @@ SAGA I STUTTU MALI:
         nordanthattur) og minni lengt 300 -> 900 klst. Bakprof 1.okt-13.nov:
         hvoss N-att 2.2° -> 0.4°, heild 6kl 1.17->1.12, 12kl 1.23->1.19,
         24kl 1.29->1.25, 48kl 1.45->1.39.
+  v9.2  OPEN-METEO ENDURREYNT: 13.-14.nov fell um 40% keyrslna thvi tenging vid
+        Open-Meteo rann ut a tima (SSL handshake) og keyrslan hrundi. Nu er
+        reynt allt ad 4 sinnum (10/20/40 sek bid) adur en gefist er upp.
 """
 
 
@@ -310,7 +313,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "9.1"
+JOLLY_VERSION = "9.2"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -1585,7 +1588,16 @@ def fetch_forecasts():
            f"&past_days=1&forecast_days=6"
            f"&timezone=UTC&wind_speed_unit=ms")
     try:
-        d = fetch_url(url)
+        d = None
+        for _try in range(4):               # [v9.2] endurreyna vid nettruflun
+            try:
+                d = fetch_url(url, timeout=45)
+                break
+            except Exception as _e:
+                if _try == 3: raise
+                print(f"  (tilraun {_try + 1} mistokst: {_e} - reyni aftur)")
+                import time as _time
+                _time.sleep(10 * (2 ** _try))
         print(f"  OK {len(d['hourly']['time'])} timapunktar")
         for k, api in MODELS.items():
             t = d["hourly"].get(f"temperature_2m_{api}", [])
