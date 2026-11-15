@@ -85,6 +85,8 @@ jobs:
           git config user.email "jolly@weather.bot"
 
           git add -A docs/data/*.json docs/data/*.log docs/data/verify/*.csv 2>/dev/null || true
+          # [v9.3] Hrágagnasafn: ein þjöppuð skrá per keyrslu, utan vefsíðunnar
+          git add -A archive 2>/dev/null || true
 
           if git diff --cached --quiet; then
             echo "Engar breytingar til að vista."
