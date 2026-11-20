@@ -295,6 +295,15 @@ SAGA I STUTTU MALI:
         leidretta blondu Jolly. Thegar likon eru osammala (15.nov kl 19:
         -3° til -11°) munar miklu: maelt -3.7°, Jolly syndi -1.4°. Nu er
         fravikid faert yfir a vegnu blonduna (fannst med nyja lagasafninu).
+  v9.5  OPEN-METEO: LENGRA MILLIBIL + VARALEID. 18.-20.nov hrundu 8 keyrslur:
+        Open-Meteo svaradi ekki (4 tilraunir a 1.5 min dugdu ekki) eda hafnadi
+        "429 of margar beidnir" - kvotinn er a IP-tolu og GitHub-velar deila
+        IP-tolum med odrum. Nu: (1) 6 tilraunir dreifdar a ~12 min,
+        (2) ef allt bregst notar Jolly sidustu Open-Meteo gogn ur
+        hragagnasafninu (mest 12 klst gomul) asamt nyjum gognum fra
+        Vedurstofu, yr.no og maelingum - keyrslan hrynur ekki, og
+        (3) skrain .om_fallback lætur GitHub raesa EINA nyja keyrslu a nyrri
+        vel (likl. ny IP-tala) sem saekir fersk gogn.
 """
 
 
@@ -331,7 +340,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "9.4"
+JOLLY_VERSION = "9.5"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -863,6 +872,69 @@ def load_json(path, default):
 ARCHIVE_RAW_ON  = True
 ARCHIVE_RAW_DIR = Path("archive")
 _LAYER_LOG = []          # eitt dict per spaklukkustund, fyllt i make_forecast
+OM_FALLBACK = None       # [v9.5] {"from": keyrsla, "age_h": klst} ef varaleid notud
+OM_FALLBACK_MAX_AGE_H = 12
+OM_RETRY_WAITS = [30, 60, 120, 240, 270]   # sek a milli tilrauna (~12 min alls)
+
+def om_from_archive(max_age_h=OM_FALLBACK_MAX_AGE_H):
+    """[v9.5] Endurbyggir sidasta Open-Meteo svar ur hragagnasafninu.
+    Skilar (gogn, aldur_klst, keyrsla) eda (None, None, None)."""
+    import gzip
+    st = load_json(ARCHIVE_RAW_DIR / "state.json", {})
+    if not st.get("om_time"):
+        return None, None, None
+    cache = {}
+    def rec_of(ref):
+        if ref not in cache:
+            with gzip.open(ARCHIVE_RAW_DIR / ref) as f:
+                cache[ref] = json.loads(f.read().decode("utf-8"))
+        return cache[ref]
+    # Hvenaer naedist sidast i FERSK Open-Meteo gogn? Nyjasta skra sem
+    # hefur om_time og er ekki sjalf varaleid.
+    files = sorted(ARCHIVE_RAW_DIR.glob("*/*.json.gz"))[-(max_age_h + 3):]
+    last_ok = None
+    for p in reversed(files):
+        try:
+            r = rec_of(f"{p.parent.name}/{p.name}")
+        except Exception:
+            continue
+        if r.get("om_fallback"):
+            continue
+        if "om_time" in (r.get("sources") or {}):
+            last_ok = r.get("run"); break
+    if not last_ok:
+        return None, None, None
+    age = (datetime.now(timezone.utc)
+           - datetime.strptime(last_ok, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+           ).total_seconds() / 3600.0
+    if age > max_age_h:
+        print(f"  varaleid: sidustu Open-Meteo gogn {age:.1f} klst gomul - of gomul")
+        return None, None, None
+    def data_of(key):
+        e = st.get(key)
+        if not e:
+            return None
+        return (rec_of(e["f"]).get("sources", {}).get(key) or {}).get("data")
+    times = data_of("om_time")
+    if not times:
+        return None, None, None
+    now_h = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:00")
+    if now_h not in times:
+        print("  varaleid: nuverandi klukkustund er ekki i eldri gognum")
+        return None, None, None
+    hourly = {"time": times}
+    n_ok = 0
+    for k, api in MODELS.items():
+        dd = data_of(k)
+        if not dd:
+            continue
+        for var, vals in dd.items():
+            if isinstance(vals, list) and len(vals) == len(times):
+                hourly[f"{var}_{api}"] = vals
+        n_ok += 1
+    if n_ok < 5:
+        return None, None, None
+    return {"hourly": hourly}, age, last_ok
 
 def archive_raw(fc, extras, fcast, obs, metar):
     import gzip, hashlib
@@ -900,6 +972,8 @@ def archive_raw(fc, extras, fcast, obs, metar):
     rec["obs"] = obs[-6:] if isinstance(obs, list) else None
     rec["metar"] = metar[-6:] if isinstance(metar, list) else None
     rec["foehn"] = globals().get("FOEHN")
+    if OM_FALLBACK:
+        rec["om_fallback"] = OM_FALLBACK          # [v9.5]
     blob = gzip.compress(json.dumps(rec, separators=(",", ":"), default=str,
                                     ensure_ascii=False).encode("utf-8"), 9)
     with open(d / name, "wb") as f:
@@ -1654,18 +1728,22 @@ def fetch_forecasts():
            f"&models={','.join(MODELS.values())}"
            f"&past_days=1&forecast_days=6"
            f"&timezone=UTC&wind_speed_unit=ms")
+    global OM_FALLBACK
     try:
         d = None
-        for _try in range(4):               # [v9.2] endurreyna vid nettruflun
+        _n = len(OM_RETRY_WAITS) + 1        # [v9.5] 6 tilraunir a ~12 min
+        for _try in range(_n):
             try:
                 d = fetch_url(url, timeout=45)
                 break
             except Exception as _e:
-                if _try == 3: raise
-                print(f"  (tilraun {_try + 1} mistokst: {_e} - reyni aftur)")
+                if _try == _n - 1: raise
+                _w = OM_RETRY_WAITS[_try]
+                print(f"  (tilraun {_try + 1} mistokst: {_e} - reyni aftur eftir {_w} sek)")
                 import time as _time
-                _time.sleep(10 * (2 ** _try))
-        print(f"  OK {len(d['hourly']['time'])} timapunktar")
+                _time.sleep(_w)
+        print(f"  OK {len(d['hourly']['time'])} timapunktar"
+              + (f" (tilraun {_try + 1})" if _try else ""))
         for k, api in MODELS.items():
             t = d["hourly"].get(f"temperature_2m_{api}", [])
             n = len([x for x in t if x is not None])
@@ -1673,6 +1751,24 @@ def fetch_forecasts():
         return d
     except Exception as e:
         print(f"  VILLA: {e}")
+        # [v9.5] VARALEID: sidustu Open-Meteo gogn ur hragagnasafninu
+        try:
+            d, age, src = om_from_archive()
+        except Exception as _e:
+            d, age, src = None, None, None
+            print(f"  varaleid mistokst: {_e}")
+        try:
+            Path(".om_fallback").write_text(str(e))   # -> GitHub raesir nyja keyrslu
+        except Exception:
+            pass
+        if d:
+            OM_FALLBACK = {"from": src, "age_h": round(age, 1), "error": str(e)[:120]}
+            print(f"  VARALEID: nota Open-Meteo gogn fra {src} ({age:.1f} klst gomul)")
+            for k, api in MODELS.items():
+                t = d["hourly"].get(f"temperature_2m_{api}", [])
+                n = len([x for x in t if x is not None])
+                print(f"    {k:6s} {n:4d} gildi (eldri gogn)")
+            return d
         return None
 
 WEATHER_TO_CLOUD = {
