@@ -11,6 +11,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      endurkeyrsla:
+        description: 'Sjálfvirk endurkeyrsla eftir að Open-Meteo brást (ja/nei)'
+        required: false
+        default: 'nei'
 
 # Aðeins EIN keyrsla í einu. Ef ný keyrsla byrjar meðan önnur er í gangi
 # bíður hún í stað þess að keyra samhliða - tvær samhliða keyrslur skrifa
@@ -24,6 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: write      # [v9.5] til að ræsa nýja keyrslu ef Open-Meteo bregst
 
     steps:
       - name: 📥 Sækja kóða
@@ -58,6 +64,7 @@ jobs:
         run: pip install requests
 
       - name: 🌦️ Keyra Jolly
+        id: jolly
         if: steps.guard.outputs.run == 'true'
         run: python jolly.py
 
@@ -115,3 +122,19 @@ jobs:
 
           echo "::error::Gat ekki vistað eftir 5 tilraunir."
           exit 1
+
+      # [v9.5] Ef Open-Meteo svaraði ekki (Jolly notaði eldri gögn eða hrundi)
+      # er ræst EIN ný keyrsla. Hún fær nýja vél og líklega nýja IP-tölu,
+      # sem hjálpar þegar Open-Meteo hafnar sameiginlegri IP-tölu (429).
+      # Endurkeyrsla ræsir aldrei aðra, svo þetta getur ekki farið í hring.
+      - name: 🔁 Ný tilraun á nýrri vél ef Open-Meteo brást
+        if: always() && steps.guard.outputs.run == 'true' && github.event.inputs.endurkeyrsla != 'ja'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -f .om_fallback ] || [ "${{ steps.jolly.outcome }}" = "failure" ]; then
+            echo "Open-Meteo brást - ræsi eina nýja keyrslu á nýrri vél."
+            gh workflow run jolly.yml --ref main -f endurkeyrsla=ja
+          else
+            echo "Open-Meteo svaraði - engin endurkeyrsla þörf."
+          fi
