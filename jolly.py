@@ -304,6 +304,16 @@ SAGA I STUTTU MALI:
         Vedurstofu, yr.no og maelingum - keyrslan hrynur ekki, og
         (3) skrain .om_fallback lætur GitHub raesa EINA nyja keyrslu a nyrri
         vel (likl. ny IP-tala) sem saekir fersk gogn.
+  v9.6  ORYGGISNET UM LIKONIN: Jolly ma ekki fara meira en 1.5° ut fyrir bil
+        likananna (hrar spar allra 9) a 3-5 klst og 1.0° fra 6 klst. Undir
+        3 klst ekkert net, thvi nowcast fylgir nyjustu maelingu. Bakprof
+        aug-nov: 6kl 1.31->1.28, 12kl 1.46->1.41, 24kl 1.56->1.51,
+        48kl 1.81->1.70; okt-nov og eftir 15.nov betra a ollum spalengdum.
+        Hefdi takmarkad villuna 14.nov (+3.4° thegar oll likon syndu frost).
+        + FOLSKAR VIDVARANIR: krufning a skyjum leyfir nu 8 %-stiga mun
+        (EMA-thjalfun milli utgafu og stadfestingar faerir blonduna um allt
+        ad ~6 stig), og thrihyrningsvorn sleppir vindatt (hringmedaltal
+        hlytur ekki thrihyrningsojofnunni thegar likon dreifast).
 """
 
 
@@ -340,7 +350,7 @@ SAGA I STUTTU MALI:
 #  JOLLY UTGAFA - eina talan sem skiptir mali. Skraarnafnid (jolly_v19)
 #  er bara vinnuheiti; ÞETTA er raunveruleg utgafa kodans.
 # ═══════════════════════════════════════════════════════════════════════
-JOLLY_VERSION = "9.5"
+JOLLY_VERSION = "9.6"
 
 import json, math, re, sys
 import urllib.request, urllib.error
@@ -875,6 +885,14 @@ _LAYER_LOG = []          # eitt dict per spaklukkustund, fyllt i make_forecast
 OM_FALLBACK = None       # [v9.5] {"from": keyrsla, "age_h": klst} ef varaleid notud
 OM_FALLBACK_MAX_AGE_H = 12
 OM_RETRY_WAITS = [30, 60, 120, 240, 270]   # sek a milli tilrauna (~12 min alls)
+KRUFNING_TOL = 8.0       # [v9.6] sky, %-stig (var 2.0 - EMA-rek gaf folskar vidvaranir)
+
+def temp_envelope_margin(lead):
+    """[v9.6] Hve langt (°C) Jolly ma fara ut fyrir bil likananna.
+    None = ekkert net (nowcast a fyrstu klst fylgir maelingu)."""
+    if lead < 3:
+        return None
+    return 1.5 if lead < 6 else 1.0
 
 def om_from_archive(max_age_h=OM_FALLBACK_MAX_AGE_H):
     """[v9.5] Endurbyggir sidasta Open-Meteo svar ur hragagnasafninu.
@@ -2727,7 +2745,8 @@ def truth_print(tbl):
         if wsum > 0:
             w_avg = acc_w / wsum
             tag = f"n={n_rows}, {n_exact} nakvaem" if n_exact else f"n={n_rows}, allt varaleid"
-            if j[0] > w_avg * 1.02:      # 2% svigrum fyrir namundun
+            # [v9.6] vindatt undanskilin: hringmedaltal hlytur ekki ojofnunni
+            if var != "att" and j[0] > w_avg * 1.02:      # 2% svigrum fyrir namundun
                 print(f"      OMOGULEGT: Jolly ({j[0]:.2f}) > VEGID "
                       f"medaltal medlima ({w_avg:.2f}, {tag}).")
                 print(f"      Thrihyrningsojafnan brotin - blondun eda "
@@ -3036,7 +3055,7 @@ def verify_and_train(arch, obs_history, model):
                 print(f"    REIKNUD BLANDA        {_blend:6.1f}")
                 print(f"    GEYMD JOLLY-SPA       {_jf:6.1f}"
                       f"   mismunur {_jf - _blend:+.1f}")
-                if abs(_jf - _blend) > 2.0:
+                if abs(_jf - _blend) > KRUFNING_TOL:     # [v9.6] var 2.0
                     print(f"    OSAMRAEMI: geymd spa passar EKKI vid blondu.")
                     warn(f"KRUFNING: geymd Jolly-spa ({_jf:.1f}) passar ekki "
                          f"vid blondu ({_blend:.1f})", alvarlegt=True)
@@ -4142,6 +4161,7 @@ def make_forecast(fc, extras, model, obs=None):
         J["hourly"]["lead_hours"].append(lead)
 
         T, W, P, D, C = [], [], [], [], []
+        _rawT = []               # [v9.6] hrar hitaspar allra gjafa (fyrir oryggisnet)
 
         # Reitur thessarar klukkustundar fyrir skilyrt bias.
         # Vindatt framtidar er ekki maeld, svo vid notum GROFA attarspa
@@ -4231,6 +4251,7 @@ def make_forecast(fc, extras, model, obs=None):
                              g("cloud_cover_high"), g("cloud_cover"))
 
             ct  = round(rt + cb_hiti, 1)                  if rt is not None else None
+            if rt is not None: _rawT.append(rt)          # [v9.6]
             cw  = round(max(0, rw + cb_vindur), 1)        if rw is not None else None
             cp  = apply_precip(rp, cb_scale, cb_thr)
             cc  = correct_cloud(rc, model, m, bs)
@@ -4284,6 +4305,7 @@ def make_forecast(fc, extras, model, obs=None):
             xC = total_cloud(ge("cloud_low"), ge("cloud_mid"),
                              ge("cloud_high"), ge("cloud_cover"))
             ct = round(xT + xcb_hiti, 1)                   if xT is not None else None
+            if xT is not None: _rawT.append(xT)          # [v9.6]
             cw = round(max(0, xW + xcb_vindur), 1)         if xW is not None else None
             cp = apply_precip(xP, xcb_scale, xcb_thr)
             cc = correct_cloud(xC, model, k, bs)
@@ -4392,6 +4414,14 @@ def make_forecast(fc, extras, model, obs=None):
         _lg["rb"] = _rb
         _lg["nc"] = (round(temp - _t_pre_nc, 2)
                      if temp is not None and _t_pre_nc is not None else None)
+        # [v9.6] ORYGGISNET: Jolly ma ekki fara langt ut fyrir bil likananna
+        _lg["env"] = 0.0
+        _mg = temp_envelope_margin(lead)
+        if _mg is not None and temp is not None and len(_rawT) >= 6:
+            _tc = min(max(_rawT) + _mg, max(min(_rawT) - _mg, temp))
+            if abs(_tc - temp) > 1e-9:
+                _lg["env"] = round(_tc - temp, 2)
+                temp = round(_tc, 2)
         _LAYER_LOG.append(_lg)
         if _ncw_anom is not None and wind is not None and lead < WIND_NOWCAST_MAX_LEAD:
             _agw2 = (parse_t(t) - _ncw_tobs).total_seconds() / 3600
